@@ -17,6 +17,7 @@ env/
 
 # Audio (large files — keep only source)
 *.mp3
+cold-day.mp3
 
 # macOS
 .DS_Store
