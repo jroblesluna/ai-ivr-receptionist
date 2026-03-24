@@ -165,4 +165,8 @@ TOPICS = {
             ),
         },
     },
+    "direct": {
+        "en": {"label": "Direct Transfer (Whitelisted)", "greeting": "", "system_extra": ""},
+        "es": {"label": "Transferencia Directa (Lista Blanca)", "greeting": "", "system_extra": ""},
+    },
 }
