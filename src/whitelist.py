@@ -2,7 +2,7 @@ import json
 import os
 
 WHITELIST_PATH = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..", "whitelist.json")
+    os.path.join(os.path.dirname(__file__), "whitelist.json")
 )
 
 
