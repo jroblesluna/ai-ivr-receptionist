@@ -47,15 +47,20 @@ def connect_operator():
     resp.append(dial)
 
     # Llamar al operador; cuando conteste, escucha el briefing y luego se une a la conferencia
-    outbound = twilio_client().calls.create(
-        to=FORWARD_TO,
-        from_=TWILIO_FROM,
-        url=f"{base_url}/operator-briefing?caller_sid={caller_sid}&room={room}&lang={lang}",
-        status_callback=f"{base_url}/operator-status?room={room}&caller_sid={caller_sid}&lang={lang}",
-        status_callback_method="POST",
-        status_callback_event=["completed"],
-    )
-    outbound_calls[room] = outbound.sid
+    print(f"[CONNECT-OPERATOR] caller_sid={caller_sid!r} room={room!r} to={FORWARD_TO!r} from={TWILIO_FROM!r}")
+    try:
+        outbound = twilio_client().calls.create(
+            to=FORWARD_TO,
+            from_=TWILIO_FROM,
+            url=f"{base_url}/operator-briefing?caller_sid={caller_sid}&room={room}&lang={lang}",
+            status_callback=f"{base_url}/operator-status?room={room}&caller_sid={caller_sid}&lang={lang}",
+            status_callback_method="POST",
+            status_callback_event=["completed"],
+        )
+        outbound_calls[room] = outbound.sid
+        print(f"[CONNECT-OPERATOR] Outbound call created: {outbound.sid}")
+    except Exception as e:
+        print(f"[CONNECT-OPERATOR ERROR] Failed to create outbound call: {e}")
     return str(resp)
 
 

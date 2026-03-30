@@ -1,0 +1,521 @@
+{
+  "robles_ai": {
+    "id": "robles_ai",
+    "name": "Robles AI University",
+    "industry": "Technology & Education",
+    "topics": {
+      "meeting": {
+        "digit": "1",
+        "meeting_type": true,
+        "en": {
+          "label": "Meeting Scheduling",
+          "menu_text": "Press 1 to Schedule a Meeting.",
+          "greeting": "Hi! I'm the Robles AI scheduling assistant. I'll get your information so our team can connect with you right away. Could I start with your name?",
+          "system_extra": "The caller wants to schedule a meeting with our team. Ask for name and confirm callback number only. Do NOT ask for date, time, or topic — the human team will handle that directly.",
+          "questions": []
+        },
+        "es": {
+          "label": "Agendado de Reuniones",
+          "menu_text": "Presione 1 para Agendar una Reunión.",
+          "greeting": "¡Hola! Soy el asistente de agendado de Robles AI. Tomaré sus datos para que nuestro equipo pueda contactarle de inmediato. ¿Podría comenzar diciéndome su nombre?",
+          "system_extra": "El llamante desea agendar una reunión con nuestro equipo. Pida nombre y confirme el número de rellamada. NO pregunte por fecha, hora ni tema.",
+          "questions": []
+        }
+      },
+      "ai_ml": {
+        "digit": "3",
+        "meeting_type": false,
+        "en": {
+          "label": "AI & Machine Learning Services",
+          "menu_text": "Press 3 for Artificial Intelligence and Machine Learning Services.",
+          "greeting": "Hi! I'm the Robles AI pre-screening assistant for AI and Machine Learning services. I'll collect some quick information to connect you with the right specialist. Could you please tell me your name?",
+          "system_extra": "The caller is interested in AI and Machine Learning services. Collect their info to connect them with a specialist.",
+          "questions": [
+            "What specific AI or Machine Learning challenge, use case, or project are you looking to address?",
+            "What industry or sector does your business operate in?",
+            "Do you currently have any data infrastructure, datasets, or existing AI systems in place?"
+          ]
+        },
+        "es": {
+          "label": "Servicios de IA y Machine Learning",
+          "menu_text": "Presione 3 para Servicios de Inteligencia Artificial y Machine Learning.",
+          "greeting": "¡Hola! Soy el asistente de preselección de Robles AI para servicios de IA y Machine Learning. Recopilaré algunos datos para conectarle con el especialista correcto. ¿Podría decirme su nombre?",
+          "system_extra": "El llamante está interesado en servicios de IA y Machine Learning. Recopile su información para conectarle con un especialista.",
+          "questions": [
+            "¿Cuál es el reto, caso de uso o proyecto de IA o Machine Learning que desea abordar?",
+            "¿En qué industria o sector opera su empresa?",
+            "¿Cuenta actualmente con infraestructura de datos, datasets o sistemas de IA existentes?"
+          ]
+        }
+      },
+      "computer_vision": {
+        "digit": "4",
+        "meeting_type": false,
+        "en": {
+          "label": "Computer Vision Services",
+          "menu_text": "Press 4 for Computer Vision Services.",
+          "greeting": "Hi! I'm the Robles AI pre-screening assistant for Computer Vision services. I'll collect some quick information to connect you with the right specialist. Could you please tell me your name?",
+          "system_extra": "The caller is interested in Computer Vision services. Collect their info to connect them with a specialist.",
+          "questions": [
+            "What type of visual input will the system process — images, video, or live camera feeds?",
+            "What is the main objective — object detection, image classification, facial recognition, video analysis, or something else?",
+            "Approximately what scale does this need to operate at — how many images or video streams per day?"
+          ]
+        },
+        "es": {
+          "label": "Servicios de Visión por Computadora",
+          "menu_text": "Presione 4 para Servicios de Visión por Computadora.",
+          "greeting": "¡Hola! Soy el asistente de preselección de Robles AI para servicios de Visión por Computadora. Recopilaré algunos datos para conectarle con el especialista correcto. ¿Podría decirme su nombre?",
+          "system_extra": "El llamante está interesado en servicios de Visión por Computadora. Recopile su información para conectarle con un especialista.",
+          "questions": [
+            "¿Qué tipo de entrada visual procesará el sistema — imágenes, video o cámaras en tiempo real?",
+            "¿Cuál es el objetivo principal — detección de objetos, clasificación de imágenes, reconocimiento facial, análisis de video u otro?",
+            "¿A qué escala necesita operar la solución — aproximadamente cuántas imágenes o transmisiones de video por día?"
+          ]
+        }
+      },
+      "customer_service": {
+        "digit": "5",
+        "meeting_type": false,
+        "en": {
+          "label": "Customer Service",
+          "menu_text": "Press 5 for Customer Service.",
+          "greeting": "Hi! I'm the Robles AI pre-screening assistant for Customer Service. I'll collect some quick information to connect you with the right agent. Could you please tell me your name?",
+          "system_extra": "The caller needs customer service support. Collect their info to connect them with an agent.",
+          "questions": [
+            "Which product or service is your inquiry related to?",
+            "Can you briefly describe the issue or problem you are experiencing?",
+            "Is this an urgent issue currently affecting your operations, or is it a general inquiry?"
+          ]
+        },
+        "es": {
+          "label": "Servicio al Cliente",
+          "menu_text": "Presione 5 para Servicio al Cliente.",
+          "greeting": "¡Hola! Soy el asistente de preselección de Robles AI para Servicio al Cliente. Recopilaré algunos datos para conectarle con el agente correcto. ¿Podría decirme su nombre?",
+          "system_extra": "El llamante necesita soporte de servicio al cliente. Recopile su información para conectarle con un agente.",
+          "questions": [
+            "¿Con cuál producto o servicio está relacionada su consulta?",
+            "¿Podría describir brevemente el problema o inconveniente que está experimentando?",
+            "¿Es un problema urgente que está afectando sus operaciones, o es una consulta general?"
+          ]
+        }
+      }
+    }
+  },
+
+  "sweet_crust_bakery": {
+    "id": "sweet_crust_bakery",
+    "name": "Sweet Crust Bakery",
+    "industry": "Food & Beverage",
+    "topics": {
+      "meeting": {
+        "digit": "1",
+        "meeting_type": true,
+        "en": {
+          "label": "Order Consultation",
+          "menu_text": "Press 1 to Schedule an Order Consultation.",
+          "greeting": "Hi! I'm the Sweet Crust Bakery assistant. I'd love to help you with your order. Let me get your details so our team can reach out to you. Could I start with your name?",
+          "system_extra": "The caller wants to schedule an order consultation with our bakery team. Ask for name and confirm callback number only.",
+          "questions": []
+        },
+        "es": {
+          "label": "Consulta de Pedido",
+          "menu_text": "Presione 1 para Agendar una Consulta de Pedido.",
+          "greeting": "¡Hola! Soy el asistente de Sweet Crust Bakery. Con gusto le ayudo con su pedido. Déjeme tomar sus datos para que nuestro equipo le contacte. ¿Podría decirme su nombre?",
+          "system_extra": "El llamante desea agendar una consulta de pedido con nuestro equipo. Pida nombre y confirme el número de rellamada.",
+          "questions": []
+        }
+      },
+      "custom_cakes": {
+        "digit": "3",
+        "meeting_type": false,
+        "en": {
+          "label": "Custom Cakes & Pastries",
+          "menu_text": "Press 3 for Custom Cakes and Pastries.",
+          "greeting": "Hi! I'm the Sweet Crust Bakery pre-screening assistant for Custom Cakes and Pastries. I'll take some quick details to connect you with our cake specialists. What is your name?",
+          "system_extra": "The caller is interested in ordering a custom cake or pastry. Collect their info to connect them with a specialist.",
+          "questions": [
+            "What type of cake or pastry are you looking for — a wedding cake, birthday cake, special occasion, or everyday items?",
+            "How many servings do you need, and when is your desired pickup or delivery date?",
+            "Do you have any dietary restrictions, flavor preferences, or design ideas in mind?"
+          ]
+        },
+        "es": {
+          "label": "Pasteles y Repostería Personalizada",
+          "menu_text": "Presione 3 para Pasteles y Repostería Personalizada.",
+          "greeting": "¡Hola! Soy el asistente de preselección de Sweet Crust Bakery para Pasteles y Repostería Personalizada. Tomaré algunos datos para conectarle con nuestros especialistas. ¿Cuál es su nombre?",
+          "system_extra": "El llamante está interesado en ordenar un pastel o repostería personalizada. Recopile su información para conectarle con un especialista.",
+          "questions": [
+            "¿Qué tipo de pastel o repostería busca — pastel de bodas, cumpleaños, ocasión especial o artículos del día a día?",
+            "¿Cuántas porciones necesita y cuál es la fecha deseada de recogida o entrega?",
+            "¿Tiene alguna restricción alimentaria, preferencia de sabor o idea de diseño en mente?"
+          ]
+        }
+      },
+      "catering": {
+        "digit": "4",
+        "meeting_type": false,
+        "en": {
+          "label": "Catering & Events",
+          "menu_text": "Press 4 for Catering and Events.",
+          "greeting": "Hi! I'm the Sweet Crust Bakery pre-screening assistant for Catering and Events. I'll collect some details to connect you with our catering team. Could you tell me your name?",
+          "system_extra": "The caller is interested in catering services for an event. Collect their info to connect them with a specialist.",
+          "questions": [
+            "What type of event are you planning, and how many guests do you expect?",
+            "What types of pastries, breads, or desserts are you looking to feature?",
+            "Where is the event located, and do you require delivery and setup services?"
+          ]
+        },
+        "es": {
+          "label": "Catering y Eventos",
+          "menu_text": "Presione 4 para Catering y Eventos.",
+          "greeting": "¡Hola! Soy el asistente de preselección de Sweet Crust Bakery para Catering y Eventos. Tomaré algunos datos para conectarle con nuestro equipo de catering. ¿Podría decirme su nombre?",
+          "system_extra": "El llamante está interesado en servicios de catering para un evento. Recopile su información para conectarle con un especialista.",
+          "questions": [
+            "¿Qué tipo de evento está planeando y cuántos invitados espera?",
+            "¿Qué tipos de pasteles, panes o postres le gustaría incluir?",
+            "¿Dónde se realizará el evento y necesita servicio de entrega y montaje?"
+          ]
+        }
+      },
+      "customer_service": {
+        "digit": "5",
+        "meeting_type": false,
+        "en": {
+          "label": "Customer Service",
+          "menu_text": "Press 5 for Customer Service.",
+          "greeting": "Hi! I'm the Sweet Crust Bakery customer service assistant. I'll take your details to connect you with our team. Could you tell me your name?",
+          "system_extra": "The caller needs customer service assistance. Collect their info to connect them with an agent.",
+          "questions": [
+            "Is your inquiry related to an existing order, a new order, or a general question about our products?",
+            "Could you briefly describe your concern or the issue you are experiencing?",
+            "Is this matter time-sensitive, or can we follow up within 24 hours?"
+          ]
+        },
+        "es": {
+          "label": "Servicio al Cliente",
+          "menu_text": "Presione 5 para Servicio al Cliente.",
+          "greeting": "¡Hola! Soy el asistente de servicio al cliente de Sweet Crust Bakery. Tomaré sus datos para conectarle con nuestro equipo. ¿Podría decirme su nombre?",
+          "system_extra": "El llamante necesita asistencia de servicio al cliente. Recopile su información para conectarle con un agente.",
+          "questions": [
+            "¿Su consulta está relacionada con un pedido existente, un pedido nuevo o una pregunta general sobre nuestros productos?",
+            "¿Podría describir brevemente su inquietud o el problema que está experimentando?",
+            "¿Es un asunto urgente o podemos darle seguimiento en las próximas 24 horas?"
+          ]
+        }
+      }
+    }
+  },
+
+  "lexis_partners": {
+    "id": "lexis_partners",
+    "name": "Lexis & Partners Law Firm",
+    "industry": "Legal Services",
+    "topics": {
+      "meeting": {
+        "digit": "1",
+        "meeting_type": true,
+        "en": {
+          "label": "Schedule a Consultation",
+          "menu_text": "Press 1 to Schedule a Legal Consultation.",
+          "greeting": "Thank you for calling Lexis and Partners. I'm the pre-screening assistant and I'll get your details so one of our attorneys can reach out to you. May I have your name?",
+          "system_extra": "The caller wants to schedule a legal consultation. Ask for name and confirm callback number only.",
+          "questions": []
+        },
+        "es": {
+          "label": "Agendar una Consulta",
+          "menu_text": "Presione 1 para Agendar una Consulta Legal.",
+          "greeting": "Gracias por llamar a Lexis y Asociados. Soy el asistente de preselección y tomaré sus datos para que uno de nuestros abogados le contacte. ¿Me podría indicar su nombre?",
+          "system_extra": "El llamante desea agendar una consulta legal. Pida nombre y confirme el número de rellamada.",
+          "questions": []
+        }
+      },
+      "family_law": {
+        "digit": "3",
+        "meeting_type": false,
+        "en": {
+          "label": "Family Law",
+          "menu_text": "Press 3 for Family Law.",
+          "greeting": "Thank you for calling Lexis and Partners. I'm the pre-screening assistant for Family Law. I'll take a few quick details to connect you with the right attorney. Could I start with your name?",
+          "system_extra": "The caller needs assistance with a family law matter. Collect their info to connect them with a family law attorney.",
+          "questions": [
+            "What type of family law matter are you dealing with — divorce, child custody, adoption, spousal support, or another issue?",
+            "Are there any urgent court dates, filing deadlines, or protective orders currently in place?",
+            "Have you previously worked with a family law attorney on this matter, or is this your first time seeking legal advice?"
+          ]
+        },
+        "es": {
+          "label": "Derecho de Familia",
+          "menu_text": "Presione 3 para Derecho de Familia.",
+          "greeting": "Gracias por llamar a Lexis y Asociados. Soy el asistente de preselección para Derecho de Familia. Tomaré algunos datos para conectarle con el abogado correcto. ¿Podría decirme su nombre?",
+          "system_extra": "El llamante necesita asistencia en un asunto de derecho de familia. Recopile su información para conectarle con un abogado especializado.",
+          "questions": [
+            "¿Qué tipo de asunto de derecho de familia enfrenta — divorcio, custodia de hijos, adopción, pensión alimenticia u otro?",
+            "¿Existen fechas de audiencia urgentes, plazos de presentación o órdenes de protección activas?",
+            "¿Ha trabajado anteriormente con un abogado de familia en este asunto o es la primera vez que busca asesoría legal?"
+          ]
+        }
+      },
+      "corporate_law": {
+        "digit": "4",
+        "meeting_type": false,
+        "en": {
+          "label": "Corporate & Business Law",
+          "menu_text": "Press 4 for Corporate and Business Law.",
+          "greeting": "Thank you for calling Lexis and Partners. I'm the pre-screening assistant for Corporate and Business Law. I'll collect a few details to connect you with one of our business attorneys. What is your name?",
+          "system_extra": "The caller is inquiring about corporate or business law services. Collect their info to connect them with a specialist.",
+          "questions": [
+            "What type of business entity do you operate — sole proprietorship, LLC, corporation, or are you in the process of forming one?",
+            "What is the nature of your legal need — contract drafting, dispute resolution, compliance, mergers, or another matter?",
+            "Are there any pending transactions, deadlines, or litigation currently involved?"
+          ]
+        },
+        "es": {
+          "label": "Derecho Corporativo y Empresarial",
+          "menu_text": "Presione 4 para Derecho Corporativo y Empresarial.",
+          "greeting": "Gracias por llamar a Lexis y Asociados. Soy el asistente de preselección para Derecho Corporativo y Empresarial. Tomaré algunos datos para conectarle con uno de nuestros abogados corporativos. ¿Cuál es su nombre?",
+          "system_extra": "El llamante consulta sobre servicios de derecho corporativo o empresarial. Recopile su información para conectarle con un especialista.",
+          "questions": [
+            "¿Qué tipo de entidad empresarial opera — empresario individual, LLC, corporación o está en proceso de constituir una?",
+            "¿Cuál es la naturaleza de su necesidad legal — redacción de contratos, resolución de disputas, cumplimiento normativo, fusiones u otro asunto?",
+            "¿Existen transacciones pendientes, plazos o litigios activos en este momento?"
+          ]
+        }
+      },
+      "customer_service": {
+        "digit": "5",
+        "meeting_type": false,
+        "en": {
+          "label": "General Inquiries",
+          "menu_text": "Press 5 for General Inquiries.",
+          "greeting": "Thank you for calling Lexis and Partners. I'm here to help with your general inquiry. Let me take your details so our team can assist you. What is your name?",
+          "system_extra": "The caller has a general inquiry for the law firm. Collect their info to connect them with the right person.",
+          "questions": [
+            "Could you briefly describe the nature of your inquiry?",
+            "Is this related to an existing case or a new matter?",
+            "Is your request time-sensitive, or can we follow up within one business day?"
+          ]
+        },
+        "es": {
+          "label": "Consultas Generales",
+          "menu_text": "Presione 5 para Consultas Generales.",
+          "greeting": "Gracias por llamar a Lexis y Asociados. Estoy aquí para ayudarle con su consulta general. Déjeme tomar sus datos para que nuestro equipo pueda asistirle. ¿Cuál es su nombre?",
+          "system_extra": "El llamante tiene una consulta general para el bufete. Recopile su información para conectarle con la persona adecuada.",
+          "questions": [
+            "¿Podría describir brevemente la naturaleza de su consulta?",
+            "¿Está relacionada con un caso existente o un asunto nuevo?",
+            "¿Su solicitud es urgente o podemos darle seguimiento en el siguiente día hábil?"
+          ]
+        }
+      }
+    }
+  },
+
+  "vita_clinic": {
+    "id": "vita_clinic",
+    "name": "Vita Medical Clinic",
+    "industry": "Healthcare",
+    "topics": {
+      "meeting": {
+        "digit": "1",
+        "meeting_type": true,
+        "en": {
+          "label": "Book an Appointment",
+          "menu_text": "Press 1 to Book an Appointment.",
+          "greeting": "Thank you for calling Vita Medical Clinic. I'm the scheduling assistant and I'll get your details to book your appointment. May I have your name?",
+          "system_extra": "The caller wants to book a medical appointment. Ask for name and confirm callback number only.",
+          "questions": []
+        },
+        "es": {
+          "label": "Agendar una Cita",
+          "menu_text": "Presione 1 para Agendar una Cita.",
+          "greeting": "Gracias por llamar a Clínica Médica Vita. Soy el asistente de agendado y tomaré sus datos para programar su cita. ¿Me podría indicar su nombre?",
+          "system_extra": "El llamante desea agendar una cita médica. Pida nombre y confirme el número de rellamada.",
+          "questions": []
+        }
+      },
+      "general_medicine": {
+        "digit": "3",
+        "meeting_type": false,
+        "en": {
+          "label": "General Medicine",
+          "menu_text": "Press 3 for General Medicine.",
+          "greeting": "Thank you for calling Vita Medical Clinic. I'm the pre-screening assistant for General Medicine. I'll take a few quick details to connect you with the right doctor. What is your name?",
+          "system_extra": "The caller needs a general medicine consultation. Collect their info to connect them with a general practitioner.",
+          "questions": [
+            "What is the main reason for your visit — a new symptom or condition, a follow-up, or a routine checkup?",
+            "Do you have any existing medical conditions, current medications, or known allergies we should be aware of?",
+            "Are you an existing patient at our clinic, or would this be your first visit?"
+          ]
+        },
+        "es": {
+          "label": "Medicina General",
+          "menu_text": "Presione 3 para Medicina General.",
+          "greeting": "Gracias por llamar a Clínica Médica Vita. Soy el asistente de preselección para Medicina General. Tomaré algunos datos para conectarle con el médico correcto. ¿Cuál es su nombre?",
+          "system_extra": "El llamante necesita una consulta de medicina general. Recopile su información para conectarle con un médico general.",
+          "questions": [
+            "¿Cuál es el motivo principal de su visita — un síntoma o condición nueva, seguimiento o chequeo de rutina?",
+            "¿Tiene alguna condición médica preexistente, medicamentos actuales o alergias conocidas que debamos saber?",
+            "¿Es un paciente actual de nuestra clínica o sería su primera visita?"
+          ]
+        }
+      },
+      "pediatrics": {
+        "digit": "4",
+        "meeting_type": false,
+        "en": {
+          "label": "Pediatrics",
+          "menu_text": "Press 4 for Pediatrics.",
+          "greeting": "Thank you for calling Vita Medical Clinic. I'm the pre-screening assistant for Pediatrics. I'll gather a few quick details to connect you with our pediatric team. What is your name?",
+          "system_extra": "The caller needs pediatric care for a child. Collect their info to connect them with a pediatrician.",
+          "questions": [
+            "What is the child's age, and what is the primary reason for the visit?",
+            "Is this a new symptom or illness, a scheduled vaccination, or a routine wellness checkup?",
+            "Does the child have any known allergies, medical history, or current medications we should review?"
+          ]
+        },
+        "es": {
+          "label": "Pediatría",
+          "menu_text": "Presione 4 para Pediatría.",
+          "greeting": "Gracias por llamar a Clínica Médica Vita. Soy el asistente de preselección para Pediatría. Tomaré algunos datos para conectarle con nuestro equipo pediátrico. ¿Cuál es su nombre?",
+          "system_extra": "El llamante necesita atención pediátrica para un niño. Recopile su información para conectarle con un pediatra.",
+          "questions": [
+            "¿Cuál es la edad del niño y cuál es el motivo principal de la visita?",
+            "¿Es un síntoma o enfermedad nueva, una vacuna programada o un chequeo de rutina?",
+            "¿El niño tiene alergias conocidas, historial médico relevante o medicamentos actuales que debamos revisar?"
+          ]
+        }
+      },
+      "customer_service": {
+        "digit": "5",
+        "meeting_type": false,
+        "en": {
+          "label": "Patient Services",
+          "menu_text": "Press 5 for Patient Services.",
+          "greeting": "Thank you for calling Vita Medical Clinic. I'm here to assist with your inquiry. Let me take your details so our team can help you. What is your name?",
+          "system_extra": "The caller has a patient services inquiry. Collect their info to connect them with our patient services team.",
+          "questions": [
+            "Is your inquiry related to billing, medical records, prescriptions, or another matter?",
+            "Could you briefly describe your concern or question?",
+            "Is this urgent, or can we follow up within one business day?"
+          ]
+        },
+        "es": {
+          "label": "Servicios al Paciente",
+          "menu_text": "Presione 5 para Servicios al Paciente.",
+          "greeting": "Gracias por llamar a Clínica Médica Vita. Estoy aquí para ayudarle con su consulta. Déjeme tomar sus datos para que nuestro equipo pueda asistirle. ¿Cuál es su nombre?",
+          "system_extra": "El llamante tiene una consulta de servicios al paciente. Recopile su información para conectarle con nuestro equipo.",
+          "questions": [
+            "¿Su consulta está relacionada con facturación, historial médico, recetas u otro asunto?",
+            "¿Podría describir brevemente su inquietud o pregunta?",
+            "¿Es urgente o podemos darle seguimiento en el siguiente día hábil?"
+          ]
+        }
+      }
+    }
+  },
+
+  "sol_realty": {
+    "id": "sol_realty",
+    "name": "Sol Realty Group",
+    "industry": "Real Estate",
+    "topics": {
+      "meeting": {
+        "digit": "1",
+        "meeting_type": true,
+        "en": {
+          "label": "Schedule a Property Viewing",
+          "menu_text": "Press 1 to Schedule a Property Viewing.",
+          "greeting": "Hi! I'm the Sol Realty Group scheduling assistant. I'll get your details so one of our agents can reach out to you right away. May I have your name?",
+          "system_extra": "The caller wants to schedule a property viewing. Ask for name and confirm callback number only.",
+          "questions": []
+        },
+        "es": {
+          "label": "Agendar una Visita a Propiedad",
+          "menu_text": "Presione 1 para Agendar una Visita a Propiedad.",
+          "greeting": "¡Hola! Soy el asistente de agendado de Sol Realty Group. Tomaré sus datos para que uno de nuestros agentes le contacte de inmediato. ¿Podría decirme su nombre?",
+          "system_extra": "El llamante desea agendar una visita a una propiedad. Pida nombre y confirme el número de rellamada.",
+          "questions": []
+        }
+      },
+      "buy_property": {
+        "digit": "3",
+        "meeting_type": false,
+        "en": {
+          "label": "Buy a Property",
+          "menu_text": "Press 3 to Buy a Property.",
+          "greeting": "Hi! I'm the Sol Realty Group pre-screening assistant for property buyers. I'll take a few quick details to connect you with the right agent. What is your name?",
+          "system_extra": "The caller is interested in buying a property. Collect their info to connect them with a buyer's agent.",
+          "questions": [
+            "What type of property are you looking for — single family home, condo, multi-family, commercial, or land?",
+            "What is your approximate budget range and preferred location or neighborhood?",
+            "Are you pre-approved for a mortgage, or do you need guidance on financing options?"
+          ]
+        },
+        "es": {
+          "label": "Comprar una Propiedad",
+          "menu_text": "Presione 3 para Comprar una Propiedad.",
+          "greeting": "¡Hola! Soy el asistente de preselección de Sol Realty Group para compradores de propiedades. Tomaré algunos datos para conectarle con el agente correcto. ¿Cuál es su nombre?",
+          "system_extra": "El llamante está interesado en comprar una propiedad. Recopile su información para conectarle con un agente de compradores.",
+          "questions": [
+            "¿Qué tipo de propiedad busca — casa unifamiliar, condominio, multifamiliar, comercial o terreno?",
+            "¿Cuál es su rango de presupuesto aproximado y la ubicación o vecindario de su preferencia?",
+            "¿Cuenta con preaprobación hipotecaria o necesita orientación sobre opciones de financiamiento?"
+          ]
+        }
+      },
+      "sell_property": {
+        "digit": "4",
+        "meeting_type": false,
+        "en": {
+          "label": "Sell a Property",
+          "menu_text": "Press 4 to Sell a Property.",
+          "greeting": "Hi! I'm the Sol Realty Group pre-screening assistant for property sellers. I'll gather a few quick details to connect you with one of our listing agents. What is your name?",
+          "system_extra": "The caller is looking to sell a property. Collect their info to connect them with a listing agent.",
+          "questions": [
+            "What type of property are you looking to sell, and where is it located?",
+            "Are you looking for a quick sale, or do you prefer to wait for the best market offer?",
+            "Has the property been recently appraised or listed before, or would you need a market evaluation?"
+          ]
+        },
+        "es": {
+          "label": "Vender una Propiedad",
+          "menu_text": "Presione 4 para Vender una Propiedad.",
+          "greeting": "¡Hola! Soy el asistente de preselección de Sol Realty Group para vendedores de propiedades. Tomaré algunos datos para conectarle con uno de nuestros agentes de listados. ¿Cuál es su nombre?",
+          "system_extra": "El llamante desea vender una propiedad. Recopile su información para conectarle con un agente de listados.",
+          "questions": [
+            "¿Qué tipo de propiedad desea vender y dónde está ubicada?",
+            "¿Busca una venta rápida o prefiere esperar la mejor oferta del mercado?",
+            "¿La propiedad ha sido tasada o listada recientemente, o necesitaría una evaluación de mercado?"
+          ]
+        }
+      },
+      "customer_service": {
+        "digit": "5",
+        "meeting_type": false,
+        "en": {
+          "label": "Client Services",
+          "menu_text": "Press 5 for Client Services.",
+          "greeting": "Hi! I'm the Sol Realty Group client services assistant. I'll take your details so our team can help you. What is your name?",
+          "system_extra": "The caller has a client services inquiry. Collect their info to connect them with the appropriate team member.",
+          "questions": [
+            "Is your inquiry related to an active listing, a closed transaction, property management, or a general question?",
+            "Could you briefly describe your concern or what you need assistance with?",
+            "Is this matter time-sensitive, or can we follow up within one business day?"
+          ]
+        },
+        "es": {
+          "label": "Servicios al Cliente",
+          "menu_text": "Presione 5 para Servicios al Cliente.",
+          "greeting": "¡Hola! Soy el asistente de servicios al cliente de Sol Realty Group. Tomaré sus datos para que nuestro equipo pueda ayudarle. ¿Cuál es su nombre?",
+          "system_extra": "El llamante tiene una consulta de servicios al cliente. Recopile su información para conectarle con el miembro del equipo adecuado.",
+          "questions": [
+            "¿Su consulta está relacionada con un listado activo, una transacción cerrada, administración de propiedades o una pregunta general?",
+            "¿Podría describir brevemente su inquietud o en qué necesita asistencia?",
+            "¿Es un asunto urgente o podemos darle seguimiento en el siguiente día hábil?"
+          ]
+        }
+      }
+    }
+  }
+}
