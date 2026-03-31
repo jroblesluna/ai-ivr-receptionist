@@ -7,6 +7,7 @@ from state import conversation_store, collected_info
 from topics import TOPICS
 from helpers import get_voice, get_gather_language
 from prompts import get_system_prompt
+from email_helper import send_report_email
 
 ai_bp = Blueprint("ai", __name__)
 
@@ -158,6 +159,15 @@ def ai_respond():
             print(f"  Language   : {'English' if lang == 'en' else 'Español'}")
             print(f"  Preferred  : {preferred}")
             print(f"{'='*50}\n")
+            send_report_email(
+                subject=f"[IVR] Callback Request — {info.get('caller_from', 'unknown')}",
+                body="\n".join([
+                    f"CALLBACK REQUEST — {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+                    f"Caller    : {info.get('caller_from', 'unknown')}",
+                    f"Language  : {'English' if lang == 'en' else 'Español'}",
+                    f"Preferred : {preferred}",
+                ]),
+            )
             resp.hangup()
         else:
             resp.hangup()

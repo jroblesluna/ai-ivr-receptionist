@@ -7,6 +7,8 @@ from config import ACCOUNT_SID, AUTH_TOKEN, TWILIO_FROM, FORWARD_TO, openai_clie
 from state import collected_info, outbound_calls, failed_rooms, briefed_rooms
 from topics import TOPICS
 from helpers import get_voice
+from use_case_loader import get_company_name
+from email_helper import send_report_email
 
 operator_bp = Blueprint("operator", __name__)
 
@@ -15,18 +17,10 @@ operator_bp = Blueprint("operator", __name__)
 def connect_operator():
     lang       = request.values.get("lang", "en")
     caller_sid = request.values.get("caller_sid", request.form.get("CallSid", ""))
-    voice      = get_voice(lang)
     room       = f"room-{uuid.uuid4().hex}"
     base_url   = request.url_root.rstrip("/")
 
-    hold_msg = (
-        "Please hold while I connect you with one of our team members."
-        if lang == "en" else
-        "Por favor espere mientras le conecto con uno de nuestros asesores."
-    )
-
     resp = VoiceResponse()
-    resp.say(hold_msg, voice=voice)
 
     # Caller espera en conferencia con música; se graba para resumen posterior
     dial = Dial(
@@ -184,7 +178,8 @@ def meeting_ended():
     lang  = request.values.get("lang", "en")
     voice = get_voice(lang)
 
-    msg = "Thank you for calling Robles AI. Have a great day!" if lang == "en" else "Gracias por llamar a Robles AI. ¡Que tenga un excelente día!"
+    company = get_company_name()
+    msg = f"Thank you for calling {company}. Have a great day!" if lang == "en" else f"Gracias por llamar a {company}. ¡Que tenga un excelente día!"
 
     resp = VoiceResponse()
     resp.say(msg, voice=voice)
@@ -222,15 +217,16 @@ def recording_ready():
         text = transcript.text
 
         # Resumir con GPT
-        info = collected_info.get(caller_sid, {})
+        info    = collected_info.get(caller_sid, {})
+        company = get_company_name()
         summary_prompt = (
-            f"The following is a transcript of a business call between a customer and an operator at Robles AI.\n"
+            f"The following is a transcript of a business call between a customer and an operator at {company}.\n"
             f"Customer info: Name={info.get('name')}, Phone={info.get('phone')}, Notes={info.get('notes')}.\n\n"
             f"Transcript:\n{text}\n\n"
             f"Please provide a concise summary of the conversation including: main topics discussed, "
             f"agreements or next steps, and any important details."
         ) if lang == "en" else (
-            f"La siguiente es la transcripción de una llamada de negocios entre un cliente y un asesor de Robles AI.\n"
+            f"La siguiente es la transcripción de una llamada de negocios entre un cliente y un asesor de {company}.\n"
             f"Datos del cliente: Nombre={info.get('name')}, Teléfono={info.get('phone')}, Notas={info.get('notes')}.\n\n"
             f"Transcripción:\n{text}\n\n"
             f"Por favor proporciona un resumen conciso de la conversación incluyendo: temas principales, "
@@ -286,6 +282,42 @@ def recording_ready():
         print(f"  {info.get('goodbye', '(not recorded)')}")
 
         print(f"\n{'='*W}\n")
+
+        # ── Email report ───────────────────────────────────────
+        lines = [
+            f"FULL CALL REPORT — {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+            f"Caller   : {info.get('name')} / {info.get('phone')}",
+            f"Topic    : {topic_label}",
+            f"Language : {'English' if lang == 'en' else 'Español'}",
+            "",
+            "[1] AI ↔ CALLER CONVERSATION",
+            "─" * W,
+        ]
+        for m in info.get("conversation", []):
+            role = "AI  " if m["role"] == "assistant" else "USER"
+            lines.append(f"{role}: {m['content']}")
+        lines += [
+            "",
+            "[2] AI → OPERATOR BRIEFING",
+            "─" * W,
+            info.get("operator_briefing", "(no briefing recorded)"),
+            "",
+            "[3] CALLER ↔ OPERATOR TRANSCRIPTION (Whisper)",
+            "─" * W,
+            text,
+            "",
+            "[4] GPT SUMMARY",
+            "─" * W,
+            summary,
+            "",
+            "[5] GOODBYE MESSAGE",
+            "─" * W,
+            info.get("goodbye", "(not recorded)"),
+        ]
+        send_report_email(
+            subject=f"[IVR] Call Report — {info.get('name', 'Unknown')} / {topic_label}",
+            body="\n".join(lines),
+        )
 
     except Exception as e:
         print(f"[RECORDING ERROR] {e}")
