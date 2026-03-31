@@ -6,13 +6,31 @@ WHITELIST_PATH = os.path.abspath(
 )
 
 
-def load_whitelist() -> set:
+def load_whitelist() -> list:
     try:
         with open(WHITELIST_PATH) as f:
-            return set(json.load(f))
+            return json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
-        return set()
+        return []
+
+
+def _save_whitelist(numbers: list):
+    with open(WHITELIST_PATH, "w") as f:
+        json.dump(numbers, f, indent=2)
 
 
 def is_whitelisted(phone: str) -> bool:
     return phone in load_whitelist()
+
+
+def add_number(phone: str):
+    numbers = load_whitelist()
+    if phone not in numbers:
+        numbers.append(phone)
+        _save_whitelist(numbers)
+
+
+def remove_number(phone: str):
+    numbers = load_whitelist()
+    numbers = [n for n in numbers if n != phone]
+    _save_whitelist(numbers)

@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IVR Admin Panel</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --primary: #4f46e5;
+  --primary-light: #eef2ff;
+  --primary-dark: #4338ca;
+  --bg: #f3f4f6;
+  --card: #ffffff;
+  --text: #1f2937;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+  --success: #10b981;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+}
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+/* ── Nav ── */
+nav {
+  background: var(--primary);
+  color: white;
+  padding: 0 24px;
+  height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky; top: 0; z-index: 50;
+  box-shadow: 0 2px 8px rgba(79,70,229,0.3);
+}
+.nav-left { display: flex; align-items: center; gap: 12px; }
+.nav-logo { font-size: 22px; }
+.nav-title { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
+.nav-right { display: flex; align-items: center; gap: 12px; }
+.active-pill {
+  background: rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.3);
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.active-dot {
+  display: inline-block;
+  width: 7px; height: 7px;
+  background: #4ade80;
+  border-radius: 50%;
+  margin-right: 6px;
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.btn-logout {
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.25);
+  color: white;
+  padding: 7px 16px;
+  border-radius: 7px;
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+.btn-logout:hover { background: rgba(255,255,255,0.22); }
+
+/* ── Layout ── */
+main {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 28px 16px;
+  display: grid;
+  gap: 20px;
+}
+
+/* ── Card ── */
+.card {
+  background: var(--card);
+  border-radius: 14px;
+  padding: 24px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+}
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+.card-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.card-badge {
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-weight: 500;
+}
+.badge-green { background: #d1fae5; color: #065f46; }
+.badge-blue  { background: var(--primary-light); color: var(--primary); }
+
+/* ── Use Case Grid ── */
+.uc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+  gap: 10px;
+}
+.uc-card {
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+}
+.uc-card:hover {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  transform: translateY(-1px);
+}
+.uc-card.active {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  box-shadow: 0 0 0 3px rgba(79,70,229,0.1);
+}
+.uc-icon { font-size: 22px; margin-bottom: 8px; }
+.uc-name { font-weight: 600; font-size: 13px; color: var(--text); line-height: 1.3; }
+.uc-industry { font-size: 11px; color: var(--muted); margin-top: 3px; }
+.uc-active-tag {
+  position: absolute;
+  top: 8px; right: 8px;
+  width: 8px; height: 8px;
+  background: var(--primary);
+  border-radius: 50%;
+}
+
+/* ── Operator section ── */
+.input-row { display: flex; gap: 8px; }
+.input-row input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  font-family: monospace;
+  transition: border-color 0.15s;
+}
+.input-row input:focus { border-color: var(--primary); }
+.btn {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.btn-primary { background: var(--primary); color: white; }
+.btn-primary:hover { background: var(--primary-dark); }
+.btn-danger { background: #fee2e2; color: var(--danger); }
+.btn-danger:hover { background: #fecaca; }
+
+/* ── Whitelist ── */
+.wl-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.wl-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: #f9fafb;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.wl-number { font-family: monospace; font-size: 14px; }
+.wl-label { font-size: 12px; color: var(--muted); margin-left: 8px; }
+.btn-remove {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+  transition: color 0.15s;
+}
+.btn-remove:hover { color: var(--danger); }
+.empty-msg { color: var(--muted); font-size: 14px; font-style: italic; padding: 8px 0; }
+
+/* ── Status bar ── */
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+}
+.stat-item { padding: 14px; background: #f9fafb; border-radius: 10px; }
+.stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); font-weight: 600; margin-bottom: 4px; }
+.stat-value { font-size: 15px; font-weight: 600; color: var(--text); }
+
+/* ── Toast ── */
+.toast {
+  position: fixed;
+  bottom: 28px; right: 28px;
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: white;
+  transform: translateY(80px);
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 100;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast.success { background: var(--success); }
+.toast.error { background: var(--danger); }
+
+/* ── Divider ── */
+hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-left">
+    <span class="nav-logo">🎙</span>
+    <span class="nav-title">IVR Admin Panel</span>
+  </div>
+  <div class="nav-right">
+    <span class="active-pill">
+      <span class="active-dot"></span>
+      <span id="nav-active-name">{{ use_cases[current_use_case]['name'] }}</span>
+    </span>
+    <a href="/admin/logout" class="btn-logout">Sign Out</a>
+  </div>
+</nav>
+
+<main>
+
+  <!-- USE CASE -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Active Use Case</span>
+      <span class="card-badge badge-green" id="uc-status">Live</span>
+    </div>
+    <div class="uc-grid" id="uc-grid">
+      {% set icons = {
+        'robles_ai': '🤖',
+        'sweet_crust': '🧁',
+        'lex_partners': '⚖️',
+        'vita_clinic': '🏥',
+        'sol_realty': '🏠',
+        'chem_supply': '🧪',
+        'nova_auto': '🔧',
+        'grand_hotel': '🏨',
+        'smile_dental': '🦷',
+        'flex_gym': '💪',
+        'safe_guard': '🛡️',
+        'luma_academy': '📚',
+        'blue_star': '⭐'
+      } %}
+      {% for uc_id, uc in use_cases.items() %}
+      <div class="uc-card {% if uc_id == current_use_case %}active{% endif %}"
+           data-id="{{ uc_id }}"
+           onclick="selectUseCase('{{ uc_id }}', '{{ uc.name }}')">
+        {% if uc_id == current_use_case %}<span class="uc-active-tag"></span>{% endif %}
+        <div class="uc-icon">{{ icons.get(uc_id, '🏢') }}</div>
+        <div class="uc-name">{{ uc.name }}</div>
+        <div class="uc-industry">{{ uc.industry }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- OPERATOR & WHITELIST side by side on wide screens -->
+  <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+
+    <!-- OPERATOR NUMBER -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Operator Number</span>
+        <span class="card-badge badge-blue">FORWARD_TO</span>
+      </div>
+      <div class="input-row">
+        <input type="tel" id="forward-to" placeholder="+1 555 000 0000"
+               value="{{ forward_to or '' }}">
+        <button class="btn btn-primary" onclick="saveOperator()">Save</button>
+      </div>
+      <p style="font-size:12px; color:var(--muted); margin-top:10px;">
+        The phone number that receives incoming calls from callers.
+      </p>
+    </div>
+
+    <!-- WHITELIST -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Direct Transfer Whitelist</span>
+        <span class="card-badge badge-blue" id="wl-count">{{ whitelist|length }} numbers</span>
+      </div>
+      <div class="wl-list" id="wl-list">
+        {% if whitelist %}
+          {% for number in whitelist %}
+          <div class="wl-item" data-number="{{ number }}">
+            <div>
+              <span class="wl-number">{{ number }}</span>
+              <span class="wl-label">Direct transfer</span>
+            </div>
+            <button class="btn-remove" onclick="removeWhitelist('{{ number }}')" title="Remove">×</button>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="empty-msg" id="wl-empty">No numbers added yet.</div>
+        {% endif %}
+      </div>
+      <div class="input-row">
+        <input type="tel" id="wl-input" placeholder="+1 555 000 0000"
+               onkeydown="if(event.key==='Enter') addWhitelist()">
+        <button class="btn btn-primary" onclick="addWhitelist()">Add</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- STATUS -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Current Configuration</span>
+    </div>
+    <div class="status-grid">
+      <div class="stat-item">
+        <div class="stat-label">Use Case</div>
+        <div class="stat-value" id="stat-uc">{{ use_cases[current_use_case]['name'] }}</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">Industry</div>
+        <div class="stat-value" id="stat-industry">{{ use_cases[current_use_case]['industry'] }}</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">Operator Number</div>
+        <div class="stat-value" id="stat-fwd" style="font-family:monospace; font-size:13px;">
+          {{ forward_to or '—' }}
+        </div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">Whitelist Entries</div>
+        <div class="stat-value" id="stat-wl">{{ whitelist|length }}</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">Menu Topics</div>
+        <div class="stat-value">{{ use_cases[current_use_case]['topics']|length }}</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">Languages</div>
+        <div class="stat-value">English · Español</div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+const USE_CASES = {{ use_cases | tojson }};
+
+function toast(msg, type='success') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast ${type} show`;
+  setTimeout(() => el.className = 'toast', 2500);
+}
+
+async function selectUseCase(id, name) {
+  const res = await fetch('/admin/api/config', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ use_case_id: id })
+  });
+  if (!res.ok) { toast('Error updating use case', 'error'); return; }
+
+  // Update UI
+  document.querySelectorAll('.uc-card').forEach(c => {
+    c.classList.remove('active');
+    const dot = c.querySelector('.uc-active-tag');
+    if (dot) dot.remove();
+  });
+  const card = document.querySelector(`.uc-card[data-id="${id}"]`);
+  card.classList.add('active');
+  const dot = document.createElement('span');
+  dot.className = 'uc-active-tag';
+  card.prepend(dot);
+
+  // Update nav + status
+  document.getElementById('nav-active-name').textContent = name;
+  document.getElementById('stat-uc').textContent = name;
+  document.getElementById('stat-industry').textContent = USE_CASES[id]?.industry || '—';
+
+  toast(`Switched to ${name}`);
+}
+
+async function saveOperator() {
+  const val = document.getElementById('forward-to').value.trim();
+  const res = await fetch('/admin/api/config', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ forward_to: val })
+  });
+  if (!res.ok) { toast('Error saving operator number', 'error'); return; }
+  document.getElementById('stat-fwd').textContent = val || '—';
+  toast('Operator number saved');
+}
+
+async function addWhitelist() {
+  const input = document.getElementById('wl-input');
+  const phone = input.value.trim();
+  if (!phone) return;
+  const res = await fetch('/admin/api/whitelist', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phone })
+  });
+  if (!res.ok) { toast('Error adding number', 'error'); return; }
+  const list = await res.json();
+  input.value = '';
+  renderWhitelist(list);
+  toast(`${phone} added to whitelist`);
+}
+
+async function removeWhitelist(phone) {
+  const encoded = encodeURIComponent(phone);
+  const res = await fetch(`/admin/api/whitelist/${encoded}`, { method: 'DELETE' });
+  if (!res.ok) { toast('Error removing number', 'error'); return; }
+  const list = await res.json();
+  renderWhitelist(list);
+  toast(`${phone} removed`);
+}
+
+function renderWhitelist(list) {
+  const container = document.getElementById('wl-list');
+  const countEl = document.getElementById('wl-count');
+  const statEl = document.getElementById('stat-wl');
+  countEl.textContent = `${list.length} numbers`;
+  statEl.textContent = list.length;
+
+  if (list.length === 0) {
+    container.innerHTML = '<div class="empty-msg">No numbers added yet.</div>';
+    return;
+  }
+  container.innerHTML = list.map(n => `
+    <div class="wl-item" data-number="${n}">
+      <div>
+        <span class="wl-number">${n}</span>
+        <span class="wl-label">Direct transfer</span>
+      </div>
+      <button class="btn-remove" onclick="removeWhitelist('${n}')" title="Remove">×</button>
+    </div>
+  `).join('');
+}
+
+// Responsive: stack operator+whitelist on narrow screens
+function checkLayout() {
+  const grid = document.querySelector('main > div[style*="grid-template-columns"]');
+  if (window.innerWidth < 640) {
+    grid.style.gridTemplateColumns = '1fr';
+  } else {
+    grid.style.gridTemplateColumns = '1fr 1fr';
+  }
+}
+window.addEventListener('resize', checkLayout);
+checkLayout();
+</script>
+</body>
+</html>

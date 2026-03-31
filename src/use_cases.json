@@ -26,22 +26,18 @@
         "digit": "3",
         "meeting_type": false,
         "en": {
-          "label": "AI & Machine Learning",
+          "label": "AI and Machine Learning",
           "menu_text": "Press 3 for Artificial Intelligence and Machine Learning.",
           "greeting": "Hi! I'm the Robles AI assistant. I'll take a couple of quick details to connect you with the right specialist. What is your name?",
           "system_extra": "The caller is interested in AI and Machine Learning services.",
-          "questions": [
-            "What are you looking to build or improve with AI?"
-          ]
+          "questions": ["What are you looking to build or improve with AI?"]
         },
         "es": {
           "label": "IA y Machine Learning",
           "menu_text": "Presione 3 para Inteligencia Artificial y Machine Learning.",
           "greeting": "¡Hola! Soy el asistente de Robles AI. Tomaré un par de datos para conectarle con el especialista correcto. ¿Cuál es su nombre?",
           "system_extra": "El llamante está interesado en servicios de IA y Machine Learning.",
-          "questions": [
-            "¿Qué desea construir o mejorar con IA?"
-          ]
+          "questions": ["¿Qué desea construir o mejorar con IA?"]
         }
       },
       "computer_vision": {
@@ -52,18 +48,14 @@
           "menu_text": "Press 4 for Computer Vision Services.",
           "greeting": "Hi! I'm the Robles AI assistant. I'll take a couple of quick details to connect you with the right specialist. What is your name?",
           "system_extra": "The caller is interested in Computer Vision services.",
-          "questions": [
-            "What do you need to detect or analyze visually?"
-          ]
+          "questions": ["What do you need to detect or analyze visually?"]
         },
         "es": {
           "label": "Visión por Computadora",
           "menu_text": "Presione 4 para Servicios de Visión por Computadora.",
           "greeting": "¡Hola! Soy el asistente de Robles AI. Tomaré un par de datos para conectarle con el especialista correcto. ¿Cuál es su nombre?",
           "system_extra": "El llamante está interesado en servicios de Visión por Computadora.",
-          "questions": [
-            "¿Qué necesita detectar o analizar visualmente?"
-          ]
+          "questions": ["¿Qué necesita detectar o analizar visualmente?"]
         }
       },
       "customer_service": {
@@ -74,27 +66,23 @@
           "menu_text": "Press 5 for Customer Service.",
           "greeting": "Hi! I'm the Robles AI customer service assistant. I'll take your details to connect you with our team. What is your name?",
           "system_extra": "The caller needs customer service support.",
-          "questions": [
-            "What can I help you with today?"
-          ]
+          "questions": ["What can I help you with today?"]
         },
         "es": {
           "label": "Servicio al Cliente",
           "menu_text": "Presione 5 para Servicio al Cliente.",
           "greeting": "¡Hola! Soy el asistente de servicio al cliente de Robles AI. Tomaré sus datos para conectarle con nuestro equipo. ¿Cuál es su nombre?",
           "system_extra": "El llamante necesita soporte de servicio al cliente.",
-          "questions": [
-            "¿En qué le puedo ayudar hoy?"
-          ]
+          "questions": ["¿En qué le puedo ayudar hoy?"]
         }
       }
     }
   },
 
-  "sweet_crust_bakery": {
-    "id": "sweet_crust_bakery",
+  "sweet_crust": {
+    "id": "sweet_crust",
     "name": "Sweet Crust Bakery",
-    "industry": "Food & Beverage",
+    "industry": "Food and Beverage",
     "topics": {
       "meeting": {
         "digit": "1",
@@ -104,64 +92,50 @@
           "menu_text": "Press 1 to check your Order Status.",
           "greeting": "Hi! I'm the Sweet Crust Bakery assistant. I'll look up your order right away. What is your order number?",
           "system_extra": "The caller wants to check the status of an existing order. Ask for their order number first (demo order number is 1234 — if they provide it, confirm it and let them know their order is being prepared and on schedule). Then get their name and phone.",
-          "questions": [
-            "What is your order number?",
-            "What is the name on the order?"
-          ]
+          "questions": ["What is your order number?", "What is the name on the order?"]
         },
         "es": {
           "label": "Estado de Pedido",
           "menu_text": "Presione 1 para consultar el Estado de su Pedido.",
           "greeting": "¡Hola! Soy el asistente de Sweet Crust Bakery. Consultaré su pedido de inmediato. ¿Cuál es su número de pedido?",
           "system_extra": "El llamante desea consultar el estado de un pedido existente. Pida primero el número de pedido (para la demo, el número de pedido es 1234 — si lo proporciona, confírmelo e indique que el pedido está en preparación y en tiempo). Luego obtenga nombre y teléfono.",
-          "questions": [
-            "¿Cuál es su número de pedido?",
-            "¿A nombre de quién está el pedido?"
-          ]
+          "questions": ["¿Cuál es su número de pedido?", "¿A nombre de quién está el pedido?"]
         }
       },
       "custom_cakes": {
         "digit": "3",
         "meeting_type": false,
         "en": {
-          "label": "Custom Cakes & Pastries",
+          "label": "Custom Cakes and Pastries",
           "menu_text": "Press 3 for Custom Cakes and Pastries.",
-          "greeting": "Hi! I'm the Sweet Crust Bakery assistant. I'd love to help you with a custom cake or pastry. What is your name?",
+          "greeting": "Hi! I'm the Sweet Crust Bakery assistant. I'd love to help you with a custom order. What is your name?",
           "system_extra": "The caller wants to order a custom cake or pastry.",
-          "questions": [
-            "What type of cake or pastry are you looking for?"
-          ]
+          "questions": ["What type of cake or pastry are you looking for?"]
         },
         "es": {
-          "label": "Pasteles y Repostería Personalizada",
+          "label": "Pasteles y Repostería",
           "menu_text": "Presione 3 para Pasteles y Repostería Personalizada.",
-          "greeting": "¡Hola! Soy el asistente de Sweet Crust Bakery. Con gusto le ayudo con un pastel o repostería personalizada. ¿Cuál es su nombre?",
+          "greeting": "¡Hola! Soy el asistente de Sweet Crust Bakery. Con gusto le ayudo con su pedido personalizado. ¿Cuál es su nombre?",
           "system_extra": "El llamante desea ordenar un pastel o repostería personalizada.",
-          "questions": [
-            "¿Qué tipo de pastel o repostería está buscando?"
-          ]
+          "questions": ["¿Qué tipo de pastel o repostería está buscando?"]
         }
       },
       "catering": {
         "digit": "4",
         "meeting_type": false,
         "en": {
-          "label": "Catering & Events",
+          "label": "Catering and Events",
           "menu_text": "Press 4 for Catering and Events.",
           "greeting": "Hi! I'm the Sweet Crust Bakery assistant. I'll gather some quick details about your event. What is your name?",
           "system_extra": "The caller is interested in catering services for an event.",
-          "questions": [
-            "Tell me about your event — what's the occasion?"
-          ]
+          "questions": ["Tell me about your event — what is the occasion?"]
         },
         "es": {
           "label": "Catering y Eventos",
           "menu_text": "Presione 4 para Catering y Eventos.",
           "greeting": "¡Hola! Soy el asistente de Sweet Crust Bakery. Tomaré algunos datos sobre su evento. ¿Cuál es su nombre?",
           "system_extra": "El llamante está interesado en servicios de catering para un evento.",
-          "questions": [
-            "Cuénteme sobre su evento, ¿cuál es la ocasión?"
-          ]
+          "questions": ["Cuénteme sobre su evento, ¿cuál es la ocasión?"]
         }
       },
       "customer_service": {
@@ -172,26 +146,22 @@
           "menu_text": "Press 5 for Customer Service.",
           "greeting": "Hi! I'm the Sweet Crust Bakery customer service assistant. What is your name?",
           "system_extra": "The caller needs customer service assistance.",
-          "questions": [
-            "What can I help you with today?"
-          ]
+          "questions": ["What can I help you with today?"]
         },
         "es": {
           "label": "Servicio al Cliente",
           "menu_text": "Presione 5 para Servicio al Cliente.",
           "greeting": "¡Hola! Soy el asistente de servicio al cliente de Sweet Crust Bakery. ¿Cuál es su nombre?",
           "system_extra": "El llamante necesita asistencia de servicio al cliente.",
-          "questions": [
-            "¿En qué le puedo ayudar hoy?"
-          ]
+          "questions": ["¿En qué le puedo ayudar hoy?"]
         }
       }
     }
   },
 
-  "lexis_partners": {
-    "id": "lexis_partners",
-    "name": "Lexis & Partners",
+  "lex_partners": {
+    "id": "lex_partners",
+    "name": "Lex and Partners",
     "industry": "Legal Services",
     "topics": {
       "meeting": {
@@ -200,14 +170,14 @@
         "en": {
           "label": "Schedule a Consultation",
           "menu_text": "Press 1 to Schedule a Legal Consultation.",
-          "greeting": "Thank you for calling Lexis and Partners. I'm the pre-screening assistant. May I have your name?",
+          "greeting": "Thank you for calling Lex and Partners. I'm the pre-screening assistant. May I have your name?",
           "system_extra": "The caller wants to schedule a legal consultation. Ask for name and confirm callback number only.",
           "questions": []
         },
         "es": {
           "label": "Agendar una Consulta",
           "menu_text": "Presione 1 para Agendar una Consulta Legal.",
-          "greeting": "Gracias por llamar a Lexis y Asociados. Soy el asistente de preselección. ¿Me podría indicar su nombre?",
+          "greeting": "Gracias por llamar a Lex y Asociados. Soy el asistente de preselección. ¿Me podría indicar su nombre?",
           "system_extra": "El llamante desea agendar una consulta legal. Pida nombre y confirme el número de rellamada.",
           "questions": []
         }
@@ -218,42 +188,34 @@
         "en": {
           "label": "Family Law",
           "menu_text": "Press 3 for Family Law.",
-          "greeting": "Thank you for calling Lexis and Partners. I'm the pre-screening assistant for Family Law. What is your name?",
+          "greeting": "Thank you for calling Lex and Partners. I'm the pre-screening assistant for Family Law. What is your name?",
           "system_extra": "The caller needs assistance with a family law matter.",
-          "questions": [
-            "What type of family law matter can I help you with?"
-          ]
+          "questions": ["What type of family law matter can I help you with?"]
         },
         "es": {
           "label": "Derecho de Familia",
           "menu_text": "Presione 3 para Derecho de Familia.",
-          "greeting": "Gracias por llamar a Lexis y Asociados. Soy el asistente de preselección para Derecho de Familia. ¿Cuál es su nombre?",
+          "greeting": "Gracias por llamar a Lex y Asociados. Soy el asistente de preselección para Derecho de Familia. ¿Cuál es su nombre?",
           "system_extra": "El llamante necesita asistencia en un asunto de derecho de familia.",
-          "questions": [
-            "¿En qué asunto de derecho de familia puedo ayudarle?"
-          ]
+          "questions": ["¿En qué asunto de derecho de familia puedo ayudarle?"]
         }
       },
       "corporate_law": {
         "digit": "4",
         "meeting_type": false,
         "en": {
-          "label": "Corporate & Business Law",
+          "label": "Corporate Law",
           "menu_text": "Press 4 for Corporate and Business Law.",
-          "greeting": "Thank you for calling Lexis and Partners. I'm the pre-screening assistant for Corporate Law. What is your name?",
+          "greeting": "Thank you for calling Lex and Partners. I'm the pre-screening assistant for Corporate Law. What is your name?",
           "system_extra": "The caller is inquiring about corporate or business law services.",
-          "questions": [
-            "What type of legal matter does your business need help with?"
-          ]
+          "questions": ["What type of legal matter does your business need help with?"]
         },
         "es": {
           "label": "Derecho Corporativo",
           "menu_text": "Presione 4 para Derecho Corporativo y Empresarial.",
-          "greeting": "Gracias por llamar a Lexis y Asociados. Soy el asistente de preselección para Derecho Corporativo. ¿Cuál es su nombre?",
+          "greeting": "Gracias por llamar a Lex y Asociados. Soy el asistente de preselección para Derecho Corporativo. ¿Cuál es su nombre?",
           "system_extra": "El llamante consulta sobre servicios de derecho corporativo o empresarial.",
-          "questions": [
-            "¿En qué tipo de asunto legal necesita ayuda su empresa?"
-          ]
+          "questions": ["¿En qué tipo de asunto legal necesita ayuda su empresa?"]
         }
       },
       "customer_service": {
@@ -262,20 +224,16 @@
         "en": {
           "label": "General Inquiries",
           "menu_text": "Press 5 for General Inquiries.",
-          "greeting": "Thank you for calling Lexis and Partners. I'm here to help. What is your name?",
+          "greeting": "Thank you for calling Lex and Partners. I'm here to help. What is your name?",
           "system_extra": "The caller has a general inquiry for the law firm.",
-          "questions": [
-            "How can I help you today?"
-          ]
+          "questions": ["How can I help you today?"]
         },
         "es": {
           "label": "Consultas Generales",
           "menu_text": "Presione 5 para Consultas Generales.",
-          "greeting": "Gracias por llamar a Lexis y Asociados. Estoy aquí para ayudarle. ¿Cuál es su nombre?",
+          "greeting": "Gracias por llamar a Lex y Asociados. Estoy aquí para ayudarle. ¿Cuál es su nombre?",
           "system_extra": "El llamante tiene una consulta general para el bufete.",
-          "questions": [
-            "¿En qué le puedo ayudar hoy?"
-          ]
+          "questions": ["¿En qué le puedo ayudar hoy?"]
         }
       }
     }
@@ -312,18 +270,14 @@
           "menu_text": "Press 3 for General Medicine.",
           "greeting": "Thank you for calling Vita Medical Clinic. I'm the pre-screening assistant for General Medicine. What is your name?",
           "system_extra": "The caller needs a general medicine consultation.",
-          "questions": [
-            "What brings you in today?"
-          ]
+          "questions": ["What brings you in today?"]
         },
         "es": {
           "label": "Medicina General",
           "menu_text": "Presione 3 para Medicina General.",
           "greeting": "Gracias por llamar a Clínica Médica Vita. Soy el asistente de preselección para Medicina General. ¿Cuál es su nombre?",
           "system_extra": "El llamante necesita una consulta de medicina general.",
-          "questions": [
-            "¿Cuál es el motivo de su consulta hoy?"
-          ]
+          "questions": ["¿Cuál es el motivo de su consulta hoy?"]
         }
       },
       "pediatrics": {
@@ -334,18 +288,14 @@
           "menu_text": "Press 4 for Pediatrics.",
           "greeting": "Thank you for calling Vita Medical Clinic. I'm the pre-screening assistant for Pediatrics. What is your name?",
           "system_extra": "The caller needs pediatric care for a child.",
-          "questions": [
-            "What brings you in for the little one today?"
-          ]
+          "questions": ["What brings you in for the little one today?"]
         },
         "es": {
           "label": "Pediatría",
           "menu_text": "Presione 4 para Pediatría.",
           "greeting": "Gracias por llamar a Clínica Médica Vita. Soy el asistente de preselección para Pediatría. ¿Cuál es su nombre?",
           "system_extra": "El llamante necesita atención pediátrica para un niño.",
-          "questions": [
-            "¿Cuál es el motivo de la consulta para el niño hoy?"
-          ]
+          "questions": ["¿Cuál es el motivo de la consulta para el niño hoy?"]
         }
       },
       "customer_service": {
@@ -356,18 +306,14 @@
           "menu_text": "Press 5 for Patient Services.",
           "greeting": "Thank you for calling Vita Medical Clinic. I'm here to assist you. What is your name?",
           "system_extra": "The caller has a patient services inquiry.",
-          "questions": [
-            "What can I help you with today?"
-          ]
+          "questions": ["What can I help you with today?"]
         },
         "es": {
           "label": "Servicios al Paciente",
           "menu_text": "Presione 5 para Servicios al Paciente.",
           "greeting": "Gracias por llamar a Clínica Médica Vita. Estoy aquí para ayudarle. ¿Cuál es su nombre?",
           "system_extra": "El llamante tiene una consulta de servicios al paciente.",
-          "questions": [
-            "¿En qué le puedo ayudar hoy?"
-          ]
+          "questions": ["¿En qué le puedo ayudar hoy?"]
         }
       }
     }
@@ -389,7 +335,7 @@
           "questions": []
         },
         "es": {
-          "label": "Agendar una Visita a Propiedad",
+          "label": "Agendar una Visita",
           "menu_text": "Presione 1 para Agendar una Visita a Propiedad.",
           "greeting": "¡Hola! Soy el asistente de Sol Realty Group. Tomaré sus datos para que uno de nuestros agentes le contacte de inmediato. ¿Cuál es su nombre?",
           "system_extra": "El llamante desea agendar una visita a una propiedad. Pida nombre y confirme el número de rellamada.",
@@ -404,18 +350,14 @@
           "menu_text": "Press 3 to Buy a Property.",
           "greeting": "Hi! I'm the Sol Realty Group assistant. I'll take a couple of details to connect you with the right agent. What is your name?",
           "system_extra": "The caller is interested in buying a property.",
-          "questions": [
-            "What type of property are you looking for?"
-          ]
+          "questions": ["What type of property are you looking for?"]
         },
         "es": {
           "label": "Comprar una Propiedad",
           "menu_text": "Presione 3 para Comprar una Propiedad.",
           "greeting": "¡Hola! Soy el asistente de Sol Realty Group. Tomaré un par de datos para conectarle con el agente correcto. ¿Cuál es su nombre?",
           "system_extra": "El llamante está interesado en comprar una propiedad.",
-          "questions": [
-            "¿Qué tipo de propiedad está buscando?"
-          ]
+          "questions": ["¿Qué tipo de propiedad está buscando?"]
         }
       },
       "sell_property": {
@@ -426,18 +368,14 @@
           "menu_text": "Press 4 to Sell a Property.",
           "greeting": "Hi! I'm the Sol Realty Group assistant. I'll gather a couple of quick details to connect you with one of our agents. What is your name?",
           "system_extra": "The caller is looking to sell a property.",
-          "questions": [
-            "Tell me about the property you'd like to sell."
-          ]
+          "questions": ["Tell me about the property you would like to sell."]
         },
         "es": {
           "label": "Vender una Propiedad",
           "menu_text": "Presione 4 para Vender una Propiedad.",
           "greeting": "¡Hola! Soy el asistente de Sol Realty Group. Tomaré un par de datos para conectarle con uno de nuestros agentes. ¿Cuál es su nombre?",
           "system_extra": "El llamante desea vender una propiedad.",
-          "questions": [
-            "Cuénteme sobre la propiedad que desea vender."
-          ]
+          "questions": ["Cuénteme sobre la propiedad que desea vender."]
         }
       },
       "customer_service": {
@@ -448,18 +386,654 @@
           "menu_text": "Press 5 for Client Services.",
           "greeting": "Hi! I'm the Sol Realty Group client services assistant. What is your name?",
           "system_extra": "The caller has a client services inquiry.",
-          "questions": [
-            "How can I help you today?"
-          ]
+          "questions": ["How can I help you today?"]
         },
         "es": {
           "label": "Servicios al Cliente",
           "menu_text": "Presione 5 para Servicios al Cliente.",
           "greeting": "¡Hola! Soy el asistente de servicios al cliente de Sol Realty Group. ¿Cuál es su nombre?",
           "system_extra": "El llamante tiene una consulta de servicios al cliente.",
-          "questions": [
-            "¿En qué le puedo ayudar hoy?"
-          ]
+          "questions": ["¿En qué le puedo ayudar hoy?"]
+        }
+      }
+    }
+  },
+
+  "chem_supply": {
+    "id": "chem_supply",
+    "name": "Chem Supply",
+    "industry": "Industrial Distribution",
+    "topics": {
+      "meeting": {
+        "digit": "1",
+        "meeting_type": true,
+        "en": {
+          "label": "Schedule a Consultation",
+          "menu_text": "Press 1 to Schedule a Sales Consultation.",
+          "greeting": "Thank you for calling Chem Supply. I'm the sales assistant. I'll get your details so our team can reach out to you. What is your name?",
+          "system_extra": "The caller wants to schedule a sales consultation. Ask for name and confirm callback number only.",
+          "questions": []
+        },
+        "es": {
+          "label": "Agendar una Consulta",
+          "menu_text": "Presione 1 para Agendar una Consulta de Ventas.",
+          "greeting": "Gracias por llamar a Chem Supply. Soy el asistente de ventas. Tomaré sus datos para que nuestro equipo le contacte. ¿Cuál es su nombre?",
+          "system_extra": "El llamante desea agendar una consulta de ventas. Pida nombre y confirme el número de rellamada.",
+          "questions": []
+        }
+      },
+      "product_catalog": {
+        "digit": "3",
+        "meeting_type": false,
+        "en": {
+          "label": "Product Catalog",
+          "menu_text": "Press 3 for Product Catalog and Availability.",
+          "greeting": "Thank you for calling Chem Supply. I'm the product assistant. I'll take a few details to connect you with our team. What is your name?",
+          "system_extra": "The caller is inquiring about available products, specifications, or pricing.",
+          "questions": ["Which product or chemical compound are you looking for?"]
+        },
+        "es": {
+          "label": "Catálogo de Productos",
+          "menu_text": "Presione 3 para Catálogo de Productos y Disponibilidad.",
+          "greeting": "Gracias por llamar a Chem Supply. Soy el asistente de productos. Tomaré algunos datos para conectarle con nuestro equipo. ¿Cuál es su nombre?",
+          "system_extra": "El llamante consulta sobre productos disponibles, especificaciones o precios.",
+          "questions": ["¿Qué producto o compuesto químico está buscando?"]
+        }
+      },
+      "bulk_orders": {
+        "digit": "4",
+        "meeting_type": false,
+        "en": {
+          "label": "Bulk Orders",
+          "menu_text": "Press 4 for Bulk Orders and Wholesale.",
+          "greeting": "Thank you for calling Chem Supply. I'm the wholesale assistant. I'll take a few details to connect you with our bulk sales team. What is your name?",
+          "system_extra": "The caller is interested in placing a bulk or wholesale order.",
+          "questions": ["What products and approximate quantities are you looking to order?"]
+        },
+        "es": {
+          "label": "Pedidos al por Mayor",
+          "menu_text": "Presione 4 para Pedidos al por Mayor.",
+          "greeting": "Gracias por llamar a Chem Supply. Soy el asistente de ventas mayoristas. Tomaré algunos datos para conectarle con nuestro equipo. ¿Cuál es su nombre?",
+          "system_extra": "El llamante está interesado en realizar un pedido al por mayor.",
+          "questions": ["¿Qué productos y en qué cantidades aproximadas desea ordenar?"]
+        }
+      },
+      "customer_service": {
+        "digit": "5",
+        "meeting_type": false,
+        "en": {
+          "label": "Customer Service",
+          "menu_text": "Press 5 for Customer Service.",
+          "greeting": "Thank you for calling Chem Supply. I'm the customer service assistant. What is your name?",
+          "system_extra": "The caller needs customer service support — order tracking, returns, billing, or technical questions.",
+          "questions": ["What can I help you with today?"]
+        },
+        "es": {
+          "label": "Servicio al Cliente",
+          "menu_text": "Presione 5 para Servicio al Cliente.",
+          "greeting": "Gracias por llamar a Chem Supply. Soy el asistente de servicio al cliente. ¿Cuál es su nombre?",
+          "system_extra": "El llamante necesita soporte — seguimiento de pedidos, devoluciones, facturación o consultas técnicas.",
+          "questions": ["¿En qué le puedo ayudar hoy?"]
+        }
+      }
+    }
+  },
+
+  "nova_auto": {
+    "id": "nova_auto",
+    "name": "Nova Auto",
+    "industry": "Automotive Services",
+    "topics": {
+      "meeting": {
+        "digit": "1",
+        "meeting_type": true,
+        "en": {
+          "label": "Schedule a Service",
+          "menu_text": "Press 1 to Schedule a Vehicle Service.",
+          "greeting": "Hi! I'm the Nova Auto assistant. I'll get your details to book your service appointment. What is your name?",
+          "system_extra": "The caller wants to schedule a vehicle service appointment. Ask for name and confirm callback number only.",
+          "questions": []
+        },
+        "es": {
+          "label": "Agendar un Servicio",
+          "menu_text": "Presione 1 para Agendar un Servicio de Vehículo.",
+          "greeting": "¡Hola! Soy el asistente de Nova Auto. Tomaré sus datos para reservar su cita de servicio. ¿Cuál es su nombre?",
+          "system_extra": "El llamante desea agendar una cita de servicio vehicular. Pida nombre y confirme el número de rellamada.",
+          "questions": []
+        }
+      },
+      "diagnostics": {
+        "digit": "3",
+        "meeting_type": false,
+        "en": {
+          "label": "Diagnostics and Repair",
+          "menu_text": "Press 3 for Diagnostics and Repair.",
+          "greeting": "Hi! I'm the Nova Auto assistant for diagnostics and repair. I'll take a few details to connect you with our technicians. What is your name?",
+          "system_extra": "The caller needs vehicle diagnostics or repair service.",
+          "questions": ["What problem or symptom is your vehicle experiencing?"]
+        },
+        "es": {
+          "label": "Diagnóstico y Reparación",
+          "menu_text": "Presione 3 para Diagnóstico y Reparación.",
+          "greeting": "¡Hola! Soy el asistente de Nova Auto para diagnóstico y reparación. Tomaré algunos datos para conectarle con nuestros técnicos. ¿Cuál es su nombre?",
+          "system_extra": "El llamante necesita servicio de diagnóstico o reparación vehicular.",
+          "questions": ["¿Qué problema o síntoma está presentando su vehículo?"]
+        }
+      },
+      "maintenance": {
+        "digit": "4",
+        "meeting_type": false,
+        "en": {
+          "label": "Preventive Maintenance",
+          "menu_text": "Press 4 for Preventive Maintenance.",
+          "greeting": "Hi! I'm the Nova Auto maintenance assistant. I'll take a few details to set up your maintenance plan. What is your name?",
+          "system_extra": "The caller is interested in preventive maintenance services.",
+          "questions": ["What type of maintenance does your vehicle need?"]
+        },
+        "es": {
+          "label": "Mantenimiento Preventivo",
+          "menu_text": "Presione 4 para Mantenimiento Preventivo.",
+          "greeting": "¡Hola! Soy el asistente de mantenimiento de Nova Auto. Tomaré algunos datos para programar su plan de mantenimiento. ¿Cuál es su nombre?",
+          "system_extra": "El llamante está interesado en servicios de mantenimiento preventivo.",
+          "questions": ["¿Qué tipo de mantenimiento necesita su vehículo?"]
+        }
+      },
+      "customer_service": {
+        "digit": "5",
+        "meeting_type": false,
+        "en": {
+          "label": "Customer Service",
+          "menu_text": "Press 5 for Customer Service.",
+          "greeting": "Hi! I'm the Nova Auto customer service assistant. What is your name?",
+          "system_extra": "The caller needs customer service support.",
+          "questions": ["What can I help you with today?"]
+        },
+        "es": {
+          "label": "Servicio al Cliente",
+          "menu_text": "Presione 5 para Servicio al Cliente.",
+          "greeting": "¡Hola! Soy el asistente de servicio al cliente de Nova Auto. ¿Cuál es su nombre?",
+          "system_extra": "El llamante necesita soporte de servicio al cliente.",
+          "questions": ["¿En qué le puedo ayudar hoy?"]
+        }
+      }
+    }
+  },
+
+  "grand_hotel": {
+    "id": "grand_hotel",
+    "name": "Grand Hotel",
+    "industry": "Hospitality",
+    "topics": {
+      "meeting": {
+        "digit": "1",
+        "meeting_type": true,
+        "en": {
+          "label": "Book a Room",
+          "menu_text": "Press 1 to Book a Room.",
+          "greeting": "Thank you for calling Grand Hotel. I'm the reservations assistant. I'll get your details so our team can assist you. What is your name?",
+          "system_extra": "The caller wants to book a hotel room. Ask for name and confirm callback number only.",
+          "questions": []
+        },
+        "es": {
+          "label": "Reservar una Habitación",
+          "menu_text": "Presione 1 para Reservar una Habitación.",
+          "greeting": "Gracias por llamar al Grand Hotel. Soy el asistente de reservaciones. Tomaré sus datos para que nuestro equipo le asista. ¿Cuál es su nombre?",
+          "system_extra": "El llamante desea reservar una habitación. Pida nombre y confirme el número de rellamada.",
+          "questions": []
+        }
+      },
+      "events": {
+        "digit": "3",
+        "meeting_type": false,
+        "en": {
+          "label": "Events and Banquets",
+          "menu_text": "Press 3 for Events and Banquets.",
+          "greeting": "Thank you for calling Grand Hotel. I'm the events assistant. I'll take a few details to connect you with our events team. What is your name?",
+          "system_extra": "The caller is interested in booking a venue for an event or banquet.",
+          "questions": ["Tell me about your event — what is the occasion and how many guests are you expecting?"]
+        },
+        "es": {
+          "label": "Eventos y Banquetes",
+          "menu_text": "Presione 3 para Eventos y Banquetes.",
+          "greeting": "Gracias por llamar al Grand Hotel. Soy el asistente de eventos. Tomaré algunos datos para conectarle con nuestro equipo. ¿Cuál es su nombre?",
+          "system_extra": "El llamante está interesado en reservar un espacio para un evento o banquete.",
+          "questions": ["Cuénteme sobre su evento — ¿cuál es la ocasión y cuántos invitados espera?"]
+        }
+      },
+      "concierge": {
+        "digit": "4",
+        "meeting_type": false,
+        "en": {
+          "label": "Concierge Services",
+          "menu_text": "Press 4 for Concierge Services.",
+          "greeting": "Thank you for calling Grand Hotel. I'm the concierge assistant. I'll take a few details to help you. What is your name?",
+          "system_extra": "The caller needs concierge services — transportation, tours, restaurant reservations, or special requests.",
+          "questions": ["What service or arrangement can I help you with?"]
+        },
+        "es": {
+          "label": "Servicios de Conserjería",
+          "menu_text": "Presione 4 para Servicios de Conserjería.",
+          "greeting": "Gracias por llamar al Grand Hotel. Soy el asistente de conserjería. Tomaré algunos datos para ayudarle. ¿Cuál es su nombre?",
+          "system_extra": "El llamante necesita servicios de conserjería — transporte, tours, reservaciones de restaurante o solicitudes especiales.",
+          "questions": ["¿En qué servicio o arreglo puedo ayudarle?"]
+        }
+      },
+      "customer_service": {
+        "digit": "5",
+        "meeting_type": false,
+        "en": {
+          "label": "Guest Services",
+          "menu_text": "Press 5 for Guest Services.",
+          "greeting": "Thank you for calling Grand Hotel. I'm the guest services assistant. What is your name?",
+          "system_extra": "The caller needs guest services support.",
+          "questions": ["How can I assist you today?"]
+        },
+        "es": {
+          "label": "Servicios al Huésped",
+          "menu_text": "Presione 5 para Servicios al Huésped.",
+          "greeting": "Gracias por llamar al Grand Hotel. Soy el asistente de servicios al huésped. ¿Cuál es su nombre?",
+          "system_extra": "El llamante necesita soporte de servicios al huésped.",
+          "questions": ["¿En qué puedo asistirle hoy?"]
+        }
+      }
+    }
+  },
+
+  "smile_dental": {
+    "id": "smile_dental",
+    "name": "Smile Dental",
+    "industry": "Dental Care",
+    "topics": {
+      "meeting": {
+        "digit": "1",
+        "meeting_type": true,
+        "en": {
+          "label": "Book an Appointment",
+          "menu_text": "Press 1 to Book a Dental Appointment.",
+          "greeting": "Thank you for calling Smile Dental. I'm the scheduling assistant. May I have your name?",
+          "system_extra": "The caller wants to book a dental appointment. Ask for name and confirm callback number only.",
+          "questions": []
+        },
+        "es": {
+          "label": "Agendar una Cita",
+          "menu_text": "Presione 1 para Agendar una Cita Dental.",
+          "greeting": "Gracias por llamar a Smile Dental. Soy el asistente de agendado. ¿Me podría indicar su nombre?",
+          "system_extra": "El llamante desea agendar una cita dental. Pida nombre y confirme el número de rellamada.",
+          "questions": []
+        }
+      },
+      "general_dentistry": {
+        "digit": "3",
+        "meeting_type": false,
+        "en": {
+          "label": "General Dentistry",
+          "menu_text": "Press 3 for General Dentistry.",
+          "greeting": "Thank you for calling Smile Dental. I'm the pre-screening assistant for General Dentistry. What is your name?",
+          "system_extra": "The caller needs general dental care.",
+          "questions": ["What brings you to the dentist today?"]
+        },
+        "es": {
+          "label": "Odontología General",
+          "menu_text": "Presione 3 para Odontología General.",
+          "greeting": "Gracias por llamar a Smile Dental. Soy el asistente de preselección para Odontología General. ¿Cuál es su nombre?",
+          "system_extra": "El llamante necesita atención dental general.",
+          "questions": ["¿Cuál es el motivo de su visita al dentista hoy?"]
+        }
+      },
+      "cosmetic_dentistry": {
+        "digit": "4",
+        "meeting_type": false,
+        "en": {
+          "label": "Cosmetic Dentistry",
+          "menu_text": "Press 4 for Cosmetic Dentistry.",
+          "greeting": "Thank you for calling Smile Dental. I'm the pre-screening assistant for Cosmetic Dentistry. What is your name?",
+          "system_extra": "The caller is interested in cosmetic dental treatments.",
+          "questions": ["What cosmetic treatment are you interested in?"]
+        },
+        "es": {
+          "label": "Odontología Estética",
+          "menu_text": "Presione 4 para Odontología Estética.",
+          "greeting": "Gracias por llamar a Smile Dental. Soy el asistente de preselección para Odontología Estética. ¿Cuál es su nombre?",
+          "system_extra": "El llamante está interesado en tratamientos dentales estéticos.",
+          "questions": ["¿En qué tratamiento estético está interesado?"]
+        }
+      },
+      "customer_service": {
+        "digit": "5",
+        "meeting_type": false,
+        "en": {
+          "label": "Patient Services",
+          "menu_text": "Press 5 for Patient Services.",
+          "greeting": "Thank you for calling Smile Dental. I'm here to assist you. What is your name?",
+          "system_extra": "The caller has a patient services inquiry.",
+          "questions": ["What can I help you with today?"]
+        },
+        "es": {
+          "label": "Servicios al Paciente",
+          "menu_text": "Presione 5 para Servicios al Paciente.",
+          "greeting": "Gracias por llamar a Smile Dental. Estoy aquí para ayudarle. ¿Cuál es su nombre?",
+          "system_extra": "El llamante tiene una consulta de servicios al paciente.",
+          "questions": ["¿En qué le puedo ayudar hoy?"]
+        }
+      }
+    }
+  },
+
+  "flex_gym": {
+    "id": "flex_gym",
+    "name": "Flex Gym",
+    "industry": "Fitness and Wellness",
+    "topics": {
+      "meeting": {
+        "digit": "1",
+        "meeting_type": true,
+        "en": {
+          "label": "Membership Information",
+          "menu_text": "Press 1 for Membership Information.",
+          "greeting": "Hi! I'm the Flex Gym assistant. I'll get your details so our team can walk you through our membership options. What is your name?",
+          "system_extra": "The caller wants information about gym memberships. Ask for name and confirm callback number only.",
+          "questions": []
+        },
+        "es": {
+          "label": "Información de Membresía",
+          "menu_text": "Presione 1 para Información de Membresía.",
+          "greeting": "¡Hola! Soy el asistente de Flex Gym. Tomaré sus datos para que nuestro equipo le explique las opciones de membresía. ¿Cuál es su nombre?",
+          "system_extra": "El llamante quiere información sobre membresías del gimnasio. Pida nombre y confirme el número de rellamada.",
+          "questions": []
+        }
+      },
+      "personal_training": {
+        "digit": "3",
+        "meeting_type": false,
+        "en": {
+          "label": "Personal Training",
+          "menu_text": "Press 3 for Personal Training.",
+          "greeting": "Hi! I'm the Flex Gym assistant for Personal Training. I'll take a few details to connect you with our trainers. What is your name?",
+          "system_extra": "The caller is interested in personal training sessions.",
+          "questions": ["What are your main fitness goals?"]
+        },
+        "es": {
+          "label": "Entrenamiento Personal",
+          "menu_text": "Presione 3 para Entrenamiento Personal.",
+          "greeting": "¡Hola! Soy el asistente de Flex Gym para Entrenamiento Personal. Tomaré algunos datos para conectarle con nuestros entrenadores. ¿Cuál es su nombre?",
+          "system_extra": "El llamante está interesado en sesiones de entrenamiento personal.",
+          "questions": ["¿Cuáles son sus principales objetivos de fitness?"]
+        }
+      },
+      "group_classes": {
+        "digit": "4",
+        "meeting_type": false,
+        "en": {
+          "label": "Group Classes",
+          "menu_text": "Press 4 for Group Classes.",
+          "greeting": "Hi! I'm the Flex Gym assistant for Group Classes. I'll take a few details to connect you with our team. What is your name?",
+          "system_extra": "The caller is interested in group fitness classes.",
+          "questions": ["What type of group class are you interested in?"]
+        },
+        "es": {
+          "label": "Clases Grupales",
+          "menu_text": "Presione 4 para Clases Grupales.",
+          "greeting": "¡Hola! Soy el asistente de Flex Gym para Clases Grupales. Tomaré algunos datos para conectarle con nuestro equipo. ¿Cuál es su nombre?",
+          "system_extra": "El llamante está interesado en clases de fitness grupales.",
+          "questions": ["¿En qué tipo de clase grupal está interesado?"]
+        }
+      },
+      "customer_service": {
+        "digit": "5",
+        "meeting_type": false,
+        "en": {
+          "label": "Member Services",
+          "menu_text": "Press 5 for Member Services.",
+          "greeting": "Hi! I'm the Flex Gym member services assistant. What is your name?",
+          "system_extra": "The caller needs member services support.",
+          "questions": ["How can I help you today?"]
+        },
+        "es": {
+          "label": "Servicios al Miembro",
+          "menu_text": "Presione 5 para Servicios al Miembro.",
+          "greeting": "¡Hola! Soy el asistente de servicios al miembro de Flex Gym. ¿Cuál es su nombre?",
+          "system_extra": "El llamante necesita soporte de servicios al miembro.",
+          "questions": ["¿En qué le puedo ayudar hoy?"]
+        }
+      }
+    }
+  },
+
+  "safe_guard": {
+    "id": "safe_guard",
+    "name": "Safe Guard Insurance",
+    "industry": "Insurance",
+    "topics": {
+      "meeting": {
+        "digit": "1",
+        "meeting_type": true,
+        "en": {
+          "label": "Schedule a Consultation",
+          "menu_text": "Press 1 to Schedule an Insurance Consultation.",
+          "greeting": "Thank you for calling Safe Guard Insurance. I'm the pre-screening assistant. I'll get your details so an agent can reach out. What is your name?",
+          "system_extra": "The caller wants to schedule an insurance consultation. Ask for name and confirm callback number only.",
+          "questions": []
+        },
+        "es": {
+          "label": "Agendar una Consulta",
+          "menu_text": "Presione 1 para Agendar una Consulta de Seguros.",
+          "greeting": "Gracias por llamar a Safe Guard Insurance. Soy el asistente de preselección. Tomaré sus datos para que un agente le contacte. ¿Cuál es su nombre?",
+          "system_extra": "El llamante desea agendar una consulta de seguros. Pida nombre y confirme el número de rellamada.",
+          "questions": []
+        }
+      },
+      "auto_insurance": {
+        "digit": "3",
+        "meeting_type": false,
+        "en": {
+          "label": "Auto Insurance",
+          "menu_text": "Press 3 for Auto Insurance.",
+          "greeting": "Thank you for calling Safe Guard Insurance. I'm the pre-screening assistant for Auto Insurance. What is your name?",
+          "system_extra": "The caller is inquiring about auto insurance coverage.",
+          "questions": ["Are you looking for a new policy, or do you need to update an existing one?"]
+        },
+        "es": {
+          "label": "Seguro de Auto",
+          "menu_text": "Presione 3 para Seguro de Auto.",
+          "greeting": "Gracias por llamar a Safe Guard Insurance. Soy el asistente de preselección para Seguro de Auto. ¿Cuál es su nombre?",
+          "system_extra": "El llamante consulta sobre cobertura de seguro de auto.",
+          "questions": ["¿Está buscando una póliza nueva o necesita actualizar una existente?"]
+        }
+      },
+      "home_insurance": {
+        "digit": "4",
+        "meeting_type": false,
+        "en": {
+          "label": "Home Insurance",
+          "menu_text": "Press 4 for Home Insurance.",
+          "greeting": "Thank you for calling Safe Guard Insurance. I'm the pre-screening assistant for Home Insurance. What is your name?",
+          "system_extra": "The caller is inquiring about home or property insurance.",
+          "questions": ["Are you looking to insure a new property, or do you need to update your current coverage?"]
+        },
+        "es": {
+          "label": "Seguro de Hogar",
+          "menu_text": "Presione 4 para Seguro de Hogar.",
+          "greeting": "Gracias por llamar a Safe Guard Insurance. Soy el asistente de preselección para Seguro de Hogar. ¿Cuál es su nombre?",
+          "system_extra": "El llamante consulta sobre seguro de hogar o propiedad.",
+          "questions": ["¿Desea asegurar una nueva propiedad o actualizar su cobertura actual?"]
+        }
+      },
+      "customer_service": {
+        "digit": "5",
+        "meeting_type": false,
+        "en": {
+          "label": "Claims and Support",
+          "menu_text": "Press 5 for Claims and Support.",
+          "greeting": "Thank you for calling Safe Guard Insurance. I'm the support assistant. What is your name?",
+          "system_extra": "The caller needs claims support or general assistance.",
+          "questions": ["What can I help you with today?"]
+        },
+        "es": {
+          "label": "Reclamos y Soporte",
+          "menu_text": "Presione 5 para Reclamos y Soporte.",
+          "greeting": "Gracias por llamar a Safe Guard Insurance. Soy el asistente de soporte. ¿Cuál es su nombre?",
+          "system_extra": "El llamante necesita soporte de reclamos o asistencia general.",
+          "questions": ["¿En qué le puedo ayudar hoy?"]
+        }
+      }
+    }
+  },
+
+  "luma_academy": {
+    "id": "luma_academy",
+    "name": "Luma Academy",
+    "industry": "Education and Tutoring",
+    "topics": {
+      "meeting": {
+        "digit": "1",
+        "meeting_type": true,
+        "en": {
+          "label": "Schedule an Assessment",
+          "menu_text": "Press 1 to Schedule a Free Assessment.",
+          "greeting": "Hi! I'm the Luma Academy assistant. I'll get your details so our team can schedule a free assessment. What is your name?",
+          "system_extra": "The caller wants to schedule a free academic assessment. Ask for name and confirm callback number only.",
+          "questions": []
+        },
+        "es": {
+          "label": "Agendar una Evaluación",
+          "menu_text": "Presione 1 para Agendar una Evaluación Gratuita.",
+          "greeting": "¡Hola! Soy el asistente de Luma Academy. Tomaré sus datos para que nuestro equipo programe una evaluación gratuita. ¿Cuál es su nombre?",
+          "system_extra": "El llamante desea agendar una evaluación académica gratuita. Pida nombre y confirme el número de rellamada.",
+          "questions": []
+        }
+      },
+      "k12_tutoring": {
+        "digit": "3",
+        "meeting_type": false,
+        "en": {
+          "label": "K-12 Tutoring",
+          "menu_text": "Press 3 for K-12 Tutoring.",
+          "greeting": "Hi! I'm the Luma Academy assistant for K-12 Tutoring. I'll take a few details to connect you with our academic team. What is your name?",
+          "system_extra": "The caller is inquiring about tutoring services for K-12 students.",
+          "questions": ["What grade level and subject does the student need help with?"]
+        },
+        "es": {
+          "label": "Tutoría Escolar",
+          "menu_text": "Presione 3 para Tutoría Escolar.",
+          "greeting": "¡Hola! Soy el asistente de Luma Academy para Tutoría Escolar. Tomaré algunos datos para conectarle con nuestro equipo académico. ¿Cuál es su nombre?",
+          "system_extra": "El llamante consulta sobre servicios de tutoría para estudiantes de primaria y secundaria.",
+          "questions": ["¿En qué grado y materia necesita ayuda el estudiante?"]
+        }
+      },
+      "college_prep": {
+        "digit": "4",
+        "meeting_type": false,
+        "en": {
+          "label": "College Preparation",
+          "menu_text": "Press 4 for College Preparation.",
+          "greeting": "Hi! I'm the Luma Academy assistant for College Preparation. I'll take a few details to connect you with our team. What is your name?",
+          "system_extra": "The caller is interested in college preparation programs — SAT, ACT, college essays, or admissions guidance.",
+          "questions": ["What aspect of college preparation are you focused on?"]
+        },
+        "es": {
+          "label": "Preparación Universitaria",
+          "menu_text": "Presione 4 para Preparación Universitaria.",
+          "greeting": "¡Hola! Soy el asistente de Luma Academy para Preparación Universitaria. Tomaré algunos datos para conectarle con nuestro equipo. ¿Cuál es su nombre?",
+          "system_extra": "El llamante está interesado en programas de preparación universitaria — SAT, ACT, ensayos universitarios u orientación de admisiones.",
+          "questions": ["¿En qué aspecto de la preparación universitaria está enfocado?"]
+        }
+      },
+      "customer_service": {
+        "digit": "5",
+        "meeting_type": false,
+        "en": {
+          "label": "Student Services",
+          "menu_text": "Press 5 for Student Services.",
+          "greeting": "Hi! I'm the Luma Academy student services assistant. What is your name?",
+          "system_extra": "The caller needs student or parent services support.",
+          "questions": ["How can I help you today?"]
+        },
+        "es": {
+          "label": "Servicios al Estudiante",
+          "menu_text": "Presione 5 para Servicios al Estudiante.",
+          "greeting": "¡Hola! Soy el asistente de servicios al estudiante de Luma Academy. ¿Cuál es su nombre?",
+          "system_extra": "El llamante necesita soporte de servicios al estudiante o padre de familia.",
+          "questions": ["¿En qué le puedo ayudar hoy?"]
+        }
+      }
+    }
+  },
+
+  "blue_star": {
+    "id": "blue_star",
+    "name": "Blue Star Restaurant",
+    "industry": "Food Service",
+    "topics": {
+      "meeting": {
+        "digit": "1",
+        "meeting_type": true,
+        "en": {
+          "label": "Make a Reservation",
+          "menu_text": "Press 1 to Make a Reservation.",
+          "greeting": "Thank you for calling Blue Star Restaurant. I'm the reservations assistant. I'll get your details so our team can confirm your table. What is your name?",
+          "system_extra": "The caller wants to make a dining reservation. Ask for name and confirm callback number only.",
+          "questions": []
+        },
+        "es": {
+          "label": "Hacer una Reservación",
+          "menu_text": "Presione 1 para Hacer una Reservación.",
+          "greeting": "Gracias por llamar al Restaurante Blue Star. Soy el asistente de reservaciones. Tomaré sus datos para confirmar su mesa. ¿Cuál es su nombre?",
+          "system_extra": "El llamante desea hacer una reservación para cenar. Pida nombre y confirme el número de rellamada.",
+          "questions": []
+        }
+      },
+      "private_events": {
+        "digit": "3",
+        "meeting_type": false,
+        "en": {
+          "label": "Private Events",
+          "menu_text": "Press 3 for Private Events.",
+          "greeting": "Thank you for calling Blue Star Restaurant. I'm the events assistant. I'll take a few details to connect you with our events team. What is your name?",
+          "system_extra": "The caller is interested in booking the restaurant for a private event.",
+          "questions": ["Tell me about your event — what is the occasion and how many guests are you expecting?"]
+        },
+        "es": {
+          "label": "Eventos Privados",
+          "menu_text": "Presione 3 para Eventos Privados.",
+          "greeting": "Gracias por llamar al Restaurante Blue Star. Soy el asistente de eventos. Tomaré algunos datos para conectarle con nuestro equipo. ¿Cuál es su nombre?",
+          "system_extra": "El llamante está interesado en reservar el restaurante para un evento privado.",
+          "questions": ["Cuénteme sobre su evento — ¿cuál es la ocasión y cuántos invitados espera?"]
+        }
+      },
+      "catering": {
+        "digit": "4",
+        "meeting_type": false,
+        "en": {
+          "label": "Catering Services",
+          "menu_text": "Press 4 for Catering Services.",
+          "greeting": "Thank you for calling Blue Star Restaurant. I'm the catering assistant. I'll take a few details to connect you with our team. What is your name?",
+          "system_extra": "The caller is interested in catering services for an external event.",
+          "questions": ["Tell me about the event you need catering for."]
+        },
+        "es": {
+          "label": "Servicio de Catering",
+          "menu_text": "Presione 4 para Servicio de Catering.",
+          "greeting": "Gracias por llamar al Restaurante Blue Star. Soy el asistente de catering. Tomaré algunos datos para conectarle con nuestro equipo. ¿Cuál es su nombre?",
+          "system_extra": "El llamante está interesado en servicios de catering para un evento externo.",
+          "questions": ["Cuénteme sobre el evento para el que necesita catering."]
+        }
+      },
+      "customer_service": {
+        "digit": "5",
+        "meeting_type": false,
+        "en": {
+          "label": "Customer Service",
+          "menu_text": "Press 5 for Customer Service.",
+          "greeting": "Thank you for calling Blue Star Restaurant. I'm here to assist you. What is your name?",
+          "system_extra": "The caller needs customer service assistance.",
+          "questions": ["How can I help you today?"]
+        },
+        "es": {
+          "label": "Servicio al Cliente",
+          "menu_text": "Presione 5 para Servicio al Cliente.",
+          "greeting": "Gracias por llamar al Restaurante Blue Star. Estoy aquí para ayudarle. ¿Cuál es su nombre?",
+          "system_extra": "El llamante necesita asistencia de servicio al cliente.",
+          "questions": ["¿En qué le puedo ayudar hoy?"]
         }
       }
     }

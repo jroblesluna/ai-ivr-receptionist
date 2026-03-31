@@ -1,0 +1,8 @@
+flask
+gunicorn
+twilio
+openai
+python-dotenv
+requests
+pydub
+audioop-lts

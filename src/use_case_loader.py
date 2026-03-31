@@ -14,7 +14,8 @@ def _load_use_cases():
 
 
 def get_active_use_case() -> dict:
-    use_case_id = os.environ.get("USE_CASE_ID", "robles_ai")
+    import runtime_config
+    use_case_id = runtime_config.get("use_case_id", os.environ.get("USE_CASE_ID", "robles_ai"))
     use_cases = _load_use_cases()
     if use_case_id not in use_cases:
         print(f"[USE_CASE] '{use_case_id}' not found, falling back to 'robles_ai'")

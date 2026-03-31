@@ -3,7 +3,8 @@ import io
 from datetime import datetime
 from flask import Blueprint, request
 from twilio.twiml.voice_response import VoiceResponse, Dial
-from config import ACCOUNT_SID, AUTH_TOKEN, TWILIO_FROM, FORWARD_TO, openai_client, twilio_client
+import runtime_config
+from config import ACCOUNT_SID, AUTH_TOKEN, TWILIO_FROM, FORWARD_TO as _FORWARD_TO_DEFAULT, openai_client, twilio_client
 from state import collected_info, outbound_calls, failed_rooms, briefed_rooms
 from topics import TOPICS
 from helpers import get_voice
@@ -35,12 +36,14 @@ def connect_operator():
         end_conference_on_exit=True,
         beep=False,
         record="record-from-start",
+        recording_channels="dual",
         recording_status_callback=f"{base_url}/recording-ready?caller_sid={caller_sid}&lang={lang}",
         recording_status_callback_method="POST",
     )
     resp.append(dial)
 
     # Llamar al operador; cuando conteste, escucha el briefing y luego se une a la conferencia
+    FORWARD_TO = runtime_config.get("forward_to") or _FORWARD_TO_DEFAULT
     print(f"[CONNECT-OPERATOR] caller_sid={caller_sid!r} room={room!r} to={FORWARD_TO!r} from={TWILIO_FROM!r}")
     try:
         outbound = twilio_client().calls.create(
@@ -209,12 +212,35 @@ def recording_ready():
         )
         audio_bytes = audio_resp.content
 
-        # Transcribir con Whisper
-        transcript = openai_client.audio.transcriptions.create(
-            model="whisper-1",
-            file=("recording.mp3", io.BytesIO(audio_bytes), "audio/mpeg"),
-        )
-        text = transcript.text
+        # Transcribir con diarización si hay 2 canales, mono si no
+        from pydub import AudioSegment
+        audio = AudioSegment.from_mp3(io.BytesIO(audio_bytes))
+
+        def transcribe_channel(audio_seg, filename):
+            buf = io.BytesIO()
+            audio_seg.export(buf, format="mp3")
+            buf.seek(0)
+            return openai_client.audio.transcriptions.create(
+                model="whisper-1",
+                file=(filename, buf, "audio/mpeg"),
+                response_format="verbose_json",
+                timestamp_granularities=["segment"],
+            )
+
+        if audio.channels == 2:
+            ch = audio.split_to_mono()
+            caller_t   = transcribe_channel(ch[0], "caller.mp3")
+            operator_t = transcribe_channel(ch[1], "operator.mp3")
+            segments = (
+                [{"speaker": "CALLER",   "start": s.start, "text": s.text.strip()} for s in caller_t.segments] +
+                [{"speaker": "OPERATOR", "start": s.start, "text": s.text.strip()} for s in operator_t.segments]
+            )
+            segments.sort(key=lambda s: s["start"])
+            text = "\n".join(f"[{s['speaker']}]: {s['text']}" for s in segments if s["text"])
+        else:
+            # Grabación mono — transcripción sin diarización
+            result = transcribe_channel(audio, "recording.mp3")
+            text = result.text
 
         # Resumir con GPT
         info    = collected_info.get(caller_sid, {})

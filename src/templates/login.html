@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IVR Admin — Login</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.card {
+  background: white;
+  border-radius: 16px;
+  padding: 40px;
+  width: 100%;
+  max-width: 360px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+}
+.logo {
+  width: 48px; height: 48px;
+  background: #4f46e5;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px;
+  margin-bottom: 20px;
+}
+h1 { font-size: 22px; font-weight: 700; color: #1f2937; margin-bottom: 4px; }
+p { color: #6b7280; font-size: 14px; margin-bottom: 28px; }
+label { display: block; font-size: 13px; font-weight: 500; color: #374151; margin-bottom: 6px; }
+input[type=password] {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+input[type=password]:focus { border-color: #4f46e5; }
+button {
+  width: 100%;
+  margin-top: 16px;
+  padding: 12px;
+  background: #4f46e5;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+button:hover { background: #4338ca; }
+.error { color: #ef4444; font-size: 13px; margin-top: 12px; text-align: center; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">🎙</div>
+  <h1>IVR Admin Panel</h1>
+  <p>Sign in to configure your demo</p>
+  <form method="POST" action="/admin/login">
+    <label for="password">Password</label>
+    <input type="password" id="password" name="password" placeholder="Enter admin password" autofocus>
+    <button type="submit">Sign In</button>
+    {% if error %}<div class="error">{{ error }}</div>{% endif %}
+  </form>
+</div>
+</body>
+</html>
