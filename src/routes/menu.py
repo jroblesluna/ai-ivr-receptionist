@@ -24,7 +24,7 @@ def _sorted_options(uc, lang):
     )
 
 
-@menu_bp.route("/", methods=['GET', 'POST'])
+@menu_bp.route("/menu", methods=['GET', 'POST'])
 def main_menu():
     caller_from = request.values.get("From", "")
     call_sid    = request.values.get("CallSid", "")
@@ -60,7 +60,7 @@ def main_menu():
         else:
             gather.say(opt["menu_text"], voice=EN_VOICE)
     resp.append(gather)
-    resp.redirect("/")
+    resp.redirect("/menu")
     return str(resp)
 
 
@@ -77,7 +77,7 @@ def handle_en():
         resp.redirect(f"/ai-gather?lang=en&topic={topic}")
     else:
         resp.say("That is not a valid option. Please try again.", voice=EN_VOICE)
-        resp.redirect("/")
+        resp.redirect("/menu")
     return str(resp)
 
 
@@ -110,7 +110,7 @@ def handle_es():
     digit_to_topic = get_digit_to_topic()
 
     if digit == "2":
-        resp.redirect("/")
+        resp.redirect("/menu")
     elif digit in digit_to_topic:
         topic = digit_to_topic[digit]
         resp.redirect(f"/ai-gather?lang=es&topic={topic}")

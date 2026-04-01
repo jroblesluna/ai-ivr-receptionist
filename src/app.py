@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, redirect, url_for
 
 from routes.media import media_bp
 from routes.menu import menu_bp
@@ -15,6 +15,12 @@ app.register_blueprint(menu_bp)
 app.register_blueprint(ai_bp)
 app.register_blueprint(operator_bp)
 app.register_blueprint(admin_bp)
+
+
+@app.route("/")
+def index():
+    return redirect(url_for("admin.admin"))
+
 
 if __name__ == "__main__":
     import os
