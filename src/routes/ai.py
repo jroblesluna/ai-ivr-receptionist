@@ -5,7 +5,7 @@ from twilio.twiml.voice_response import VoiceResponse, Gather
 from config import ACCOUNT_SID, AUTH_TOKEN, TWILIO_FROM, WHATSAPP_FROM, WHATSAPP_TO, openai_client, twilio_client
 import runtime_config
 from state import conversation_store, collected_info
-from topics import TOPICS
+from use_case_loader import get_topics
 from helpers import get_voice, get_gather_language
 from prompts import get_system_prompt
 from email_helper import send_report_email
@@ -33,6 +33,7 @@ def ai_gather():
             "topic": topic, "lang": lang, "caller_from": caller_from,
         }
 
+        TOPICS = get_topics()
         greeting = TOPICS.get(topic, TOPICS["customer_service"]).get(lang, TOPICS[topic]["en"])["greeting"]
         conversation_store[call_sid].append({"role": "assistant", "content": greeting})
         resp.say(greeting, voice=voice)
@@ -121,6 +122,7 @@ def ai_respond():
     if info["name"] and info["phone"] and not info.get("notified"):
         info["notified"] = True
         collected_info[call_sid] = info
+        TOPICS = get_topics()
         topic_label = TOPICS.get(topic, TOPICS["customer_service"]).get(lang, TOPICS[topic]["en"])["label"]
         lines = [
             f"📋 *Nueva consulta* — {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",

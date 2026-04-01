@@ -6,7 +6,7 @@ from twilio.twiml.voice_response import VoiceResponse, Dial
 import runtime_config
 from config import ACCOUNT_SID, AUTH_TOKEN, TWILIO_FROM, FORWARD_TO as _FORWARD_TO_DEFAULT, openai_client, twilio_client
 from state import collected_info, outbound_calls, failed_rooms, briefed_rooms
-from topics import TOPICS
+from use_case_loader import get_topics
 from helpers import get_voice
 from use_case_loader import get_company_name
 from email_helper import send_report_email
@@ -95,7 +95,7 @@ def operator_briefing():
     phone  = info.get("phone") or "Unknown"
     notes  = info.get("notes") or ""
     topic  = info.get("topic", "")
-    topic_label = TOPICS.get(topic, {}).get(lang, {}).get("label", topic)
+    topic_label = get_topics().get(topic, {}).get(lang, {}).get("label", topic)
 
     if lang == "en":
         briefing = f"Incoming pre-screened call. Topic: {topic_label}. Caller name: {name}. Callback number: {phone}."
@@ -266,7 +266,7 @@ def recording_ready():
         summary = summary_resp.choices[0].message.content
 
         W = 60
-        topic_label = TOPICS.get(info.get("topic",""), {}).get(lang, {}).get("label", info.get("topic",""))
+        topic_label = get_topics().get(info.get("topic",""), {}).get(lang, {}).get("label", info.get("topic",""))
 
         print(f"\n{'='*W}")
         print(f"  FULL CALL REPORT — {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
