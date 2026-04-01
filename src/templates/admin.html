@@ -347,13 +347,29 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 
   </div>
 
+  <!-- TWILIO WEBHOOK -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Twilio Webhook</span>
+      <span class="card-badge badge-green">Voice · HTTP POST</span>
+    </div>
+    <div class="input-row">
+      <input type="text" id="webhook-url" value="{{ webhook_url }}" readonly
+             style="font-family:monospace;font-size:13px;background:#f9fafb;cursor:default;">
+      <button class="btn btn-primary" onclick="copyWebhook()">Copy</button>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-top:10px;">
+      Set this URL as <strong>A call comes in</strong> webhook in your Twilio phone number settings.
+    </p>
+  </div>
+
   <!-- NOTIFICATIONS -->
   <div class="card">
     <div class="card-header">
       <span class="card-title">Notifications</span>
       <span class="card-badge badge-blue">Email · WhatsApp</span>
     </div>
-    <div class="two-col" style="margin-bottom:12px;">
+    <div class="two-col">
       <div>
         <label style="display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;">Report Email</label>
         <div class="input-row">
@@ -361,26 +377,15 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
         </div>
       </div>
       <div>
-        <label style="display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;">WhatsApp From</label>
-        <div class="input-row">
-          <input type="tel" id="whatsapp-from" placeholder="+14155238886" value="{{ whatsapp_from or '' }}">
-        </div>
-      </div>
-    </div>
-    <div class="two-col">
-      <div>
         <label style="display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;">WhatsApp To</label>
         <div class="input-row">
           <input type="tel" id="whatsapp-to" placeholder="+1 555 000 0000" value="{{ whatsapp_to or '' }}">
         </div>
       </div>
-      <div style="display:flex;align-items:flex-end;">
-        <button class="btn btn-primary" style="width:100%" onclick="saveNotifications()">Save</button>
-      </div>
     </div>
-    <p style="font-size:12px;color:var(--muted);margin-top:10px;">
-      WhatsApp From must be a Twilio sandbox or approved number with <code>whatsapp:</code> prefix omitted.
-    </p>
+    <div style="margin-top:12px;">
+      <button class="btn btn-primary" onclick="saveNotifications()">Save</button>
+    </div>
   </div>
 
   <!-- STATUS -->
@@ -484,14 +489,18 @@ async function saveOperator() {
   toast('Operator number saved');
 }
 
+function copyWebhook() {
+  const url = document.getElementById('webhook-url').value;
+  navigator.clipboard.writeText(url).then(() => toast('Webhook URL copied'));
+}
+
 async function saveNotifications() {
   const res = await apiFetch('/admin/api/config', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      report_email:  document.getElementById('report-email').value.trim(),
-      whatsapp_from: document.getElementById('whatsapp-from').value.trim(),
-      whatsapp_to:   document.getElementById('whatsapp-to').value.trim(),
+      report_email: document.getElementById('report-email').value.trim(),
+      whatsapp_to:  document.getElementById('whatsapp-to').value.trim(),
     })
   });
   if (!res) return;

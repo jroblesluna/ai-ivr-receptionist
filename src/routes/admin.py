@@ -17,6 +17,7 @@ def admin():
     if not _logged_in():
         return redirect(url_for("admin.login"))
     use_cases = _load_use_cases()
+    base_url = request.url_root.rstrip("/")
     return render_template(
         "admin.html",
         use_cases=use_cases,
@@ -26,6 +27,7 @@ def admin():
         whatsapp_from=runtime_config.get("whatsapp_from"),
         whatsapp_to=runtime_config.get("whatsapp_to"),
         whitelist=load_whitelist(),
+        webhook_url=f"{base_url}/menu",
     )
 
 
