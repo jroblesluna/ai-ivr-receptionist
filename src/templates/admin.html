@@ -387,12 +387,22 @@ function toast(msg, type='success') {
   setTimeout(() => el.className = 'toast', 2500);
 }
 
+async function apiFetch(url, options) {
+  const res = await fetch(url, options);
+  if (res.status === 401) {
+    window.location.href = '/admin/login';
+    return null;
+  }
+  return res;
+}
+
 async function selectUseCase(id, name) {
-  const res = await fetch('/admin/api/config', {
+  const res = await apiFetch('/admin/api/config', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ use_case_id: id })
   });
+  if (!res) return;
   if (!res.ok) { toast('Error updating use case', 'error'); return; }
 
   // Update UI
@@ -417,11 +427,12 @@ async function selectUseCase(id, name) {
 
 async function saveOperator() {
   const val = document.getElementById('forward-to').value.trim();
-  const res = await fetch('/admin/api/config', {
+  const res = await apiFetch('/admin/api/config', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ forward_to: val })
   });
+  if (!res) return;
   if (!res.ok) { toast('Error saving operator number', 'error'); return; }
   document.getElementById('stat-fwd').textContent = val || '—';
   toast('Operator number saved');
@@ -431,11 +442,12 @@ async function addWhitelist() {
   const input = document.getElementById('wl-input');
   const phone = input.value.trim();
   if (!phone) return;
-  const res = await fetch('/admin/api/whitelist', {
+  const res = await apiFetch('/admin/api/whitelist', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ phone })
   });
+  if (!res) return;
   if (!res.ok) { toast('Error adding number', 'error'); return; }
   const list = await res.json();
   input.value = '';
@@ -445,7 +457,8 @@ async function addWhitelist() {
 
 async function removeWhitelist(phone) {
   const encoded = encodeURIComponent(phone);
-  const res = await fetch(`/admin/api/whitelist/${encoded}`, { method: 'DELETE' });
+  const res = await apiFetch(`/admin/api/whitelist/${encoded}`, { method: 'DELETE' });
+  if (!res) return;
   if (!res.ok) { toast('Error removing number', 'error'); return; }
   const list = await res.json();
   renderWhitelist(list);
