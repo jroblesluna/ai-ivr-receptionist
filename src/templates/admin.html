@@ -231,6 +231,16 @@ main {
 .toast.success { background: var(--success); }
 .toast.error { background: var(--danger); }
 
+/* ── Two-column row ── */
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+@media (max-width: 640px) {
+  .two-col { grid-template-columns: 1fr; }
+}
+
 /* ── Divider ── */
 hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 </style>
@@ -289,7 +299,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
   </div>
 
   <!-- OPERATOR & WHITELIST side by side on wide screens -->
-  <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+  <div class="two-col">
 
     <!-- OPERATOR NUMBER -->
     <div class="card">
@@ -487,17 +497,6 @@ function renderWhitelist(list) {
   `).join('');
 }
 
-// Responsive: stack operator+whitelist on narrow screens
-function checkLayout() {
-  const grid = document.querySelector('main > div[style*="grid-template-columns"]');
-  if (window.innerWidth < 640) {
-    grid.style.gridTemplateColumns = '1fr';
-  } else {
-    grid.style.gridTemplateColumns = '1fr 1fr';
-  }
-}
-window.addEventListener('resize', checkLayout);
-checkLayout();
 </script>
 </body>
 </html>
