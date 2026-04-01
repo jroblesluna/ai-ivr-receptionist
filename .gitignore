@@ -19,5 +19,8 @@ env/
 *.mp3
 cold-day.mp3
 
+# Runtime config (generated at runtime, not committed)
+data/
+
 # macOS
 .DS_Store

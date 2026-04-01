@@ -1,10 +1,15 @@
 """
-Runtime mutable configuration — survives without server restart.
-Initialized from environment variables, overridable via admin panel.
+Runtime mutable configuration — persisted to a JSON file so all gunicorn
+workers share the same state without requiring a database.
 """
 import os
+import json
+import threading
 
-_state = {
+_LOCK = threading.Lock()
+_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "runtime_config.json")
+
+_DEFAULTS = {
     "use_case_id":   os.environ.get("USE_CASE_ID",   "robles_ai"),
     "forward_to":    os.environ.get("FORWARD_TO",    ""),
     "report_email":  os.environ.get("REPORT_EMAIL",  ""),
@@ -13,13 +18,35 @@ _state = {
 }
 
 
+def _load() -> dict:
+    try:
+        with open(_CONFIG_PATH, encoding="utf-8") as f:
+            data = json.load(f)
+        # Fill in any keys missing from the file with env-var defaults
+        for k, v in _DEFAULTS.items():
+            if k not in data:
+                data[k] = v
+        return data
+    except (FileNotFoundError, json.JSONDecodeError):
+        return dict(_DEFAULTS)
+
+
+def _save(state: dict):
+    os.makedirs(os.path.dirname(_CONFIG_PATH), exist_ok=True)
+    with open(_CONFIG_PATH, "w", encoding="utf-8") as f:
+        json.dump(state, f, indent=2)
+
+
 def get(key, default=None):
-    return _state.get(key, default)
+    return _load().get(key, default)
 
 
 def set(key, value):
-    _state[key] = value
+    with _LOCK:
+        state = _load()
+        state[key] = value
+        _save(state)
 
 
-def all_config():
-    return dict(_state)
+def all_config() -> dict:
+    return _load()
