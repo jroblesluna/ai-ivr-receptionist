@@ -361,6 +361,14 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
     <p style="font-size:12px;color:var(--muted);margin-top:10px;">
       Set this URL as <strong>A call comes in</strong> webhook in your Twilio phone number settings.
     </p>
+    {% if '127.0.0.1' in webhook_url or 'localhost' in webhook_url %}
+    <div style="margin-top:12px;padding:10px 14px;background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;font-size:13px;color:#92400e;">
+      <strong>Local server detected.</strong> Twilio cannot reach localhost directly.
+      Use <a href="https://ngrok.com" target="_blank" style="color:#b45309;">ngrok</a> as a proxy:
+      <code style="display:block;margin-top:6px;background:#fef3c7;padding:6px 10px;border-radius:6px;font-size:12px;">ngrok http 5000</code>
+      Then update the webhook URL above with the ngrok <code>https://</code> URL.
+    </div>
+    {% endif %}
   </div>
 
   <!-- NOTIFICATIONS -->
