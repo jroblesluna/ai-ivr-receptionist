@@ -22,6 +22,9 @@ def admin():
         use_cases=use_cases,
         current_use_case=runtime_config.get("use_case_id"),
         forward_to=runtime_config.get("forward_to"),
+        report_email=runtime_config.get("report_email"),
+        whatsapp_from=runtime_config.get("whatsapp_from"),
+        whatsapp_to=runtime_config.get("whatsapp_to"),
         whitelist=load_whitelist(),
     )
 
@@ -53,8 +56,9 @@ def api_config():
         if data["use_case_id"] not in use_cases:
             return jsonify({"error": "Unknown use case"}), 400
         runtime_config.set("use_case_id", data["use_case_id"])
-    if "forward_to" in data:
-        runtime_config.set("forward_to", data["forward_to"])
+    for key in ("forward_to", "report_email", "whatsapp_from", "whatsapp_to"):
+        if key in data:
+            runtime_config.set(key, data[key])
     return jsonify({"ok": True, "config": runtime_config.all_config()})
 
 

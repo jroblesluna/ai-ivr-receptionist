@@ -3,6 +3,7 @@ from datetime import datetime
 from flask import Blueprint, request
 from twilio.twiml.voice_response import VoiceResponse, Gather
 from config import ACCOUNT_SID, AUTH_TOKEN, TWILIO_FROM, WHATSAPP_FROM, WHATSAPP_TO, openai_client, twilio_client
+import runtime_config
 from state import conversation_store, collected_info
 from topics import TOPICS
 from helpers import get_voice, get_gather_language
@@ -130,11 +131,13 @@ def ai_respond():
         ]
         if info["notes"]:
             lines.append(f"📝 Notas: {info['notes']}")
-        if WHATSAPP_FROM and WHATSAPP_TO:
+        wa_from = runtime_config.get("whatsapp_from") or WHATSAPP_FROM
+        wa_to   = runtime_config.get("whatsapp_to")   or WHATSAPP_TO
+        if wa_from and wa_to:
             try:
                 twilio_client().messages.create(
-                    from_=f"whatsapp:{WHATSAPP_FROM}",
-                    to=f"whatsapp:{WHATSAPP_TO}",
+                    from_=f"whatsapp:{wa_from}",
+                    to=f"whatsapp:{wa_to}",
                     body="\n".join(lines),
                 )
             except Exception as e:
