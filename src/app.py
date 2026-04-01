@@ -1,4 +1,5 @@
 from flask import Flask, redirect, url_for
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from routes.media import media_bp
 from routes.menu import menu_bp
@@ -8,6 +9,7 @@ from routes.admin import admin_bp
 from config import SECRET_KEY
 
 app = Flask(__name__)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.secret_key = SECRET_KEY
 
 app.register_blueprint(media_bp)
