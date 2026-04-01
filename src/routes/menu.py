@@ -47,12 +47,14 @@ def main_menu():
     uc      = get_active_use_case()
     options = _sorted_options(uc, "en")
     company = get_company_name()
+    slogan  = uc.get("slogan", {}).get("en", "")
 
     resp = VoiceResponse()
     resp.play(request.url_root + "intro.wav")
 
     gather = Gather(num_digits=1, action="/handle-en", method="POST")
-    gather.say(f"Thank you for calling {company}. Please listen to the following options.", voice=EN_VOICE)
+    greeting = f"Thank you for calling {company}. {slogan} Please listen to the following options." if slogan else f"Thank you for calling {company}. Please listen to the following options."
+    gather.say(greeting, voice=EN_VOICE)
     for opt in options:
         if opt["digit"] == "1":
             gather.say(opt["menu_text"], voice=EN_VOICE)
@@ -86,12 +88,14 @@ def menu_es():
     uc      = get_active_use_case()
     options = _sorted_options(uc, "es")
     company = get_company_name()
+    slogan  = uc.get("slogan", {}).get("es", "")
 
     resp = VoiceResponse()
     resp.play(request.url_root + "intro.wav")
 
     gather = Gather(num_digits=1, action="/handle-es", method="POST")
-    gather.say(f"Gracias por llamar a {company}. Por favor escuche las siguientes opciones.", voice=ES_VOICE)
+    greeting = f"Gracias por llamar a {company}. {slogan} Por favor escuche las siguientes opciones." if slogan else f"Gracias por llamar a {company}. Por favor escuche las siguientes opciones."
+    gather.say(greeting, voice=ES_VOICE)
     for opt in options:
         if opt["digit"] == "1":
             gather.say(opt["menu_text"], voice=ES_VOICE)

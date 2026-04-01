@@ -3,6 +3,7 @@
     "id": "robles_ai",
     "name": "Robles AI",
     "industry": "Technology & Education",
+    "slogan": { "en": "Intelligent solutions for a smarter future.", "es": "Soluciones inteligentes para un futuro mejor." },
     "topics": {
       "meeting": {
         "digit": "1",
@@ -83,6 +84,7 @@
     "id": "sweet_crust",
     "name": "Sweet Crust Bakery",
     "industry": "Food and Beverage",
+    "slogan": { "en": "Baked with love, every single day.", "es": "Horneado con amor, cada día." },
     "topics": {
       "meeting": {
         "digit": "1",
@@ -163,6 +165,7 @@
     "id": "lex_partners",
     "name": "Lex and Partners",
     "industry": "Legal Services",
+    "slogan": { "en": "Your rights, our mission.", "es": "Sus derechos, nuestra misión." },
     "topics": {
       "meeting": {
         "digit": "1",
@@ -243,6 +246,7 @@
     "id": "vita_clinic",
     "name": "Vita Medical Clinic",
     "industry": "Healthcare",
+    "slogan": { "en": "Your health is our priority.", "es": "Su salud es nuestra prioridad." },
     "topics": {
       "meeting": {
         "digit": "1",
@@ -323,6 +327,7 @@
     "id": "sol_realty",
     "name": "Sol Realty Group",
     "industry": "Real Estate",
+    "slogan": { "en": "Finding the perfect place to call home.", "es": "Encontrando el lugar perfecto para llamar hogar." },
     "topics": {
       "meeting": {
         "digit": "1",
@@ -403,6 +408,7 @@
     "id": "chem_supply",
     "name": "Chem Supply",
     "industry": "Industrial Distribution",
+    "slogan": { "en": "Quality supplies, delivered on time.", "es": "Suministros de calidad, entregados a tiempo." },
     "topics": {
       "meeting": {
         "digit": "1",
@@ -483,6 +489,7 @@
     "id": "nova_auto",
     "name": "Nova Auto",
     "industry": "Automotive Services",
+    "slogan": { "en": "Keeping you safely on the road.", "es": "Manteniéndole seguro en la carretera." },
     "topics": {
       "meeting": {
         "digit": "1",
@@ -563,6 +570,7 @@
     "id": "grand_hotel",
     "name": "Grand Hotel",
     "industry": "Hospitality",
+    "slogan": { "en": "Where comfort meets elegance.", "es": "Donde el confort se encuentra con la elegancia." },
     "topics": {
       "meeting": {
         "digit": "1",
@@ -643,6 +651,7 @@
     "id": "smile_dental",
     "name": "Smile Dental",
     "industry": "Dental Care",
+    "slogan": { "en": "Healthy smiles, happy lives.", "es": "Sonrisas saludables, vidas felices." },
     "topics": {
       "meeting": {
         "digit": "1",
@@ -723,6 +732,7 @@
     "id": "flex_gym",
     "name": "Flex Gym",
     "industry": "Fitness and Wellness",
+    "slogan": { "en": "Train harder, live better.", "es": "Entrena más fuerte, vive mejor." },
     "topics": {
       "meeting": {
         "digit": "1",
@@ -803,6 +813,7 @@
     "id": "safe_guard",
     "name": "Safe Guard Insurance",
     "industry": "Insurance",
+    "slogan": { "en": "Protection you can always count on.", "es": "Protección en la que siempre puede confiar." },
     "topics": {
       "meeting": {
         "digit": "1",
@@ -883,6 +894,7 @@
     "id": "luma_academy",
     "name": "Luma Academy",
     "industry": "Education and Tutoring",
+    "slogan": { "en": "Illuminate your potential.", "es": "Ilumina tu potencial." },
     "topics": {
       "meeting": {
         "digit": "1",
@@ -963,6 +975,7 @@
     "id": "blue_star",
     "name": "Blue Star Restaurant",
     "industry": "Food Service",
+    "slogan": { "en": "Exceptional food, unforgettable moments.", "es": "Comida excepcional, momentos inolvidables." },
     "topics": {
       "meeting": {
         "digit": "1",
