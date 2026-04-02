@@ -42,6 +42,7 @@ def connect_operator():
         recording_status_callback_method="POST",
     )
     resp.append(dial)
+    print(f"[TWIML] connect-operator:\n{str(resp)}")
 
     # Llamar al operador; cuando conteste, escucha el briefing y luego se une a la conferencia
     FORWARD_TO = runtime_config.get("forward_to") or _FORWARD_TO_DEFAULT
