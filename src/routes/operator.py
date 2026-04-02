@@ -4,6 +4,7 @@ from datetime import datetime
 from flask import Blueprint, request
 from twilio.twiml.voice_response import VoiceResponse, Dial
 import runtime_config
+import reports
 from config import ACCOUNT_SID, AUTH_TOKEN, TWILIO_FROM, FORWARD_TO as _FORWARD_TO_DEFAULT, openai_client, twilio_client
 from state import collected_info, outbound_calls, failed_rooms, briefed_rooms
 from use_case_loader import get_topics
@@ -227,18 +228,19 @@ def recording_ready():
                 timestamp_granularities=["segment"],
             )
 
+        print(f"[RECORDING] Channels: {audio.channels}")
+        transcription_segments = []
         if audio.channels == 2:
             ch = audio.split_to_mono()
             caller_t   = transcribe_channel(ch[0], "caller.mp3")
             operator_t = transcribe_channel(ch[1], "operator.mp3")
-            segments = (
-                [{"speaker": "CALLER",   "start": s.start, "text": s.text.strip()} for s in caller_t.segments] +
-                [{"speaker": "OPERATOR", "start": s.start, "text": s.text.strip()} for s in operator_t.segments]
+            transcription_segments = sorted(
+                [{"speaker": "CALLER",   "start": s.start, "text": s.text.strip()} for s in caller_t.segments if s.text.strip()] +
+                [{"speaker": "OPERATOR", "start": s.start, "text": s.text.strip()} for s in operator_t.segments if s.text.strip()],
+                key=lambda s: s["start"]
             )
-            segments.sort(key=lambda s: s["start"])
-            text = "\n".join(f"[{s['speaker']}]: {s['text']}" for s in segments if s["text"])
+            text = "\n".join(f"[{s['speaker']}]: {s['text']}" for s in transcription_segments)
         else:
-            # Grabación mono — transcripción sin diarización
             result = transcribe_channel(audio, "recording.mp3")
             text = result.text
 
@@ -309,56 +311,63 @@ def recording_ready():
 
         print(f"\n{'='*W}\n")
 
-        # ── Email report ───────────────────────────────────────
-        lines = [
-            f"FULL CALL REPORT — {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
-            f"Caller   : {info.get('name')} / {info.get('phone')}",
+        # ── Save report to JSON ────────────────────────────────
+        report_data = {
+            "timestamp":              datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "use_case":               get_company_name(),
+            "caller_name":            info.get("name"),
+            "caller_phone":           info.get("phone"),
+            "topic":                  topic_label,
+            "language":               "English" if lang == "en" else "Español",
+            "conversation":           info.get("conversation", []),
+            "operator_briefing":      info.get("operator_briefing", ""),
+            "transcription":          text,
+            "transcription_segments": transcription_segments,
+            "summary":                summary,
+            "goodbye":                info.get("goodbye", ""),
+        }
+        report_id  = reports.save(report_data)
+        base_url   = request.url_root.rstrip("/")
+        report_url = f"{base_url}/report/{report_id}"
+        print(f"[REPORT] Saved: {report_url}")
+
+        # ── Email — metadata + link ────────────────────────────
+        email_body = "\n".join([
+            f"New call report from {get_company_name()}",
+            f"",
+            f"Caller   : {info.get('name', 'Unknown')} / {info.get('phone', '—')}",
             f"Topic    : {topic_label}",
             f"Language : {'English' if lang == 'en' else 'Español'}",
-            "",
-            "[1] AI ↔ CALLER CONVERSATION",
-            "─" * W,
-        ]
-        for m in info.get("conversation", []):
-            role = "AI  " if m["role"] == "assistant" else "USER"
-            lines.append(f"{role}: {m['content']}")
-        lines += [
-            "",
-            "[2] AI → OPERATOR BRIEFING",
-            "─" * W,
-            info.get("operator_briefing", "(no briefing recorded)"),
-            "",
-            "[3] CALLER ↔ OPERATOR TRANSCRIPTION (Whisper)",
-            "─" * W,
-            text,
-            "",
-            "[4] GPT SUMMARY",
-            "─" * W,
-            summary,
-            "",
-            "[5] GOODBYE MESSAGE",
-            "─" * W,
-            info.get("goodbye", "(not recorded)"),
-        ]
-        report_body = "\n".join(lines)
-
+            f"Time     : {report_data['timestamp']}",
+            f"",
+            f"View full report:",
+            f"{report_url}",
+        ])
         send_report_email(
-            subject=f"[IVR] Call Report — {info.get('name', 'Unknown')} / {topic_label}",
-            body=report_body,
+            subject=f"[IVR] {info.get('name', 'Unknown')} / {topic_label}",
+            body=email_body,
         )
 
-        # ── WhatsApp full report ───────────────────────────────
+        # ── WhatsApp — metadata + link ─────────────────────────
         if runtime_config.get("notify_whatsapp") == "1":
             wa_from = runtime_config.get("whatsapp_from") or ""
             wa_to   = runtime_config.get("whatsapp_to")   or ""
             if wa_from and wa_to:
+                wa_body = "\n".join([
+                    f"📋 *New call report* — {report_data['timestamp']}",
+                    f"🏢 {get_company_name()}",
+                    f"👤 {info.get('name', 'Unknown')} / {info.get('phone', '—')}",
+                    f"📌 {topic_label} · {'English' if lang == 'en' else 'Español'}",
+                    f"",
+                    f"🔗 {report_url}",
+                ])
                 try:
                     twilio_client().messages.create(
                         from_=f"whatsapp:{wa_from}",
                         to=f"whatsapp:{wa_to}",
-                        body=report_body[:4000],  # WhatsApp max ~4096 chars
+                        body=wa_body,
                     )
-                    print(f"[WHATSAPP] Report sent to {wa_to}")
+                    print(f"[WHATSAPP] Report link sent to {wa_to}")
                 except Exception as e:
                     print(f"[WHATSAPP ERROR] {e}")
 
