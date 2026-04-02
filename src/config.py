@@ -17,7 +17,7 @@ FORWARD_TO  = os.environ.get("FORWARD_TO",         "")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 openai_client  = OpenAI(api_key=OPENAI_API_KEY)
 
-SECRET_KEY     = os.environ.get("SECRET_KEY",     os.urandom(24).hex())
+SECRET_KEY     = os.environ.get("SECRET_KEY",     "")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
 
 SMTP_HOST     = os.environ.get("SMTP_HOST",     "smtp.gmail.com")
