@@ -231,6 +231,36 @@ main {
 .toast.success { background: var(--success); }
 .toast.error { background: var(--danger); }
 
+/* ── Toggle ── */
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.toggle-row:last-child { border-bottom: none; }
+.toggle-label { font-size: 14px; font-weight: 500; }
+.toggle-desc  { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.switch {
+  position: relative; display: inline-block;
+  width: 44px; height: 24px; flex-shrink: 0;
+}
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider {
+  position: absolute; cursor: pointer;
+  inset: 0; background: #d1d5db;
+  border-radius: 24px; transition: background 0.2s;
+}
+.slider:before {
+  content: ""; position: absolute;
+  width: 18px; height: 18px; left: 3px; bottom: 3px;
+  background: white; border-radius: 50%;
+  transition: transform 0.2s;
+}
+input:checked + .slider { background: var(--primary); }
+input:checked + .slider:before { transform: translateX(20px); }
+
 /* ── Two-column row ── */
 .two-col {
   display: grid;
@@ -377,6 +407,34 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
       <span class="card-title">Notifications</span>
       <span class="card-badge badge-blue">Email · WhatsApp</span>
     </div>
+
+    <!-- Toggles -->
+    <div style="margin-bottom:16px;">
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-label">Email Report</div>
+          <div class="toggle-desc">Send full call report via email after each call</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="toggle-email" {% if notify_email == '1' %}checked{% endif %}
+                 onchange="saveNotifications()">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-label">WhatsApp Notification</div>
+          <div class="toggle-desc">Send pre-screening summary + full call report via WhatsApp</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="toggle-whatsapp" {% if notify_whatsapp == '1' %}checked{% endif %}
+                 onchange="saveNotifications()">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Config fields -->
     <div class="two-col">
       <div>
         <label style="display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;">Report Email</label>
@@ -507,8 +565,10 @@ async function saveNotifications() {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      report_email: document.getElementById('report-email').value.trim(),
-      whatsapp_to:  document.getElementById('whatsapp-to').value.trim(),
+      report_email:     document.getElementById('report-email').value.trim(),
+      whatsapp_to:      document.getElementById('whatsapp-to').value.trim(),
+      notify_email:     document.getElementById('toggle-email').checked    ? '1' : '0',
+      notify_whatsapp:  document.getElementById('toggle-whatsapp').checked ? '1' : '0',
     })
   });
   if (!res) return;

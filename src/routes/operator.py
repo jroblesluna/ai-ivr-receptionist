@@ -340,10 +340,27 @@ def recording_ready():
             "─" * W,
             info.get("goodbye", "(not recorded)"),
         ]
+        report_body = "\n".join(lines)
+
         send_report_email(
             subject=f"[IVR] Call Report — {info.get('name', 'Unknown')} / {topic_label}",
-            body="\n".join(lines),
+            body=report_body,
         )
+
+        # ── WhatsApp full report ───────────────────────────────
+        if runtime_config.get("notify_whatsapp") == "1":
+            wa_from = runtime_config.get("whatsapp_from") or ""
+            wa_to   = runtime_config.get("whatsapp_to")   or ""
+            if wa_from and wa_to:
+                try:
+                    twilio_client().messages.create(
+                        from_=f"whatsapp:{wa_from}",
+                        to=f"whatsapp:{wa_to}",
+                        body=report_body[:4000],  # WhatsApp max ~4096 chars
+                    )
+                    print(f"[WHATSAPP] Report sent to {wa_to}")
+                except Exception as e:
+                    print(f"[WHATSAPP ERROR] {e}")
 
     except Exception as e:
         print(f"[RECORDING ERROR] {e}")

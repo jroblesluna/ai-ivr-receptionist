@@ -135,7 +135,7 @@ def ai_respond():
             lines.append(f"📝 Notas: {info['notes']}")
         wa_from = runtime_config.get("whatsapp_from") or WHATSAPP_FROM
         wa_to   = runtime_config.get("whatsapp_to")   or WHATSAPP_TO
-        if wa_from and wa_to:
+        if runtime_config.get("notify_whatsapp") == "1" and wa_from and wa_to:
             try:
                 twilio_client().messages.create(
                     from_=f"whatsapp:{wa_from}",

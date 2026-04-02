@@ -7,6 +7,9 @@ import runtime_config
 
 def send_report_email(subject: str, body: str) -> None:
     """Send a plain-text report email. Silently logs on failure."""
+    if runtime_config.get("notify_email") != "1":
+        print("[EMAIL] Email notifications disabled — skipping.")
+        return
     if not SMTP_USER or not SMTP_PASSWORD:
         print("[EMAIL] SMTP credentials not configured — skipping email.")
         return

@@ -26,6 +26,8 @@ def admin():
         report_email=runtime_config.get("report_email"),
         whatsapp_from=runtime_config.get("whatsapp_from"),
         whatsapp_to=runtime_config.get("whatsapp_to"),
+        notify_email=runtime_config.get("notify_email", "1"),
+        notify_whatsapp=runtime_config.get("notify_whatsapp", "1"),
         whitelist=load_whitelist(),
         webhook_url=f"{base_url}/menu",
     )
@@ -58,7 +60,8 @@ def api_config():
         if data["use_case_id"] not in use_cases:
             return jsonify({"error": "Unknown use case"}), 400
         runtime_config.set("use_case_id", data["use_case_id"])
-    for key in ("forward_to", "report_email", "whatsapp_from", "whatsapp_to"):
+    for key in ("forward_to", "report_email", "whatsapp_from", "whatsapp_to",
+                "notify_email", "notify_whatsapp"):
         if key in data:
             runtime_config.set(key, data[key])
     return jsonify({"ok": True, "config": runtime_config.all_config()})
