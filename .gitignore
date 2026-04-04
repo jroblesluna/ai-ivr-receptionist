@@ -19,8 +19,9 @@ env/
 *.mp3
 cold-day.mp3
 
-# Runtime config (generated at runtime, not committed)
-data/
+# Runtime data — reports are ephemeral, config is committed
+data/*
+!data/runtime_config.json
 
 # macOS
 .DS_Store

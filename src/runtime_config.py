@@ -26,12 +26,15 @@ def _load() -> dict:
         with open(_CONFIG_PATH, encoding="utf-8") as f:
             data = json.load(f)
         # Fill in any keys missing from the file with env-var defaults
-        for k, v in _DEFAULTS.items():
-            if k not in data:
-                data[k] = v
+        added = {k: v for k, v in _DEFAULTS.items() if k not in data}
+        if added:
+            data.update(added)
+            _save(data)
         return data
     except (FileNotFoundError, json.JSONDecodeError):
-        return dict(_DEFAULTS)
+        state = dict(_DEFAULTS)
+        _save(state)
+        return state
 
 
 def _save(state: dict):
