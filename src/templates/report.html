@@ -157,51 +157,53 @@ main { max-width: 800px; margin: 0 auto; padding: 24px 16px; display: flex; flex
   </div>
 </div>
 
-<audio id="report-audio" style="display:none;"></audio>
-
 <script>
-let audioPlaying = false;
-const audioEl = document.getElementById('report-audio');
-const btn     = document.getElementById('listen-btn');
-const isEn    = {{ ('true' if r.language == 'English' else 'false') }};
+const isEn         = {{ ('true' if r.language == 'English' else 'false') }};
+const EL_KEY       = {{ elevenlabs_api_key | tojson }};
+const EL_VOICE     = {{ elevenlabs_voice_id | tojson }};
+const TTS_TEXT     = {{ tts_text | tojson }};
+const btn          = document.getElementById('listen-btn');
+let currentAudio   = null;
 
-audioEl.onended = () => {
-  audioPlaying = false;
-  btn.innerHTML = isEn ? '🎧 Listen to Summary' : '🎧 Escuchar resumen';
-  btn.disabled = false;
-};
-
-function listenReport() {
-  if (audioPlaying) {
-    audioEl.pause();
-    audioEl.currentTime = 0;
-    audioPlaying = false;
-    btn.innerHTML = isEn ? '🎧 Listen to Summary' : '🎧 Escuchar resumen';
+async function listenReport() {
+  if (currentAudio && !currentAudio.paused) {
+    currentAudio.pause();
+    currentAudio.currentTime = 0;
+    currentAudio = null;
+    btn.innerHTML = '🎧 ' + (isEn ? 'Listen to Summary' : 'Escuchar resumen');
     return;
   }
+
   btn.innerHTML = '<span class="spin">⏳</span> ' + (isEn ? 'Generating...' : 'Generando...');
   btn.disabled = true;
 
-  if (audioEl.src && audioEl.readyState >= 2) {
-    audioEl.play();
-    audioPlaying = true;
+  try {
+    const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${EL_VOICE}`, {
+      method: 'POST',
+      headers: { 'xi-api-key': EL_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: TTS_TEXT,
+        model_id: 'eleven_multilingual_v2',
+        voice_settings: { stability: 0.5, similarity_boost: 0.75 },
+      }),
+    });
+    if (!res.ok) throw new Error(`ElevenLabs ${res.status}`);
+    const blob = await res.blob();
+    const url  = URL.createObjectURL(blob);
+    currentAudio = new Audio(url);
+    currentAudio.onended = () => {
+      URL.revokeObjectURL(url);
+      currentAudio = null;
+      btn.innerHTML = '🎧 ' + (isEn ? 'Listen to Summary' : 'Escuchar resumen');
+      btn.disabled = false;
+    };
+    currentAudio.play();
     btn.innerHTML = '⏸ ' + (isEn ? 'Pause' : 'Pausar');
-    btn.disabled = false;
-    return;
-  }
-
-  audioEl.src = '/report/{{ r.id }}/audio';
-  audioEl.oncanplaythrough = () => {
-    audioEl.play();
-    audioPlaying = true;
-    btn.innerHTML = '⏸ ' + (isEn ? 'Pause' : 'Pausar');
-    btn.disabled = false;
-  };
-  audioEl.onerror = () => {
+  } catch (e) {
     btn.innerHTML = '❌ ' + (isEn ? 'Error generating audio' : 'Error al generar audio');
+  } finally {
     btn.disabled = false;
-  };
-  audioEl.load();
+  }
 }
 </script>
 
