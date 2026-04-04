@@ -5,7 +5,7 @@ from flask import Blueprint, request
 from twilio.twiml.voice_response import VoiceResponse, Dial
 import runtime_config
 import reports
-from config import ACCOUNT_SID, AUTH_TOKEN, TWILIO_FROM, FORWARD_TO as _FORWARD_TO_DEFAULT, openai_client, twilio_client
+from config import ACCOUNT_SID, AUTH_TOKEN, openai_client, twilio_client
 from state import collected_info, outbound_calls, failed_rooms, briefed_rooms
 from use_case_loader import get_topics
 from helpers import get_voice
@@ -45,7 +45,8 @@ def connect_operator():
     print(f"[TWIML] connect-operator:\n{str(resp)}")
 
     # Llamar al operador; cuando conteste, escucha el briefing y luego se une a la conferencia
-    FORWARD_TO = runtime_config.get("forward_to") or _FORWARD_TO_DEFAULT
+    FORWARD_TO  = runtime_config.get("forward_to")  or ""
+    TWILIO_FROM = runtime_config.get("twilio_from") or ""
     print(f"[CONNECT-OPERATOR] caller_sid={caller_sid!r} room={room!r} to={FORWARD_TO!r} from={TWILIO_FROM!r}")
     try:
         outbound = twilio_client().calls.create(
@@ -178,7 +179,8 @@ def operator_status():
         if attempt < 5:
             # Reintentar: el caller sigue esperando en la conferencia
             new_attempt = attempt + 1
-            FORWARD_TO = runtime_config.get("forward_to") or _FORWARD_TO_DEFAULT
+            FORWARD_TO  = runtime_config.get("forward_to")  or ""
+            TWILIO_FROM = runtime_config.get("twilio_from") or ""
             print(f"[OPERATOR-STATUS] Retrying attempt {new_attempt}/5 to {FORWARD_TO!r}")
             try:
                 outbound = twilio_client().calls.create(

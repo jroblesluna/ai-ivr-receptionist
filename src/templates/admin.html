@@ -399,17 +399,20 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
     <!-- OPERATOR NUMBER -->
     <div class="card">
       <div class="card-header">
-        <span class="card-title">Operator Number</span>
-        <span class="card-badge badge-blue">FORWARD_TO</span>
+        <span class="card-title">Phone Numbers</span>
+        <span class="card-badge badge-blue">Twilio</span>
       </div>
+      <label style="display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;">Twilio From (your Twilio number)</label>
+      <div class="input-row" style="margin-bottom:12px;">
+        <input type="tel" id="twilio-from" placeholder="+1 555 000 0000"
+               value="{{ twilio_from or '' }}">
+      </div>
+      <label style="display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;">Operator Number (forward calls to)</label>
       <div class="input-row">
         <input type="tel" id="forward-to" placeholder="+1 555 000 0000"
                value="{{ forward_to or '' }}">
         <button class="btn btn-primary" onclick="saveOperator()">Save</button>
       </div>
-      <p style="font-size:12px; color:var(--muted); margin-top:10px;">
-        The phone number that receives incoming calls from callers.
-      </p>
     </div>
 
     <!-- WHITELIST -->
@@ -829,16 +832,17 @@ async function selectUseCase(id, name) {
 }
 
 async function saveOperator() {
-  const val = document.getElementById('forward-to').value.trim();
+  const from = document.getElementById('twilio-from').value.trim();
+  const fwd  = document.getElementById('forward-to').value.trim();
   const res = await apiFetch('/admin/api/config', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ forward_to: val })
+    body: JSON.stringify({ twilio_from: from, forward_to: fwd })
   });
   if (!res) return;
-  if (!res.ok) { toast('Error saving operator number', 'error'); return; }
-  document.getElementById('stat-fwd').textContent = val || '—';
-  toast('Operator number saved');
+  if (!res.ok) { toast('Error saving phone numbers', 'error'); return; }
+  document.getElementById('stat-fwd').textContent = fwd || '—';
+  toast('Phone numbers saved');
 }
 
 function copyWebhook() {

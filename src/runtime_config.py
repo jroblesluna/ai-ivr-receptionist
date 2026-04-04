@@ -10,13 +10,14 @@ _LOCK = threading.Lock()
 _CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "runtime_config.json")
 
 _DEFAULTS = {
-    "use_case_id":      os.environ.get("USE_CASE_ID",   "robles_ai"),
-    "forward_to":       os.environ.get("FORWARD_TO",    ""),
-    "report_email":     os.environ.get("REPORT_EMAIL",  ""),
-    "whatsapp_from":    os.environ.get("WHATSAPP_FROM", ""),
-    "whatsapp_to":      os.environ.get("WHATSAPP_TO",   ""),
-    "notify_email":     "1",
-    "notify_whatsapp":  "1",
+    "use_case_id":      os.environ.get("USE_CASE_ID",       "robles_ai"),
+    "twilio_from":      os.environ.get("TWILIO_NUMBER",     ""),
+    "forward_to":       os.environ.get("FORWARD_TO",        ""),
+    "report_email":     os.environ.get("REPORT_EMAIL",      ""),
+    "whatsapp_from":    os.environ.get("WHATSAPP_FROM",     ""),
+    "whatsapp_to":      os.environ.get("WHATSAPP_TO",       ""),
+    "notify_email":     os.environ.get("NOTIFY_EMAIL",      "1"),
+    "notify_whatsapp":  os.environ.get("NOTIFY_WHATSAPP",   "1"),
 }
 
 
