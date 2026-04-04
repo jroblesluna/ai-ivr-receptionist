@@ -52,7 +52,9 @@ def connect_operator():
             to=FORWARD_TO,
             from_=TWILIO_FROM,
             url=f"{base_url}/operator-briefing?caller_sid={caller_sid}&room={room}&lang={lang}",
-            status_callback=f"{base_url}/operator-status?room={room}&caller_sid={caller_sid}&lang={lang}",
+            timeout=25,
+            machine_detection="Enable",
+            status_callback=f"{base_url}/operator-status?room={room}&caller_sid={caller_sid}&lang={lang}&attempt=1",
             status_callback_method="POST",
             status_callback_event=["completed"],
         )
@@ -99,6 +101,14 @@ def operator_briefing():
     room       = request.values.get("room", "")
     lang       = request.values.get("lang", "en")
     voice      = get_voice(lang)
+
+    # Si contestó una máquina/contestadora, colgar inmediatamente sin unirse a la conferencia
+    answered_by = request.values.get("AnsweredBy", "")
+    if answered_by and "machine" in answered_by.lower():
+        print(f"[OPERATOR-BRIEFING] Answering machine detected ({answered_by}), hanging up")
+        resp = VoiceResponse()
+        resp.hangup()
+        return str(resp)
 
     # El operador contestó → marcar room para que operator-status no lo trate como no-answer
     if room:
@@ -147,9 +157,10 @@ def operator_status():
     room        = request.values.get("room", "")
     caller_sid  = request.values.get("caller_sid", "")
     lang        = request.values.get("lang", "en")
+    attempt     = int(request.values.get("attempt", 1))
     base_url    = request.url_root.rstrip("/")
 
-    print(f"[OPERATOR-STATUS] CallStatus={call_status!r} room={room!r}")
+    print(f"[OPERATOR-STATUS] CallStatus={call_status!r} room={room!r} attempt={attempt}")
 
     outbound_calls.pop(room, None)
 
@@ -164,17 +175,41 @@ def operator_status():
     print(f"[OPERATOR-STATUS] CallStatus={call_status!r} operator_answered={operator_answered} is_no_answer={is_no_answer}")
 
     if is_no_answer:
-        if room:
-            failed_rooms.add(room)
-        if caller_sid:
+        if attempt < 5:
+            # Reintentar: el caller sigue esperando en la conferencia
+            new_attempt = attempt + 1
+            FORWARD_TO = runtime_config.get("forward_to") or _FORWARD_TO_DEFAULT
+            print(f"[OPERATOR-STATUS] Retrying attempt {new_attempt}/5 to {FORWARD_TO!r}")
             try:
-                twilio_client().calls(caller_sid).update(
-                    url=f"{base_url}/no-availability?lang={lang}",
-                    method="POST",
+                outbound = twilio_client().calls.create(
+                    to=FORWARD_TO,
+                    from_=TWILIO_FROM,
+                    url=f"{base_url}/operator-briefing?caller_sid={caller_sid}&room={room}&lang={lang}",
+                    timeout=25,
+                    machine_detection="Enable",
+                    status_callback=f"{base_url}/operator-status?room={room}&caller_sid={caller_sid}&lang={lang}&attempt={new_attempt}",
+                    status_callback_method="POST",
+                    status_callback_event=["completed"],
                 )
-                print(f"[OPERATOR-STATUS] Redirected caller to no-availability")
+                outbound_calls[room] = outbound.sid
+                print(f"[OPERATOR-STATUS] Retry call created: {outbound.sid}")
             except Exception as e:
-                print(f"[OPERATOR-STATUS] REST redirect failed: {e}")
+                print(f"[OPERATOR-STATUS] Retry call failed: {e}")
+                failed_rooms.add(room)
+        else:
+            # 5 intentos agotados → redirigir al caller a no-availability
+            print(f"[OPERATOR-STATUS] Max retries reached, redirecting caller to no-availability")
+            if room:
+                failed_rooms.add(room)
+            if caller_sid:
+                try:
+                    twilio_client().calls(caller_sid).update(
+                        url=f"{base_url}/no-availability?lang={lang}",
+                        method="POST",
+                    )
+                    print(f"[OPERATOR-STATUS] Redirected caller to no-availability")
+                except Exception as e:
+                    print(f"[OPERATOR-STATUS] REST redirect failed: {e}")
 
     return ("", 204)
 
