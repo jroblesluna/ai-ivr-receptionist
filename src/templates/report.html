@@ -158,12 +158,27 @@ main { max-width: 800px; margin: 0 auto; padding: 24px 16px; display: flex; flex
 </div>
 
 <script>
-const isEn         = {{ ('true' if r.language == 'English' else 'false') }};
-const EL_KEY       = {{ elevenlabs_api_key | tojson }};
-const EL_VOICE     = {{ elevenlabs_voice_id | tojson }};
-const TTS_TEXT     = {{ tts_text | tojson }};
-const btn          = document.getElementById('listen-btn');
-let currentAudio   = null;
+const isEn     = {{ ('true' if r.language == 'English' else 'false') }};
+const EL_KEY   = {{ elevenlabs_api_key | tojson }};
+const EL_VOICE = {{ elevenlabs_voice_id | tojson }};
+const TTS_TEXT = {{ tts_text | tojson }};
+const AUDIO_URL = '/report/{{ r.id }}/audio';
+const btn = document.getElementById('listen-btn');
+let currentAudio = null;
+
+function playBlob(blob) {
+  const url = URL.createObjectURL(blob);
+  currentAudio = new Audio(url);
+  currentAudio.onended = () => {
+    URL.revokeObjectURL(url);
+    currentAudio = null;
+    btn.innerHTML = '🎧 ' + (isEn ? 'Listen to Summary' : 'Escuchar resumen');
+    btn.disabled = false;
+  };
+  currentAudio.play();
+  btn.innerHTML = '⏸ ' + (isEn ? 'Pause' : 'Pausar');
+  btn.disabled = false;
+}
 
 async function listenReport() {
   if (currentAudio && !currentAudio.paused) {
@@ -174,11 +189,20 @@ async function listenReport() {
     return;
   }
 
-  btn.innerHTML = '<span class="spin">⏳</span> ' + (isEn ? 'Generating...' : 'Generando...');
+  btn.innerHTML = '<span class="spin">⏳</span> ' + (isEn ? 'Loading...' : 'Cargando...');
   btn.disabled = true;
 
   try {
-    const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${EL_VOICE}`, {
+    // 1. Check if cached MP3 exists on Railway
+    const cached = await fetch(AUDIO_URL);
+    if (cached.ok) {
+      playBlob(await cached.blob());
+      return;
+    }
+
+    // 2. Generate via ElevenLabs from browser
+    btn.innerHTML = '<span class="spin">⏳</span> ' + (isEn ? 'Generating...' : 'Generando...');
+    const elRes = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${EL_VOICE}`, {
       method: 'POST',
       headers: { 'xi-api-key': EL_KEY, 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -187,25 +211,20 @@ async function listenReport() {
         voice_settings: { stability: 0.5, similarity_boost: 0.75 },
       }),
     });
-    if (!res.ok) {
-      const errBody = await res.json().catch(() => ({}));
-      const msg = errBody?.detail?.message || errBody?.detail?.status || res.status;
+    if (!elRes.ok) {
+      const errBody = await elRes.json().catch(() => ({}));
+      const msg = errBody?.detail?.message || errBody?.detail?.status || elRes.status;
       throw new Error(String(msg).slice(0, 120));
     }
-    const blob = await res.blob();
-    const url  = URL.createObjectURL(blob);
-    currentAudio = new Audio(url);
-    currentAudio.onended = () => {
-      URL.revokeObjectURL(url);
-      currentAudio = null;
-      btn.innerHTML = '🎧 ' + (isEn ? 'Listen to Summary' : 'Escuchar resumen');
-      btn.disabled = false;
-    };
-    currentAudio.play();
-    btn.innerHTML = '⏸ ' + (isEn ? 'Pause' : 'Pausar');
+    const blob = await elRes.blob();
+
+    // 3. Cache MP3 on Railway (fire and forget)
+    fetch(AUDIO_URL, { method: 'POST', body: blob, headers: { 'Content-Type': 'audio/mpeg' } });
+
+    // 4. Play
+    playBlob(blob);
   } catch (e) {
     btn.innerHTML = '❌ ' + e.message;
-  } finally {
     btn.disabled = false;
   }
 }

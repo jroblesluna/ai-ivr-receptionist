@@ -1,5 +1,5 @@
 import os
-from flask import Blueprint, render_template, abort
+from flask import Blueprint, render_template, abort, send_file, request
 import reports
 import runtime_config
 
@@ -31,3 +31,23 @@ def view_report(report_id):
         elevenlabs_voice_id=runtime_config.get("elevenlabs_voice_id") or _DEFAULT_VOICE_ID,
         tts_text=tts_text,
     )
+
+
+@report_bp.route("/report/<report_id>/audio", methods=["GET"])
+def report_audio_get(report_id):
+    if not reports.load(report_id):
+        abort(404)
+    mp3 = reports.audio_path(report_id)
+    if not mp3.exists():
+        abort(404)
+    return send_file(str(mp3), mimetype="audio/mpeg")
+
+
+@report_bp.route("/report/<report_id>/audio", methods=["POST"])
+def report_audio_post(report_id):
+    if not reports.load(report_id):
+        abort(404)
+    mp3 = reports.audio_path(report_id)
+    mp3.parent.mkdir(parents=True, exist_ok=True)
+    mp3.write_bytes(request.get_data())
+    return "", 204
