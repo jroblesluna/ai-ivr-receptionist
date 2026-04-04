@@ -649,7 +649,9 @@ function buildEditor(ucId) {
   const uc = USE_CASES[ucId];
   if (!uc) return;
   currentUCId = ucId;
-  const topicItems = Object.entries(uc.topics).map(([tid,t]) => buildTopicItem(tid,t)).join('');
+  const topicItems = Object.entries(uc.topics)
+    .sort(([,a],[,b]) => (a.digit||'9').localeCompare(b.digit||'9'))
+    .map(([tid,t]) => buildTopicItem(tid,t)).join('');
   document.getElementById('uc-editor').innerHTML = `
 <div class="editor-section">
   <div style="font-size:11px;color:var(--muted);margin-bottom:14px;">Editing: <strong>${escHtml(uc.name)}</strong></div>

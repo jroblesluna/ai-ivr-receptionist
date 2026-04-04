@@ -14,6 +14,11 @@ def _load_use_cases():
 
 
 def save_use_case(use_case_id: str, updated_uc: dict):
+    # Sort topics by digit before saving
+    if "topics" in updated_uc:
+        updated_uc["topics"] = dict(
+            sorted(updated_uc["topics"].items(), key=lambda x: x[1].get("digit", "9"))
+        )
     use_cases = _load_use_cases()
     use_cases[use_case_id] = updated_uc
     with open(USE_CASES_PATH, "w", encoding="utf-8") as f:
