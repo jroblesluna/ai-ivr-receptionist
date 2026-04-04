@@ -18,7 +18,7 @@ _DEFAULTS = {
     "whatsapp_to":      os.environ.get("WHATSAPP_TO",       ""),
     "notify_email":        os.environ.get("NOTIFY_EMAIL",        "0"),
     "notify_whatsapp":     os.environ.get("NOTIFY_WHATSAPP",     "1"),
-    "elevenlabs_voice_id": os.environ.get("ELEVENLABS_VOICE_ID", "21m00Tcm4TlvDq8ikWAM"),
+    "elevenlabs_voice_id": os.environ.get("ELEVENLABS_VOICE_ID", ""),
 }
 
 

@@ -30,7 +30,7 @@ def admin():
         whatsapp_to=runtime_config.get("whatsapp_to"),
         notify_email=runtime_config.get("notify_email", "1"),
         notify_whatsapp=runtime_config.get("notify_whatsapp", "1"),
-        elevenlabs_voice_id=runtime_config.get("elevenlabs_voice_id", "21m00Tcm4TlvDq8ikWAM"),
+        elevenlabs_voice_id=runtime_config.get("elevenlabs_voice_id"),
         elevenlabs_api_key=os.environ.get("ELEVENLABS_API_KEY", ""),
         whitelist=load_whitelist(),
         webhook_url=f"{base_url}/menu",

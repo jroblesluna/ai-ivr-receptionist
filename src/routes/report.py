@@ -5,9 +5,6 @@ import runtime_config
 
 report_bp = Blueprint("report", __name__)
 
-_DEFAULT_VOICE_ID = "JBFqnCBsd6RMkjVDRZzb"
-
-
 @report_bp.route("/report/<report_id>")
 def view_report(report_id):
     data = reports.load(report_id)
@@ -28,7 +25,7 @@ def view_report(report_id):
         "report.html",
         r=data,
         elevenlabs_api_key=os.environ.get("ELEVENLABS_API_KEY", ""),
-        elevenlabs_voice_id=runtime_config.get("elevenlabs_voice_id") or _DEFAULT_VOICE_ID,
+        elevenlabs_voice_id=runtime_config.get("elevenlabs_voice_id"),
         tts_text=tts_text,
     )
 
