@@ -1,5 +1,9 @@
 def get_voice(lang):
-    return "Google.en-US-Neural2-D" if lang == "en" else "Google.es-US-Neural2-B"
+    from use_case_loader import get_active_use_case
+    uc = get_active_use_case()
+    voices = uc.get("voice", {})
+    defaults = {"en": "Google.en-US-Neural2-F", "es": "Google.es-US-Standard-A"}
+    return voices.get(lang) or defaults.get(lang) or defaults["en"]
 
 
 def get_gather_language(lang):

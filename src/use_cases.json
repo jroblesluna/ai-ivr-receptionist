@@ -4,7 +4,8 @@
     "name": "Robles AI",
     "industry": "Technology & Education",
     "url": "roblesai.com",
-    "slogan": { "en": "Intelligent solutions for a smarter future.", "es": "Soluciones inteligentes para un futuro mejor." },
+    "voice": { "en": "Google.en-US-Neural2-F", "es": "Google.es-US-Standard-A" },
+    "slogan": { "en": "AI technology powered by Silicon Valley, built for your future.", "es": "Tecnología de IA impulsada desde Silicon Valley, creada para su futuro." },
     "topics": {
       "meeting": {
         "digit": "1",
@@ -86,6 +87,7 @@
     "name": "Sweet Crust Bakery",
     "industry": "Food and Beverage",
     "url": "sweetcrustbakery.com",
+    "voice": { "en": "Google.en-US-Neural2-F", "es": "Google.es-US-Neural2-A" },
     "slogan": { "en": "Baked with love, every single day.", "es": "Horneado con amor, cada día." },
     "topics": {
       "meeting": {
@@ -168,6 +170,7 @@
     "name": "Lex and Partners",
     "industry": "Legal Services",
     "url": "lexandpartners.com",
+    "voice": { "en": "Google.en-US-Neural2-J", "es": "Google.es-US-Neural2-B" },
     "slogan": { "en": "Your rights, our mission.", "es": "Sus derechos, nuestra misión." },
     "topics": {
       "meeting": {
@@ -250,6 +253,7 @@
     "name": "Vita Medical Clinic",
     "industry": "Healthcare",
     "url": "vitamedicalclinic.com",
+    "voice": { "en": "Google.en-US-Neural2-C", "es": "Google.es-US-Neural2-A" },
     "slogan": { "en": "Your health is our priority.", "es": "Su salud es nuestra prioridad." },
     "topics": {
       "meeting": {
@@ -332,6 +336,7 @@
     "name": "Sol Realty Group",
     "industry": "Real Estate",
     "url": "solrealtygroup.com",
+    "voice": { "en": "Google.en-US-Neural2-H", "es": "Google.es-US-Neural2-A" },
     "slogan": { "en": "Finding the perfect place to call home.", "es": "Encontrando el lugar perfecto para llamar hogar." },
     "topics": {
       "meeting": {
@@ -414,6 +419,7 @@
     "name": "Chem Supply",
     "industry": "Industrial Distribution",
     "url": "chemsupply.com",
+    "voice": { "en": "Google.en-US-Neural2-I", "es": "Google.es-US-Neural2-C" },
     "slogan": { "en": "Quality supplies, delivered on time.", "es": "Suministros de calidad, entregados a tiempo." },
     "topics": {
       "meeting": {
@@ -496,6 +502,7 @@
     "name": "Nova Auto",
     "industry": "Automotive Services",
     "url": "novaauto.com",
+    "voice": { "en": "Google.en-US-Neural2-D", "es": "Google.es-US-Neural2-B" },
     "slogan": { "en": "Keeping you safely on the road.", "es": "Manteniéndole seguro en la carretera." },
     "topics": {
       "meeting": {
@@ -578,6 +585,7 @@
     "name": "Grand Hotel",
     "industry": "Hospitality",
     "url": "grandhotel.com",
+    "voice": { "en": "Google.en-US-Neural2-G", "es": "Google.es-US-Neural2-A" },
     "slogan": { "en": "Where comfort meets elegance.", "es": "Donde el confort se encuentra con la elegancia." },
     "topics": {
       "meeting": {
@@ -660,6 +668,7 @@
     "name": "Smile Dental",
     "industry": "Dental Care",
     "url": "smiledental.com",
+    "voice": { "en": "Google.en-US-Neural2-F", "es": "Google.es-US-Neural2-A" },
     "slogan": { "en": "Healthy smiles, happy lives.", "es": "Sonrisas saludables, vidas felices." },
     "topics": {
       "meeting": {
@@ -742,6 +751,7 @@
     "name": "Flex Gym",
     "industry": "Fitness and Wellness",
     "url": "flexgym.com",
+    "voice": { "en": "Google.en-US-Neural2-I", "es": "Google.es-US-Neural2-C" },
     "slogan": { "en": "Train harder, live better.", "es": "Entrena más fuerte, vive mejor." },
     "topics": {
       "meeting": {
@@ -824,6 +834,7 @@
     "name": "Safe Guard Insurance",
     "industry": "Insurance",
     "url": "safeguardinsurance.com",
+    "voice": { "en": "Google.en-US-Neural2-D", "es": "Google.es-US-Neural2-B" },
     "slogan": { "en": "Protection you can always count on.", "es": "Protección en la que siempre puede confiar." },
     "topics": {
       "meeting": {
@@ -906,6 +917,7 @@
     "name": "Luma Academy",
     "industry": "Education and Tutoring",
     "url": "lumaacademy.com",
+    "voice": { "en": "Google.en-US-Neural2-C", "es": "Google.es-US-Neural2-A" },
     "slogan": { "en": "Illuminate your potential.", "es": "Ilumina tu potencial." },
     "topics": {
       "meeting": {
@@ -988,6 +1000,7 @@
     "name": "Blue Star Restaurant",
     "industry": "Food Service",
     "url": "bluestarrestaurant.com",
+    "voice": { "en": "Google.en-US-Neural2-F", "es": "Google.es-US-Neural2-A" },
     "slogan": { "en": "Exceptional food, unforgettable moments.", "es": "Comida excepcional, momentos inolvidables." },
     "topics": {
       "meeting": {
