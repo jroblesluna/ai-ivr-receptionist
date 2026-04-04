@@ -623,32 +623,46 @@ function voiceRegionSelect(lang, regions) {
 }
 
 function previewVoice(lang) {
-  const voice    = getVoiceValue(lang);               // "Google.en-US-Neural2-D"
-  const text     = document.getElementById(`ed-slogan-${lang}`)?.value.trim()
-                || (lang === 'en' ? 'Hello, welcome.' : 'Hola, bienvenido.');
-  const voiceName = voice.replace('Google.', '');     // "en-US-Neural2-D"
-  const langCode  = voiceName.slice(0, 5);            // "en-US"
+  const voice     = getVoiceValue(lang);                // "Google.en-US-Neural2-D"
+  const text      = document.getElementById(`ed-slogan-${lang}`)?.value.trim()
+                 || (lang === 'en' ? 'Hello, welcome.' : 'Hola, bienvenido.');
+  const voiceName = voice.replace('Google.', '');       // "en-US-Neural2-D"
+  const langCode  = voiceName.slice(0, 5);              // "en-US"
   const letter    = voiceName.slice(-1).toUpperCase();
   const isFemale  = ['A','C','E','F','G','H'].includes(letter);
 
-  const synth  = window.speechSynthesis;
-  const voices = synth.getVoices();
-
-  // Pick best matching browser voice by language then gender
-  const pool = voices.filter(v => v.lang.startsWith(langCode));
-  const fallback = voices.find(v => v.lang.startsWith(lang === 'en' ? 'en' : 'es'));
-  const selected = pool.find(v => isFemale
-      ? /female|woman|femenin/i.test(v.name)
-      : /male|man|mascul/i.test(v.name))
-    || pool[isFemale ? 0 : Math.min(1, pool.length - 1)]
-    || fallback
-    || voices[0];
-
-  const utt  = new SpeechSynthesisUtterance(text);
-  utt.lang   = langCode;
-  if (selected) utt.voice = selected;
+  const synth = window.speechSynthesis;
   synth.cancel();
-  synth.speak(utt);
+
+  function doSpeak() {
+    const all = synth.getVoices();
+    // Exact language match, then partial (e.g. "en" for any English)
+    let pool = all.filter(v => v.lang === langCode || v.lang === langCode.replace('-','_'));
+    if (!pool.length) pool = all.filter(v => v.lang.startsWith(langCode.slice(0, 2)));
+
+    // Gender hint: female voices often have "female"/"woman" in name, male have "male"/"man"
+    const genderMatch = pool.find(v =>
+      isFemale ? /female|woman/i.test(v.name) : /\bmale\b|man/i.test(v.name)
+    );
+    // Fallback: pick by index parity (even=female, odd=male heuristic)
+    const idxMatch = pool[isFemale ? 0 : Math.min(1, pool.length - 1)];
+    const selected = genderMatch || idxMatch || pool[0] || all[0];
+
+    const utt = new SpeechSynthesisUtterance(text);
+    utt.lang  = langCode;
+    if (selected) utt.voice = selected;
+    synth.speak(utt);
+  }
+
+  // getVoices() is async on first call — wait for the event if list is empty
+  if (synth.getVoices().length > 0) {
+    doSpeak();
+  } else {
+    synth.addEventListener('voiceschanged', function h() {
+      synth.removeEventListener('voiceschanged', h);
+      doSpeak();
+    });
+  }
 }
 
 function buildTopicItem(tid, t) {
