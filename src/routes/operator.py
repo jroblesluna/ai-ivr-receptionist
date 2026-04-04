@@ -380,6 +380,12 @@ def recording_ready():
         report_url = f"{base_url}/report/{report_id}"
         print(f"[REPORT] Saved: {report_url}")
 
+        # Save recording MP3 for public access
+        rec_path = reports.recording_path(report_id)
+        rec_path.parent.mkdir(parents=True, exist_ok=True)
+        rec_path.write_bytes(audio_bytes)
+        recording_public_url = f"{base_url}/report/{report_id}/recording"
+
         # ── Email — metadata + link ────────────────────────────
         email_body = "\n".join([
             f"New call report from {get_company_name()}",
