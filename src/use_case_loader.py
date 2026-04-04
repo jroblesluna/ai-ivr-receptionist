@@ -1,39 +1,22 @@
-import json
-import os
-
-USE_CASES_PATH = os.path.join(os.path.dirname(__file__), "use_cases.json")
-
-_cache = {}
+import db
 
 
-def _load_use_cases():
-    if "data" not in _cache:
-        with open(USE_CASES_PATH, encoding="utf-8") as f:
-            _cache["data"] = json.load(f)
-    return _cache["data"]
+def _load_use_cases() -> dict:
+    return db.uc_list()
 
 
 def save_use_case(use_case_id: str, updated_uc: dict):
-    # Sort topics by digit before saving
-    if "topics" in updated_uc:
-        updated_uc["topics"] = dict(
-            sorted(updated_uc["topics"].items(), key=lambda x: x[1].get("digit", "9"))
-        )
-    use_cases = _load_use_cases()
-    use_cases[use_case_id] = updated_uc
-    with open(USE_CASES_PATH, "w", encoding="utf-8") as f:
-        json.dump(use_cases, f, ensure_ascii=False, indent=2)
-    _cache.clear()
+    db.uc_upsert(use_case_id, updated_uc)
 
 
 def get_active_use_case() -> dict:
-    import runtime_config
+    import runtime_config, os
     use_case_id = runtime_config.get("use_case_id", os.environ.get("USE_CASE_ID", "robles_ai"))
-    use_cases = _load_use_cases()
-    if use_case_id not in use_cases:
+    uc = db.uc_get(use_case_id)
+    if not uc:
         print(f"[USE_CASE] '{use_case_id}' not found, falling back to 'robles_ai'")
-        use_case_id = "robles_ai"
-    return use_cases[use_case_id]
+        uc = db.uc_get("robles_ai")
+    return uc
 
 
 def get_company_name() -> str:
@@ -49,22 +32,22 @@ def get_topics() -> dict:
     for topic_id, topic_data in uc["topics"].items():
         topics[topic_id] = {
             "en": {
-                "label":       topic_data["en"]["label"],
-                "greeting":    topic_data["en"]["greeting"],
+                "label":        topic_data["en"]["label"],
+                "greeting":     topic_data["en"]["greeting"],
                 "system_extra": topic_data["en"]["system_extra"],
-                "questions":   topic_data["en"].get("questions", []),
-                "menu_text":   topic_data["en"].get("menu_text", ""),
+                "questions":    topic_data["en"].get("questions", []),
+                "menu_text":    topic_data["en"].get("menu_text", ""),
                 "meeting_type": topic_data.get("meeting_type", False),
-                "digit":       topic_data.get("digit", ""),
+                "digit":        topic_data.get("digit", ""),
             },
             "es": {
-                "label":       topic_data["es"]["label"],
-                "greeting":    topic_data["es"]["greeting"],
+                "label":        topic_data["es"]["label"],
+                "greeting":     topic_data["es"]["greeting"],
                 "system_extra": topic_data["es"]["system_extra"],
-                "questions":   topic_data["es"].get("questions", []),
-                "menu_text":   topic_data["es"].get("menu_text", ""),
+                "questions":    topic_data["es"].get("questions", []),
+                "menu_text":    topic_data["es"].get("menu_text", ""),
                 "meeting_type": topic_data.get("meeting_type", False),
-                "digit":       topic_data.get("digit", ""),
+                "digit":        topic_data.get("digit", ""),
             },
         }
 

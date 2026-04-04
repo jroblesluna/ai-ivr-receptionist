@@ -388,9 +388,27 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
   <div class="card">
     <div class="card-header">
       <span class="card-title">Customize Use Case</span>
-      <button class="btn btn-primary" style="font-size:12px;padding:6px 14px;" id="editor-toggle-btn" onclick="toggleEditor()">▼ Expand</button>
+      <div style="display:flex;gap:8px;">
+        <button class="btn" style="font-size:12px;padding:6px 14px;background:var(--surface-2);color:var(--text);" onclick="showNewUCModal()">+ New</button>
+        <button class="btn btn-primary" style="font-size:12px;padding:6px 14px;" id="editor-toggle-btn" onclick="toggleEditor()">▼ Expand</button>
+      </div>
     </div>
     <div id="uc-editor" style="display:none;" class="editor-body"></div>
+  </div>
+
+  <!-- New Use Case Modal -->
+  <div id="new-uc-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;align-items:center;justify-content:center;">
+    <div style="background:var(--surface);border-radius:12px;padding:28px;width:380px;max-width:90vw;">
+      <div style="font-weight:700;font-size:15px;margin-bottom:16px;">New Use Case</div>
+      <div class="editor-field"><label>ID (slug, e.g. my_company)</label><input type="text" id="new-uc-id" placeholder="my_company"></div>
+      <div class="editor-field"><label>Name</label><input type="text" id="new-uc-name" placeholder="My Company"></div>
+      <div class="editor-field"><label>Industry</label><input type="text" id="new-uc-industry" placeholder="Technology"></div>
+      <div class="editor-field"><label>Website URL</label><input type="text" id="new-uc-url" placeholder="mycompany.com"></div>
+      <div style="display:flex;gap:10px;margin-top:18px;">
+        <button class="btn btn-primary" onclick="createUseCase()">Create</button>
+        <button class="btn" style="background:var(--surface-2);color:var(--text);" onclick="hideNewUCModal()">Cancel</button>
+      </div>
+    </div>
   </div>
 
   <!-- OPERATOR & WHITELIST side by side on wide screens -->
@@ -764,8 +782,9 @@ function buildEditor(ucId) {
   <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:12px;">Topics</div>
   ${topicItems}
 </div>
-<div style="padding:0 4px 8px;">
+<div style="padding:0 4px 8px;display:flex;gap:10px;">
   <button class="btn btn-primary" onclick="saveUseCase()">Save Changes</button>
+  <button class="btn" style="background:#ff3b30;color:#fff;" onclick="deleteUseCase()">Delete Use Case</button>
 </div>`;
   initVoiceSelect('en', uc.voice?.en || 'Google.en-US-Neural2-D');
   initVoiceSelect('es', uc.voice?.es || 'Google.es-US-Neural2-B');
@@ -821,6 +840,78 @@ async function saveUseCase() {
   if (!res.ok) { toast('Error saving use case', 'error'); return; }
   USE_CASES[currentUCId] = data;
   toast('Use case saved');
+}
+
+async function deleteUseCase() {
+  if (!confirm(`Delete use case "${USE_CASES[currentUCId]?.name}"? This cannot be undone.`)) return;
+  const res = await apiFetch(`/admin/api/use-case/${currentUCId}`, { method: 'DELETE' });
+  if (!res) return;
+  if (!res.ok) {
+    const d = await res.json().catch(() => ({}));
+    toast(d.error || 'Error deleting use case', 'error');
+    return;
+  }
+  delete USE_CASES[currentUCId];
+  const remaining = Object.keys(USE_CASES);
+  if (remaining.length) {
+    selectUseCase(remaining[0], USE_CASES[remaining[0]].name);
+  }
+  toggleEditor();
+  toast('Use case deleted');
+  location.reload();
+}
+
+function showNewUCModal() {
+  const m = document.getElementById('new-uc-modal');
+  m.style.display = 'flex';
+  document.getElementById('new-uc-id').value = '';
+  document.getElementById('new-uc-name').value = '';
+  document.getElementById('new-uc-industry').value = '';
+  document.getElementById('new-uc-url').value = '';
+}
+
+function hideNewUCModal() {
+  document.getElementById('new-uc-modal').style.display = 'none';
+}
+
+async function createUseCase() {
+  const id       = document.getElementById('new-uc-id').value.trim().replace(/\s+/g,'_').toLowerCase();
+  const name     = document.getElementById('new-uc-name').value.trim();
+  const industry = document.getElementById('new-uc-industry').value.trim();
+  const url      = document.getElementById('new-uc-url').value.trim();
+  if (!id || !name) { toast('ID and Name are required', 'error'); return; }
+  const data = {
+    id, name, industry, url,
+    voice: { en: 'Google.en-US-Neural2-D', es: 'Google.es-US-Neural2-B' },
+    slogan: { en: '', es: '' },
+    topics: {
+      meeting: {
+        digit: '1', meeting_type: true,
+        en: { label: 'Schedule a Meeting', menu_text: 'Press 1 to schedule a meeting.', greeting: `Hi! I'm the ${name} assistant. What is your name?`, system_extra: 'The caller wants to schedule a meeting. Ask for name and confirm callback number only.', questions: [] },
+        es: { label: 'Agendar una Reunión', menu_text: 'Presione 1 para agendar una reunión.', greeting: `¡Hola! Soy el asistente de ${name}. ¿Cuál es su nombre?`, system_extra: 'El llamante desea agendar una reunión. Pida nombre y confirme el número de rellamada.', questions: [] },
+      },
+      customer_service: {
+        digit: '5', meeting_type: false,
+        en: { label: 'Customer Service', menu_text: 'Press 5 for Customer Service.', greeting: `Hi! I'm the ${name} assistant. What is your name?`, system_extra: 'The caller needs customer service support.', questions: ['How can I help you today?'] },
+        es: { label: 'Servicio al Cliente', menu_text: 'Presione 5 para Servicio al Cliente.', greeting: `¡Hola! Soy el asistente de ${name}. ¿Cuál es su nombre?`, system_extra: 'El llamante necesita soporte de servicio al cliente.', questions: ['¿En qué le puedo ayudar hoy?'] },
+      },
+    },
+  };
+  const res = await apiFetch('/admin/api/use-case', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res) return;
+  if (!res.ok) {
+    const d = await res.json().catch(() => ({}));
+    toast(d.error || 'Error creating use case', 'error');
+    return;
+  }
+  hideNewUCModal();
+  USE_CASES[id] = data;
+  toast(`Use case "${name}" created`);
+  location.reload();
 }
 
 function toast(msg, type='success') {

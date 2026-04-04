@@ -101,6 +101,21 @@ def api_tts_preview():
     return jsonify({"audio": resp.json().get("audioContent", "")})
 
 
+@admin_bp.route("/admin/api/use-case", methods=["POST"])
+def api_create_use_case():
+    if not _logged_in():
+        return jsonify({"error": "Unauthorized"}), 401
+    data = request.json or {}
+    uc_id = data.get("id", "").strip()
+    if not uc_id:
+        return jsonify({"error": "id required"}), 400
+    import db as _db
+    if _db.uc_get(uc_id):
+        return jsonify({"error": "Use case already exists"}), 409
+    save_use_case(uc_id, data)
+    return jsonify({"ok": True, "id": uc_id}), 201
+
+
 @admin_bp.route("/admin/api/use-case/<uc_id>", methods=["PATCH"])
 def api_update_use_case(uc_id):
     if not _logged_in():
@@ -109,8 +124,19 @@ def api_update_use_case(uc_id):
     if uc_id not in use_cases:
         return jsonify({"error": "Not found"}), 404
     data = request.json or {}
-    data["id"] = uc_id  # preserve id
+    data["id"] = uc_id
     save_use_case(uc_id, data)
+    return jsonify({"ok": True})
+
+
+@admin_bp.route("/admin/api/use-case/<uc_id>", methods=["DELETE"])
+def api_delete_use_case(uc_id):
+    if not _logged_in():
+        return jsonify({"error": "Unauthorized"}), 401
+    import db as _db, runtime_config
+    if runtime_config.get("use_case_id") == uc_id:
+        return jsonify({"error": "Cannot delete active use case"}), 400
+    _db.uc_delete(uc_id)
     return jsonify({"ok": True})
 
 
