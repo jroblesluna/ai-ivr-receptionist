@@ -520,10 +520,10 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
     <div style="margin-top:16px;">
       <label style="display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;">ElevenLabs Voice (Report Audio)</label>
       <div style="display:flex;gap:8px;align-items:center;">
-        <select id="elevenlabs-voice-id" style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:white;">
-          <option value="{{ elevenlabs_voice_id or '21m00Tcm4TlvDq8ikWAM' }}">Loading voices…</option>
+        <select id="elevenlabs-voice-id" data-saved="{{ elevenlabs_voice_id or '21m00Tcm4TlvDq8ikWAM' }}" style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:white;">
+          <option disabled selected>Loading voices…</option>
         </select>
-        <button class="btn" style="white-space:nowrap;" onclick="previewElevenLabsVoice()">▶ Preview</button>
+        <button class="btn" style="white-space:nowrap;" onclick="previewElevenLabsVoice(this)">▶ Preview</button>
       </div>
     </div>
     <div style="margin-top:12px;">
@@ -905,28 +905,28 @@ async function removeWhitelist(phone) {
 
 async function loadElevenLabsVoices() {
   const sel = document.getElementById('elevenlabs-voice-id');
-  const currentId = sel.options[0].value;
+  const savedId = sel.dataset.saved;
   try {
     const res = await fetch('/admin/api/elevenlabs-voices');
-    if (!res.ok) return;
+    if (!res.ok) { sel.innerHTML = '<option disabled selected>Could not load voices</option>'; return; }
     const voices = await res.json();
-    sel.innerHTML = voices.map(v =>
-      `<option value="${v.voice_id}" ${v.voice_id === currentId ? 'selected' : ''}>${v.name}${v.category ? ' · ' + v.category : ''}</option>`
-    ).join('');
-    if (!voices.find(v => v.voice_id === currentId)) {
-      sel.insertAdjacentHTML('afterbegin', `<option value="${currentId}" selected>${currentId}</option>`);
+    sel.innerHTML = voices.map(v => {
+      const label = v.name + (v.category ? ' · ' + v.category : '');
+      return `<option value="${v.voice_id}" ${v.voice_id === savedId ? 'selected' : ''}>${label}</option>`;
+    }).join('');
+    if (!voices.find(v => v.voice_id === savedId)) {
+      sel.insertAdjacentHTML('afterbegin', `<option value="${savedId}" selected>${savedId}</option>`);
     }
   } catch (e) {
-    sel.options[0].text = 'Could not load voices';
+    sel.innerHTML = '<option disabled selected>Could not load voices</option>';
   }
 }
 
-async function previewElevenLabsVoice() {
+async function previewElevenLabsVoice(btn) {
   const sel = document.getElementById('elevenlabs-voice-id');
   const voice_id = sel.value;
   const name = sel.options[sel.selectedIndex]?.text.split(' · ')[0] || 'voice';
   const text = `Hello, this is a preview of the ${name} voice for report audio.`;
-  const btn = event.currentTarget;
   btn.disabled = true; btn.textContent = '⏳';
   try {
     const res = await apiFetch('/admin/api/elevenlabs-preview', {
@@ -936,8 +936,7 @@ async function previewElevenLabsVoice() {
     });
     if (!res || !res.ok) { toast('Preview failed', 'error'); return; }
     const { audio } = await res.json();
-    const src = 'data:audio/mpeg;base64,' + audio;
-    new Audio(src).play();
+    new Audio('data:audio/mpeg;base64,' + audio).play();
   } finally {
     btn.disabled = false; btn.textContent = '▶ Preview';
   }
