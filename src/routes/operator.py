@@ -9,7 +9,7 @@ from config import ACCOUNT_SID, AUTH_TOKEN, TWILIO_FROM, FORWARD_TO as _FORWARD_
 from state import collected_info, outbound_calls, failed_rooms, briefed_rooms
 from use_case_loader import get_topics
 from helpers import get_voice
-from use_case_loader import get_company_name
+from use_case_loader import get_company_name, get_active_use_case
 from email_helper import send_report_email
 
 operator_bp = Blueprint("operator", __name__)
@@ -75,8 +75,20 @@ def operator_hold_music():
         resp.redirect(f"{base_url}/no-availability?lang={lang}")
         return str(resp)
 
+    use_case_id = runtime_config.get("use_case_id") or ""
+    uc    = get_active_use_case()
+    voice = get_voice(lang)
+    url   = uc.get("url", "")
+
     resp = VoiceResponse()
-    resp.play(request.url_root + "wait-music.wav", loop=1)
+    resp.play(request.url_root + f"wait-music-{use_case_id}.wav", loop=1)
+
+    if lang == "en":
+        msg = "All our agents are currently busy." + (f" You can also visit us at {url}." if url else "") + " Please hold on for a moment."
+    else:
+        msg = "Todos nuestros agentes están ocupados en este momento." + (f" También puede visitarnos en {url}." if url else "") + " Por favor, espere un momento."
+
+    resp.say(msg, voice=voice)
     return str(resp)
 
 

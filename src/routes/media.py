@@ -14,3 +14,11 @@ def serve_intro():
 @media_bp.route("/wait-music.wav")
 def serve_wait():
     return send_from_directory(ASSETS_DIR, "wait-music.wav")
+
+
+@media_bp.route("/wait-music-<use_case_id>.wav")
+def serve_wait_use_case(use_case_id):
+    filename = f"wait-music-{use_case_id}.wav"
+    if os.path.exists(os.path.join(ASSETS_DIR, filename)):
+        return send_from_directory(ASSETS_DIR, filename)
+    return send_from_directory(ASSETS_DIR, "wait-music.wav")

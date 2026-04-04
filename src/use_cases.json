@@ -3,6 +3,7 @@
     "id": "robles_ai",
     "name": "Robles AI",
     "industry": "Technology & Education",
+    "url": "roblesai.com",
     "slogan": { "en": "Intelligent solutions for a smarter future.", "es": "Soluciones inteligentes para un futuro mejor." },
     "topics": {
       "meeting": {
@@ -84,6 +85,7 @@
     "id": "sweet_crust",
     "name": "Sweet Crust Bakery",
     "industry": "Food and Beverage",
+    "url": "sweetcrustbakery.com",
     "slogan": { "en": "Baked with love, every single day.", "es": "Horneado con amor, cada día." },
     "topics": {
       "meeting": {
@@ -165,6 +167,7 @@
     "id": "lex_partners",
     "name": "Lex and Partners",
     "industry": "Legal Services",
+    "url": "lexandpartners.com",
     "slogan": { "en": "Your rights, our mission.", "es": "Sus derechos, nuestra misión." },
     "topics": {
       "meeting": {
@@ -246,6 +249,7 @@
     "id": "vita_clinic",
     "name": "Vita Medical Clinic",
     "industry": "Healthcare",
+    "url": "vitamedicalclinic.com",
     "slogan": { "en": "Your health is our priority.", "es": "Su salud es nuestra prioridad." },
     "topics": {
       "meeting": {
@@ -327,6 +331,7 @@
     "id": "sol_realty",
     "name": "Sol Realty Group",
     "industry": "Real Estate",
+    "url": "solrealtygroup.com",
     "slogan": { "en": "Finding the perfect place to call home.", "es": "Encontrando el lugar perfecto para llamar hogar." },
     "topics": {
       "meeting": {
@@ -408,6 +413,7 @@
     "id": "chem_supply",
     "name": "Chem Supply",
     "industry": "Industrial Distribution",
+    "url": "chemsupply.com",
     "slogan": { "en": "Quality supplies, delivered on time.", "es": "Suministros de calidad, entregados a tiempo." },
     "topics": {
       "meeting": {
@@ -489,6 +495,7 @@
     "id": "nova_auto",
     "name": "Nova Auto",
     "industry": "Automotive Services",
+    "url": "novaauto.com",
     "slogan": { "en": "Keeping you safely on the road.", "es": "Manteniéndole seguro en la carretera." },
     "topics": {
       "meeting": {
@@ -570,6 +577,7 @@
     "id": "grand_hotel",
     "name": "Grand Hotel",
     "industry": "Hospitality",
+    "url": "grandhotel.com",
     "slogan": { "en": "Where comfort meets elegance.", "es": "Donde el confort se encuentra con la elegancia." },
     "topics": {
       "meeting": {
@@ -651,6 +659,7 @@
     "id": "smile_dental",
     "name": "Smile Dental",
     "industry": "Dental Care",
+    "url": "smiledental.com",
     "slogan": { "en": "Healthy smiles, happy lives.", "es": "Sonrisas saludables, vidas felices." },
     "topics": {
       "meeting": {
@@ -732,6 +741,7 @@
     "id": "flex_gym",
     "name": "Flex Gym",
     "industry": "Fitness and Wellness",
+    "url": "flexgym.com",
     "slogan": { "en": "Train harder, live better.", "es": "Entrena más fuerte, vive mejor." },
     "topics": {
       "meeting": {
@@ -813,6 +823,7 @@
     "id": "safe_guard",
     "name": "Safe Guard Insurance",
     "industry": "Insurance",
+    "url": "safeguardinsurance.com",
     "slogan": { "en": "Protection you can always count on.", "es": "Protección en la que siempre puede confiar." },
     "topics": {
       "meeting": {
@@ -894,6 +905,7 @@
     "id": "luma_academy",
     "name": "Luma Academy",
     "industry": "Education and Tutoring",
+    "url": "lumaacademy.com",
     "slogan": { "en": "Illuminate your potential.", "es": "Ilumina tu potencial." },
     "topics": {
       "meeting": {
@@ -975,6 +987,7 @@
     "id": "blue_star",
     "name": "Blue Star Restaurant",
     "industry": "Food Service",
+    "url": "bluestarrestaurant.com",
     "slogan": { "en": "Exceptional food, unforgettable moments.", "es": "Comida excepcional, momentos inolvidables." },
     "topics": {
       "meeting": {
