@@ -111,6 +111,57 @@ def api_update_use_case(uc_id):
     return jsonify({"ok": True})
 
 
+@admin_bp.route("/admin/api/elevenlabs-voices", methods=["GET"])
+def api_elevenlabs_voices():
+    if not _logged_in():
+        return jsonify({"error": "Unauthorized"}), 401
+    import os, requests as req
+    api_key = os.environ.get("ELEVENLABS_API_KEY", "")
+    if not api_key:
+        return jsonify({"error": "ELEVENLABS_API_KEY not configured"}), 500
+    resp = req.get(
+        "https://api.elevenlabs.io/v1/voices",
+        headers={"xi-api-key": api_key},
+        timeout=10,
+    )
+    if not resp.ok:
+        return jsonify({"error": resp.text}), 502
+    voices = [
+        {"voice_id": v["voice_id"], "name": v["name"], "category": v.get("category", "")}
+        for v in resp.json().get("voices", [])
+    ]
+    voices.sort(key=lambda v: v["name"])
+    return jsonify(voices)
+
+
+@admin_bp.route("/admin/api/elevenlabs-preview", methods=["POST"])
+def api_elevenlabs_preview():
+    if not _logged_in():
+        return jsonify({"error": "Unauthorized"}), 401
+    import os, base64, requests as req
+    api_key = os.environ.get("ELEVENLABS_API_KEY", "")
+    if not api_key:
+        return jsonify({"error": "ELEVENLABS_API_KEY not configured"}), 500
+    data     = request.json or {}
+    voice_id = data.get("voice_id", "").strip()
+    text     = data.get("text", "").strip()
+    if not voice_id or not text:
+        return jsonify({"error": "voice_id and text required"}), 400
+    resp = req.post(
+        f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}",
+        headers={"xi-api-key": api_key, "Content-Type": "application/json"},
+        json={
+            "text": text,
+            "model_id": "eleven_multilingual_v2",
+            "voice_settings": {"stability": 0.5, "similarity_boost": 0.75},
+        },
+        timeout=30,
+    )
+    if not resp.ok:
+        return jsonify({"error": resp.text}), 502
+    return jsonify({"audio": base64.b64encode(resp.content).decode()})
+
+
 @admin_bp.route("/admin/api/whitelist", methods=["GET"])
 def api_whitelist_get():
     if not _logged_in():
