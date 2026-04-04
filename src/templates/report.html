@@ -187,7 +187,11 @@ async function listenReport() {
         voice_settings: { stability: 0.5, similarity_boost: 0.75 },
       }),
     });
-    if (!res.ok) throw new Error(`ElevenLabs ${res.status}`);
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      const msg = errBody?.detail?.message || errBody?.detail?.status || res.status;
+      throw new Error(String(msg).slice(0, 120));
+    }
     const blob = await res.blob();
     const url  = URL.createObjectURL(blob);
     currentAudio = new Audio(url);
@@ -200,7 +204,7 @@ async function listenReport() {
     currentAudio.play();
     btn.innerHTML = '⏸ ' + (isEn ? 'Pause' : 'Pausar');
   } catch (e) {
-    btn.innerHTML = '❌ ' + (isEn ? 'Error generating audio' : 'Error al generar audio');
+    btn.innerHTML = '❌ ' + e.message;
   } finally {
     btn.disabled = false;
   }
