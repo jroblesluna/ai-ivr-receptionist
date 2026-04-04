@@ -520,7 +520,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
     <div style="margin-top:16px;">
       <label style="display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;">ElevenLabs Voice (Report Audio)</label>
       <div style="display:flex;gap:8px;align-items:center;">
-        <select id="elevenlabs-voice-id" data-saved="{{ elevenlabs_voice_id or '21m00Tcm4TlvDq8ikWAM' }}" style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:white;">
+        <select id="elevenlabs-voice-id" data-saved="{{ elevenlabs_voice_id or '' }}" style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:white;">
           <option disabled selected>Loading voices…</option>
         </select>
         <button class="btn" style="white-space:nowrap;" onclick="previewElevenLabsVoice(this)">▶ Preview</button>
