@@ -8,9 +8,6 @@ from use_case_loader import get_active_use_case, get_digit_to_topic, get_company
 
 menu_bp = Blueprint("menu", __name__)
 
-EN_VOICE = "Google.en-US-Neural2-D"
-ES_VOICE = "Google.es-US-Neural2-B"
-
 
 def _sorted_options(uc, lang):
     """Returns topic options sorted by digit for the given language."""
@@ -54,13 +51,13 @@ def main_menu():
 
     gather = Gather(num_digits=1, action="/handle-en", method="POST")
     greeting = f"Thank you for calling {company}. {slogan} Please listen to the following options." if slogan else f"Thank you for calling {company}. Please listen to the following options."
-    gather.say(greeting, voice=EN_VOICE)
+    gather.say(greeting, voice=get_voice("en"))
     for opt in options:
         if opt["digit"] == "1":
-            gather.say(opt["menu_text"], voice=EN_VOICE)
-            gather.say("Para Español, presione 2.", voice=ES_VOICE)
+            gather.say(opt["menu_text"], voice=get_voice("en"))
+            gather.say("Para Español, presione 2.", voice=get_voice("es"))
         else:
-            gather.say(opt["menu_text"], voice=EN_VOICE)
+            gather.say(opt["menu_text"], voice=get_voice("en"))
     resp.append(gather)
     resp.redirect("/menu")
     return str(resp)
@@ -78,7 +75,7 @@ def handle_en():
         topic = digit_to_topic[digit]
         resp.redirect(f"/ai-gather?lang=en&topic={topic}")
     else:
-        resp.say("That is not a valid option. Please try again.", voice=EN_VOICE)
+        resp.say("That is not a valid option. Please try again.", voice=get_voice("en"))
         resp.redirect("/menu")
     return str(resp)
 
@@ -95,13 +92,13 @@ def menu_es():
 
     gather = Gather(num_digits=1, action="/handle-es", method="POST")
     greeting = f"Gracias por llamar a {company}. {slogan} Por favor escuche las siguientes opciones." if slogan else f"Gracias por llamar a {company}. Por favor escuche las siguientes opciones."
-    gather.say(greeting, voice=ES_VOICE)
+    gather.say(greeting, voice=get_voice("es"))
     for opt in options:
         if opt["digit"] == "1":
-            gather.say(opt["menu_text"], voice=ES_VOICE)
-            gather.say("Press 2 for English.", voice=EN_VOICE)
+            gather.say(opt["menu_text"], voice=get_voice("es"))
+            gather.say("Press 2 for English.", voice=get_voice("en"))
         else:
-            gather.say(opt["menu_text"], voice=ES_VOICE)
+            gather.say(opt["menu_text"], voice=get_voice("es"))
     resp.append(gather)
     resp.redirect("/menu-es")
     return str(resp)
@@ -119,6 +116,6 @@ def handle_es():
         topic = digit_to_topic[digit]
         resp.redirect(f"/ai-gather?lang=es&topic={topic}")
     else:
-        resp.say("Esa no es una opción válida. Por favor intente de nuevo.", voice=ES_VOICE)
+        resp.say("Esa no es una opción válida. Por favor intente de nuevo.", voice=get_voice("es"))
         resp.redirect("/menu-es")
     return str(resp)
