@@ -1,4 +1,5 @@
 import json
+import os
 from flask import Blueprint, request, session, redirect, url_for, render_template, jsonify
 from config import ADMIN_PASSWORD
 from use_case_loader import _load_use_cases, save_use_case
@@ -30,6 +31,7 @@ def admin():
         notify_email=runtime_config.get("notify_email", "1"),
         notify_whatsapp=runtime_config.get("notify_whatsapp", "1"),
         elevenlabs_voice_id=runtime_config.get("elevenlabs_voice_id", "21m00Tcm4TlvDq8ikWAM"),
+        elevenlabs_api_key=os.environ.get("ELEVENLABS_API_KEY", ""),
         whitelist=load_whitelist(),
         webhook_url=f"{base_url}/menu",
     )
