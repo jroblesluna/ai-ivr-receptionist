@@ -29,9 +29,19 @@ def ai_gather():
         caller_from = request.values.get("From", "")
         system_prompt = get_system_prompt(lang, topic, caller_from=caller_from)
         conversation_store[call_sid] = [{"role": "system", "content": system_prompt}]
+        # Preserve pre-screening info when redirected (e.g. from main flow to schedule_callback)
+        prior = collected_info.get(call_sid, {})
         collected_info[call_sid] = {
-            "name": None, "phone": None, "notes": None,
-            "topic": topic, "lang": lang, "caller_from": caller_from,
+            "name":                prior.get("name"),
+            "phone":               prior.get("phone"),
+            "notes":               None,
+            "topic":               prior.get("topic") or topic,
+            "lang":                lang,
+            "caller_from":         prior.get("caller_from") or caller_from,
+            "notified":            prior.get("notified"),
+            "conversation":        prior.get("conversation"),
+            "operator_briefing":   prior.get("operator_briefing"),
+            "goodbye":             prior.get("goodbye"),
         }
 
         TOPICS = get_topics()
@@ -162,21 +172,30 @@ def ai_respond():
             base_url   = request.url_root.rstrip("/")
             uc         = get_active_use_case()
             company    = uc.get("name", "")
-            topic_label = "Callback Request" if lang == "en" else "Solicitud de Rellamada"
+            TOPICS     = get_topics()
+            orig_topic = info.get("topic") or topic
+            topic_label = TOPICS.get(orig_topic, {}).get(lang, {}).get("label") or \
+                          TOPICS.get(orig_topic, {}).get("en", {}).get("label") or \
+                          ("Callback Request" if lang == "en" else "Solicitud de Rellamada")
+
+            # Merge pre-screening conversation + callback scheduling conversation
+            prescreening_conv = info.get("conversation") or []
+            callback_conv     = [m for m in history_snapshot if m["role"] != "system"]
+            full_conversation = prescreening_conv + callback_conv
 
             report_data = {
-                "timestamp":         datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "use_case":          company,
-                "caller_name":       info.get("name") or info.get("caller_from", ""),
-                "caller_phone":      info.get("phone") or info.get("caller_from", ""),
-                "topic":             topic_label,
-                "language":         "English" if lang == "en" else "Español",
-                "conversation":      info.get("conversation", []),
-                "operator_briefing": "",
-                "transcription":     "",
+                "timestamp":              datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "use_case":               company,
+                "caller_name":            info.get("name") or info.get("caller_from", ""),
+                "caller_phone":           info.get("phone") or info.get("caller_from", ""),
+                "topic":                  topic_label,
+                "language":               "English" if lang == "en" else "Español",
+                "conversation":           full_conversation,
+                "operator_briefing":      info.get("operator_briefing", ""),
+                "transcription":          "",
                 "transcription_segments": [],
-                "summary":           f"Callback requested. Preferred times: {preferred}",
-                "goodbye":           info.get("goodbye", ""),
+                "summary":                f"{'Callback requested' if lang == 'en' else 'Rellamada solicitada'}. {'Preferred times' if lang == 'en' else 'Horas preferidas'}: {preferred}",
+                "goodbye":                info.get("goodbye", ""),
             }
             report_id  = reports.save(report_data)
             report_url = f"{base_url}/report/{report_id}"
