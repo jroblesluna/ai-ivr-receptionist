@@ -183,9 +183,13 @@ function playBlob(blob) {
 async function listenReport() {
   if (currentAudio && !currentAudio.paused) {
     currentAudio.pause();
-    currentAudio.currentTime = 0;
-    currentAudio = null;
-    btn.innerHTML = '🎧 ' + (isEn ? 'Listen to Summary' : 'Escuchar resumen');
+    btn.innerHTML = '▶ ' + (isEn ? 'Resume' : 'Continuar');
+    return;
+  }
+
+  if (currentAudio && currentAudio.paused) {
+    currentAudio.play();
+    btn.innerHTML = '⏸ ' + (isEn ? 'Pause' : 'Pausar');
     return;
   }
 
