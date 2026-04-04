@@ -37,7 +37,6 @@ def connect_operator():
         end_conference_on_exit=True,
         beep=False,
         record="record-from-start",
-        recording_channels="dual",
         recording_status_callback=f"{base_url}/recording-ready?caller_sid={caller_sid}&lang={lang}",
         recording_status_callback_method="POST",
     )
