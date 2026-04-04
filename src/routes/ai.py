@@ -4,8 +4,9 @@ from flask import Blueprint, request
 from twilio.twiml.voice_response import VoiceResponse, Gather
 from config import ACCOUNT_SID, AUTH_TOKEN, openai_client, twilio_client
 import runtime_config
+import reports
 from state import conversation_store, collected_info
-from use_case_loader import get_topics
+from use_case_loader import get_topics, get_active_use_case
 from helpers import get_voice, get_gather_language
 from prompts import get_system_prompt
 from email_helper import send_report_email
@@ -157,23 +158,64 @@ def ai_respond():
             base_url = request.url_root.rstrip("/")
             resp.redirect(f"{base_url}/connect-operator?lang={lang}&caller_sid={call_sid}")
         elif topic == "schedule_callback":
-            # No hay operador disponible — imprimir fechas preferidas y colgar
-            preferred = info.get("notes") or "(no times provided)"
-            print(f"\n{'='*50}")
-            print(f"[CALLBACK REQUEST] {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-            print(f"  Caller     : {info.get('caller_from', 'unknown')}")
-            print(f"  Language   : {'English' if lang == 'en' else 'Español'}")
-            print(f"  Preferred  : {preferred}")
-            print(f"{'='*50}\n")
+            preferred  = info.get("notes") or "(no times provided)"
+            base_url   = request.url_root.rstrip("/")
+            uc         = get_active_use_case()
+            company    = uc.get("name", "")
+            topic_label = "Callback Request" if lang == "en" else "Solicitud de Rellamada"
+
+            report_data = {
+                "timestamp":         datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "use_case":          company,
+                "caller_name":       info.get("name") or info.get("caller_from", ""),
+                "caller_phone":      info.get("phone") or info.get("caller_from", ""),
+                "topic":             topic_label,
+                "language":         "English" if lang == "en" else "Español",
+                "conversation":      info.get("conversation", []),
+                "operator_briefing": "",
+                "transcription":     "",
+                "transcription_segments": [],
+                "summary":           f"Callback requested. Preferred times: {preferred}",
+                "goodbye":           info.get("goodbye", ""),
+            }
+            report_id  = reports.save(report_data)
+            report_url = f"{base_url}/report/{report_id}"
+            print(f"[CALLBACK REPORT] Saved: {report_url}")
+
             send_report_email(
                 subject=f"[IVR] Callback Request — {info.get('caller_from', 'unknown')}",
                 body="\n".join([
-                    f"CALLBACK REQUEST — {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
-                    f"Caller    : {info.get('caller_from', 'unknown')}",
-                    f"Language  : {'English' if lang == 'en' else 'Español'}",
+                    f"CALLBACK REQUEST — {report_data['timestamp']}",
+                    f"Caller    : {report_data['caller_name']} / {report_data['caller_phone']}",
+                    f"Language  : {report_data['language']}",
                     f"Preferred : {preferred}",
+                    f"",
+                    f"View report: {report_url}",
                 ]),
             )
+
+            if runtime_config.get("notify_whatsapp") == "1":
+                wa_from = runtime_config.get("whatsapp_from") or ""
+                wa_to   = runtime_config.get("whatsapp_to")   or ""
+                if wa_from and wa_to:
+                    wa_body = "\n".join([
+                        f"📞 *Callback Request* — {report_data['timestamp']}",
+                        f"🏢 {company}",
+                        f"👤 {report_data['caller_name']} / {report_data['caller_phone']}",
+                        f"🕐 {preferred}",
+                        f"",
+                        f"🔗 {report_url}",
+                    ])
+                    try:
+                        twilio_client().messages.create(
+                            from_=f"whatsapp:{wa_from}",
+                            to=f"whatsapp:{wa_to}",
+                            body=wa_body,
+                        )
+                        print(f"[WHATSAPP] Callback report sent to {wa_to}")
+                    except Exception as e:
+                        print(f"[WHATSAPP ERROR] {e}")
+
             resp.hangup()
         else:
             resp.hangup()
