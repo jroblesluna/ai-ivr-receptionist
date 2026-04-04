@@ -22,6 +22,9 @@ cold-day.mp3
 # Runtime data — reports are ephemeral, config is committed
 data/*
 !data/runtime_config.json
+!data/reports/
+data/reports/*
+!data/reports/dummyreport.json
 
 # macOS
 .DS_Store

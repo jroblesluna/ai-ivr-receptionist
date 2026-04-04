@@ -1,0 +1,51 @@
+{
+  "id": "dummyreport",
+  "use_case": "Robles AI",
+  "caller_name": "James Mitchell",
+  "caller_phone": "+1 (415) 555-0192",
+  "topic": "Business Automation Consultation",
+  "language": "English",
+  "timestamp": "2026-04-04 10:23:41 UTC",
+  "conversation": [
+    {
+      "role": "assistant",
+      "content": "Thank you for calling Robles AI. I'm your AI receptionist. Could I get your name please?"
+    },
+    {
+      "role": "user",
+      "content": "Hi, yes, my name is James Mitchell."
+    },
+    {
+      "role": "assistant",
+      "content": "Nice to meet you, James. How can I help you today? Are you interested in AI automation for your business, a demo, pricing, or something else?"
+    },
+    {
+      "role": "user",
+      "content": "I run a mid-size law firm and I'm curious whether AI could handle our client intake process. We get around 80 calls a day and half of them are just basic questions."
+    },
+    {
+      "role": "assistant",
+      "content": "That's a great use case, James. An AI receptionist can handle initial screening, answer FAQs, collect case details, and only escalate complex matters to your team. That could free up significant attorney and paralegal time. Would you like me to connect you with one of our specialists to go over a tailored solution?"
+    },
+    {
+      "role": "user",
+      "content": "Yes, please. I'd also like to know about pricing and how long implementation takes."
+    },
+    {
+      "role": "assistant",
+      "content": "Perfect. I'll connect you right now. Just a moment while I brief them on your inquiry."
+    }
+  ],
+  "operator_briefing": "Incoming call from James Mitchell, managing partner at a mid-size law firm. He receives approximately 80 calls per day and is interested in automating client intake using AI. Key questions: pricing and implementation timeline. He is warm and decision-ready — treat as a high-priority lead.",
+  "transcription_segments": [
+    { "speaker": "OPERATOR", "text": "Hi James, this is Sofia from Robles AI. I understand you're looking to automate your firm's intake process?" },
+    { "speaker": "CALLER",   "text": "That's right. We have about 80 calls a day and it's overwhelming our front desk." },
+    { "speaker": "OPERATOR", "text": "Totally understandable. We've deployed similar solutions for legal clients. Typically we can have a pilot running within two weeks." },
+    { "speaker": "CALLER",   "text": "Two weeks sounds fast. What does pricing look like?" },
+    { "speaker": "OPERATOR", "text": "It depends on call volume and integrations, but for your size we usually start around $400 a month. I'll send you a full breakdown by email today." },
+    { "speaker": "CALLER",   "text": "That works. Looking forward to it." },
+    { "speaker": "OPERATOR", "text": "Great talking to you James. I'll follow up within the hour." }
+  ],
+  "summary": "James Mitchell, managing partner of a mid-size law firm, called to inquire about automating their client intake process. The firm handles approximately 80 calls per day, many of which involve repetitive questions. He spoke with operator Sofia, who confirmed a two-week pilot deployment timeline and an estimated starting price of $400/month. A detailed pricing proposal will be sent via email. James is a warm, high-intent lead.",
+  "goodbye": "Thank you for calling Robles AI, James. A specialist will be in touch with you shortly. Have a great day!"
+}
