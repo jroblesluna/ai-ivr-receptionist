@@ -27,7 +27,18 @@ def view_report(report_id):
         elevenlabs_api_key=os.environ.get("ELEVENLABS_API_KEY", ""),
         elevenlabs_voice_id=runtime_config.get("elevenlabs_voice_id"),
         tts_text=tts_text,
+        has_recording=reports.recording_path(report_id).exists(),
     )
+
+
+@report_bp.route("/report/<report_id>/recording", methods=["GET"])
+def report_recording(report_id):
+    if not reports.load(report_id):
+        abort(404)
+    rec = reports.recording_path(report_id)
+    if not rec.exists():
+        abort(404)
+    return send_file(str(rec), mimetype="audio/mpeg")
 
 
 @report_bp.route("/report/<report_id>/audio", methods=["GET"])

@@ -28,3 +28,7 @@ def load(report_id: str) -> dict | None:
 
 def audio_path(report_id: str) -> Path:
     return _DIR / f"{report_id}.mp3"
+
+
+def recording_path(report_id: str) -> Path:
+    return _DIR / f"{report_id}.recording.mp3"

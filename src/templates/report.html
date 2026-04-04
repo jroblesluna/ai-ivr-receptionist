@@ -208,8 +208,8 @@ async function decodePeaks(blob) {
   return raw.map(v => v / maxVal);
 }
 
-function drawWaveform(p, progress) {
-  const canvas = document.getElementById('waveform');
+function drawWaveformOn(canvasId, p, progress) {
+  const canvas = document.getElementById(canvasId);
   if (!canvas) return;
   const dpr  = window.devicePixelRatio || 1;
   const rect = canvas.getBoundingClientRect();
@@ -221,7 +221,6 @@ function drawWaveform(p, progress) {
   const slotW = W / BAR_COUNT;
   const barW  = Math.max(2, slotW * 0.52);
   const progressX = (progress || 0) * W;
-
   p.forEach((peak, i) => {
     const x = i * slotW + (slotW - barW) / 2;
     const h = Math.max(3, peak * H * 0.88);
@@ -231,6 +230,10 @@ function drawWaveform(p, progress) {
     ctx.roundRect ? ctx.roundRect(x, y, barW, h, 2) : ctx.rect(x, y, barW, h);
     ctx.fill();
   });
+}
+
+function drawWaveform(p, progress) {
+  drawWaveformOn('waveform', p, progress);
 }
 
 function setStatus(text) {
@@ -443,12 +446,111 @@ window.addEventListener('resize', () => {
   </div>
   {% endif %}
 
+  <!-- 6. Call Recording -->
+  {% if has_recording %}
+  <div class="card">
+    <div class="card-head">
+      <span class="card-icon">🔴</span>
+      <span class="card-title">{{ 'Call Recording' if r.language == 'English' else 'Grabación de la llamada' }}</span>
+    </div>
+    <div class="card-body">
+      <div class="audio-player">
+        <button class="play-btn" id="rec-play-btn" onclick="toggleRecording(this)">▶</button>
+        <div class="waveform-wrap">
+          <canvas id="rec-waveform"></canvas>
+        </div>
+        <div class="player-meta">
+          <div class="time-display"><span id="rec-time-current">0:00</span> / <span id="rec-time-total">—</span></div>
+          <div class="player-status" id="rec-player-status">{{ 'Tap to listen' if r.language == 'English' else 'Toca para escuchar' }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
 </main>
 
 <div class="footer">
   IVR AI Receptionist · Report ID: {{ r.id }}<br>
   <span style="margin-top:4px;display:inline-block;">Powered by <strong>Inversiones On Line</strong> · <a href="https://sistemas.com.pe" style="color:var(--muted);text-decoration:none;" target="_blank">sistemas.com.pe</a></span>
 </div>
+
+{% if has_recording %}
+<script>
+const REC_URL = '/report/{{ r.id }}/recording';
+let recAudio = null, recBlobUrl = null, recPeaks = null;
+
+async function toggleRecording(btn) {
+  if (recAudio && !recAudio.paused) {
+    recAudio.pause();
+    btn.textContent = '▶';
+    document.getElementById('rec-player-status').textContent = isEn ? 'Paused' : 'Pausado';
+    return;
+  }
+  if (recAudio && recAudio.paused) {
+    recAudio.play();
+    btn.textContent = '⏸';
+    document.getElementById('rec-player-status').textContent = isEn ? 'Playing' : 'Reproduciendo';
+    return;
+  }
+
+  btn.textContent = '⏳'; btn.disabled = true;
+  document.getElementById('rec-player-status').textContent = isEn ? 'Loading…' : 'Cargando…';
+
+  try {
+    const res = await fetch(REC_URL);
+    if (!res.ok) throw new Error('Recording not available');
+    const blob = await res.blob();
+
+    try { recPeaks = await decodePeaks(blob.slice()); }
+    catch { recPeaks = placeholderPeaks(); }
+
+    const canvas = document.getElementById('rec-waveform');
+    canvas.addEventListener('click', e => {
+      if (!recAudio || !recAudio.duration) return;
+      const rect = canvas.getBoundingClientRect();
+      recAudio.currentTime = ((e.clientX - rect.left) / rect.width) * recAudio.duration;
+    });
+
+    if (recBlobUrl) URL.revokeObjectURL(recBlobUrl);
+    recBlobUrl = URL.createObjectURL(blob);
+    recAudio = new Audio(recBlobUrl);
+
+    recAudio.addEventListener('loadedmetadata', () => {
+      document.getElementById('rec-time-total').textContent = fmt(recAudio.duration);
+    });
+    recAudio.addEventListener('timeupdate', () => {
+      const p = recAudio.duration ? recAudio.currentTime / recAudio.duration : 0;
+      drawWaveformOn('rec-waveform', recPeaks, p);
+      document.getElementById('rec-time-current').textContent = fmt(recAudio.currentTime);
+    });
+    recAudio.addEventListener('ended', () => {
+      btn.textContent = '▶'; btn.disabled = false;
+      document.getElementById('rec-player-status').textContent = isEn ? 'Tap to listen' : 'Toca para escuchar';
+      document.getElementById('rec-time-current').textContent = '0:00';
+      drawWaveformOn('rec-waveform', recPeaks, 0);
+    });
+
+    recAudio.play();
+    btn.textContent = '⏸';
+    document.getElementById('rec-player-status').textContent = isEn ? 'Playing' : 'Reproduciendo';
+    drawWaveformOn('rec-waveform', recPeaks, 0);
+  } catch(e) {
+    document.getElementById('rec-player-status').textContent = '❌ ' + e.message;
+    btn.textContent = '▶';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  drawWaveformOn('rec-waveform', placeholderPeaks(), 0);
+});
+window.addEventListener('resize', () => {
+  drawWaveformOn('rec-waveform', recPeaks || placeholderPeaks(), recAudio && recAudio.duration ? recAudio.currentTime / recAudio.duration : 0);
+});
+</script>
+{% endif %}
 
 </body>
 </html>
