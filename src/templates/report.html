@@ -358,33 +358,7 @@ window.addEventListener('resize', () => {
   </div>
   {% endif %}
 
-  <!-- 2. Goodbye Message -->
-  {% if r.goodbye %}
-  <div class="card">
-    <div class="card-head">
-      <span class="card-icon">👋</span>
-      <span class="card-title">Goodbye Message</span>
-    </div>
-    <div class="card-body">
-      <div class="plain-text">{{ r.goodbye }}</div>
-    </div>
-  </div>
-  {% endif %}
-
-  <!-- 3. Operator Briefing -->
-  {% if r.operator_briefing %}
-  <div class="card">
-    <div class="card-head">
-      <span class="card-icon">📋</span>
-      <span class="card-title">AI → Operator Briefing</span>
-    </div>
-    <div class="card-body">
-      <div class="plain-text">{{ r.operator_briefing }}</div>
-    </div>
-  </div>
-  {% endif %}
-
-  <!-- 4. AI ↔ Caller Conversation -->
+  <!-- 2. AI ↔ Caller Conversation -->
   {% if r.conversation %}
   <div class="card">
     <div class="card-head">
@@ -409,6 +383,32 @@ window.addEventListener('resize', () => {
         </div>
         {% endif %}
       {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- 3. Goodbye Message -->
+  {% if r.goodbye %}
+  <div class="card">
+    <div class="card-head">
+      <span class="card-icon">👋</span>
+      <span class="card-title">Goodbye Message</span>
+    </div>
+    <div class="card-body">
+      <div class="plain-text">{{ r.goodbye }}</div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- 4. Operator Briefing -->
+  {% if r.operator_briefing %}
+  <div class="card">
+    <div class="card-head">
+      <span class="card-icon">📋</span>
+      <span class="card-title">AI → Operator Briefing</span>
+    </div>
+    <div class="card-body">
+      <div class="plain-text">{{ r.operator_briefing }}</div>
     </div>
   </div>
   {% endif %}
@@ -445,7 +445,10 @@ window.addEventListener('resize', () => {
 
 </main>
 
-<div class="footer">IVR AI Receptionist · Report ID: {{ r.id }}</div>
+<div class="footer">
+  IVR AI Receptionist · Report ID: {{ r.id }}<br>
+  <span style="margin-top:4px;display:inline-block;">Powered by <strong>Inversiones On Line</strong> · <a href="https://sistemas.com.pe" style="color:var(--muted);text-decoration:none;" target="_blank">sistemas.com.pe</a></span>
+</div>
 
 </body>
 </html>
