@@ -67,35 +67,6 @@ def api_config():
     return jsonify({"ok": True, "config": runtime_config.all_config()})
 
 
-@admin_bp.route("/admin/api/tts-preview", methods=["POST"])
-def api_tts_preview():
-    if not _logged_in():
-        return jsonify({"error": "Unauthorized"}), 401
-    import os, requests as req
-    api_key = os.environ.get("GOOGLE_TTS_API_KEY", "")
-    if not api_key:
-        return jsonify({"error": "GOOGLE_TTS_API_KEY not configured"}), 500
-    data = request.json or {}
-    voice = data.get("voice", "")   # e.g. "Google.en-US-Neural2-D"
-    text  = data.get("text", "").strip()
-    if not voice or not text:
-        return jsonify({"error": "voice and text required"}), 400
-    voice_name    = voice.replace("Google.", "")   # "en-US-Neural2-D"
-    language_code = voice_name[:5]                 # "en-US"
-    resp = req.post(
-        f"https://texttospeech.googleapis.com/v1/text:synthesize?key={api_key}",
-        json={
-            "input": {"text": text},
-            "voice": {"languageCode": language_code, "name": voice_name},
-            "audioConfig": {"audioEncoding": "MP3"},
-        },
-        timeout=10,
-    )
-    if not resp.ok:
-        return jsonify({"error": resp.text}), 500
-    return jsonify({"audio": resp.json().get("audioContent", "")})
-
-
 @admin_bp.route("/admin/api/use-case/<uc_id>", methods=["PATCH"])
 def api_update_use_case(uc_id):
     if not _logged_in():

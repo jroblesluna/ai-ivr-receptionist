@@ -622,25 +622,33 @@ function voiceRegionSelect(lang, regions) {
     regions.map(r => `<option value="${r}">${r}</option>`).join('') + '</select>';
 }
 
-async function previewVoice(lang) {
-  const voice = getVoiceValue(lang);
-  const text  = document.getElementById(`ed-slogan-${lang}`)?.value.trim()
-             || (lang === 'en' ? 'Hello, welcome.' : 'Hola, bienvenido.');
-  const btn = document.getElementById(`btn-preview-${lang}`);
-  if (btn) { btn.textContent = '…'; btn.disabled = true; }
-  try {
-    const res = await apiFetch('/admin/api/tts-preview', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ voice, text }),
-    });
-    if (!res || !res.ok) { toast('Preview failed — check GOOGLE_TTS_API_KEY', 'error'); return; }
-    const data = await res.json();
-    if (data.audio) new Audio(`data:audio/mp3;base64,${data.audio}`).play();
-    else toast(data.error || 'No audio returned', 'error');
-  } finally {
-    if (btn) { btn.textContent = '▶'; btn.disabled = false; }
-  }
+function previewVoice(lang) {
+  const voice    = getVoiceValue(lang);               // "Google.en-US-Neural2-D"
+  const text     = document.getElementById(`ed-slogan-${lang}`)?.value.trim()
+                || (lang === 'en' ? 'Hello, welcome.' : 'Hola, bienvenido.');
+  const voiceName = voice.replace('Google.', '');     // "en-US-Neural2-D"
+  const langCode  = voiceName.slice(0, 5);            // "en-US"
+  const letter    = voiceName.slice(-1).toUpperCase();
+  const isFemale  = ['A','C','E','F','G','H'].includes(letter);
+
+  const synth  = window.speechSynthesis;
+  const voices = synth.getVoices();
+
+  // Pick best matching browser voice by language then gender
+  const pool = voices.filter(v => v.lang.startsWith(langCode));
+  const fallback = voices.find(v => v.lang.startsWith(lang === 'en' ? 'en' : 'es'));
+  const selected = pool.find(v => isFemale
+      ? /female|woman|femenin/i.test(v.name)
+      : /male|man|mascul/i.test(v.name))
+    || pool[isFemale ? 0 : Math.min(1, pool.length - 1)]
+    || fallback
+    || voices[0];
+
+  const utt  = new SpeechSynthesisUtterance(text);
+  utt.lang   = langCode;
+  if (selected) utt.voice = selected;
+  synth.cancel();
+  synth.speak(utt);
 }
 
 function buildTopicItem(tid, t) {
