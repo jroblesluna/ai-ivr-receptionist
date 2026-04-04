@@ -2,6 +2,7 @@ import os
 import requests as req
 from flask import Blueprint, render_template, abort, send_file
 import reports
+import runtime_config
 
 report_bp = Blueprint("report", __name__)
 
@@ -26,7 +27,7 @@ def report_audio(report_id):
 
     if not mp3.exists():
         api_key  = os.environ.get("ELEVENLABS_API_KEY", "")
-        voice_id = os.environ.get("ELEVENLABS_VOICE_ID", _DEFAULT_VOICE_ID)
+        voice_id = runtime_config.get("elevenlabs_voice_id") or _DEFAULT_VOICE_ID
         if not api_key:
             abort(503, description="ELEVENLABS_API_KEY not configured")
 

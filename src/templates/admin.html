@@ -517,6 +517,15 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
         </div>
       </div>
     </div>
+    <div style="margin-top:16px;">
+      <label style="display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;">ElevenLabs Voice ID (Report Audio)</label>
+      <div class="input-row">
+        <input type="text" id="elevenlabs-voice-id" placeholder="21m00Tcm4TlvDq8ikWAM" value="{{ elevenlabs_voice_id or '21m00Tcm4TlvDq8ikWAM' }}" style="font-family:monospace;">
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px;">
+        Popular voices: Rachel <code>21m00Tcm4TlvDq8ikWAM</code> · Domi <code>AZnzlk1XvdvUeBnXmlld</code> · Antoni <code>ErXwobaYiN019PkySvjV</code> · Elli <code>MF3mGyEYCl7XYWbV9V6O</code>
+      </div>
+    </div>
     <div style="margin-top:12px;">
       <button class="btn btn-primary" onclick="saveNotifications()">Save</button>
     </div>
@@ -857,8 +866,9 @@ async function saveNotifications() {
     body: JSON.stringify({
       report_email:     document.getElementById('report-email').value.trim(),
       whatsapp_to:      document.getElementById('whatsapp-to').value.trim(),
-      notify_email:     document.getElementById('toggle-email').checked    ? '1' : '0',
-      notify_whatsapp:  document.getElementById('toggle-whatsapp').checked ? '1' : '0',
+      notify_email:          document.getElementById('toggle-email').checked    ? '1' : '0',
+      notify_whatsapp:       document.getElementById('toggle-whatsapp').checked ? '1' : '0',
+      elevenlabs_voice_id:   document.getElementById('elevenlabs-voice-id').value.trim(),
     })
   });
   if (!res) return;
