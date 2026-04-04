@@ -1,7 +1,7 @@
 import json
 from flask import Blueprint, request, session, redirect, url_for, render_template, jsonify
 from config import ADMIN_PASSWORD
-from use_case_loader import _load_use_cases
+from use_case_loader import _load_use_cases, save_use_case
 from whitelist import load_whitelist, add_number, remove_number
 import runtime_config
 
@@ -65,6 +65,19 @@ def api_config():
         if key in data:
             runtime_config.set(key, data[key])
     return jsonify({"ok": True, "config": runtime_config.all_config()})
+
+
+@admin_bp.route("/admin/api/use-case/<uc_id>", methods=["PATCH"])
+def api_update_use_case(uc_id):
+    if not _logged_in():
+        return jsonify({"error": "Unauthorized"}), 401
+    use_cases = _load_use_cases()
+    if uc_id not in use_cases:
+        return jsonify({"error": "Not found"}), 404
+    data = request.json or {}
+    data["id"] = uc_id  # preserve id
+    save_use_case(uc_id, data)
+    return jsonify({"ok": True})
 
 
 @admin_bp.route("/admin/api/whitelist", methods=["GET"])

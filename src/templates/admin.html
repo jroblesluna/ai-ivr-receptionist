@@ -273,6 +273,52 @@ input:checked + .slider:before { transform: translateX(20px); }
 
 /* ── Divider ── */
 hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+
+/* ── Use Case Editor ── */
+.editor-body { padding-top: 4px; }
+.editor-section { padding: 0 4px 16px; }
+.editor-field { margin-bottom: 10px; }
+.editor-field label {
+  display: block; font-size: 11px; font-weight: 600;
+  color: var(--muted); margin-bottom: 4px;
+  text-transform: uppercase; letter-spacing: .04em;
+}
+.editor-field input, .editor-field select, .editor-field textarea {
+  width: 100%; padding: 8px 12px;
+  border: 1.5px solid var(--border); border-radius: 8px;
+  font-size: 13px; font-family: inherit; outline: none;
+  transition: border-color .15s; background: white; color: var(--text);
+}
+.editor-field input:focus, .editor-field select:focus, .editor-field textarea:focus {
+  border-color: var(--primary);
+}
+.editor-field textarea { min-height: 68px; resize: vertical; line-height: 1.5; }
+.voice-row { display: flex; gap: 8px; }
+.voice-row select:first-child { flex: 0 0 90px; }
+.voice-row select:last-child { flex: 1; }
+.topic-item { border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px; overflow: hidden; }
+.topic-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 16px; cursor: pointer; background: #fafafa;
+  transition: background .15s; user-select: none;
+}
+.topic-header:hover { background: var(--primary-light); }
+.topic-digit {
+  background: var(--primary); color: white;
+  width: 22px; height: 22px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; flex-shrink: 0;
+}
+.topic-label-text { font-size: 13px; font-weight: 600; flex: 1; }
+.topic-chevron { color: var(--muted); font-size: 11px; }
+.topic-body { padding: 14px 16px; border-top: 1px solid var(--border); }
+.lang-tag {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .06em; margin-bottom: 8px; padding: 2px 8px;
+  border-radius: 4px; display: inline-block;
+}
+.lang-en { background: #dbeafe; color: #1e40af; }
+.lang-es { background: #d1fae5; color: #065f46; }
 </style>
 </head>
 <body>
@@ -326,6 +372,15 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
       </div>
       {% endfor %}
     </div>
+  </div>
+
+  <!-- CUSTOMIZE USE CASE -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Customize Use Case</span>
+      <button class="btn btn-primary" style="font-size:12px;padding:6px 14px;" id="editor-toggle-btn" onclick="toggleEditor()">▼ Expand</button>
+    </div>
+    <div id="uc-editor" style="display:none;" class="editor-body"></div>
   </div>
 
   <!-- OPERATOR & WHITELIST side by side on wide screens -->
@@ -496,6 +551,196 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 
 <script>
 const USE_CASES = {{ use_cases | tojson }};
+let currentUCId = {{ current_use_case | tojson }};
+let editorOpen = false;
+
+const VOICE_DATA = {
+  'en-US': [
+    { v: 'Neural2-A', l: 'Neural2-A (Female)' }, { v: 'Neural2-C', l: 'Neural2-C (Female)' },
+    { v: 'Neural2-D', l: 'Neural2-D (Male)' },   { v: 'Neural2-F', l: 'Neural2-F (Female)' },
+    { v: 'Neural2-G', l: 'Neural2-G (Female)' }, { v: 'Neural2-H', l: 'Neural2-H (Female)' },
+    { v: 'Neural2-I', l: 'Neural2-I (Male)' },   { v: 'Neural2-J', l: 'Neural2-J (Male)' },
+  ],
+  'en-GB': [
+    { v: 'Neural2-A', l: 'Neural2-A (Female)' }, { v: 'Neural2-B', l: 'Neural2-B (Male)' },
+    { v: 'Neural2-D', l: 'Neural2-D (Male)' },   { v: 'Neural2-F', l: 'Neural2-F (Female)' },
+  ],
+  'es-US': [
+    { v: 'Neural2-A', l: 'Neural2-A (Female)' }, { v: 'Neural2-B', l: 'Neural2-B (Male)' },
+    { v: 'Neural2-C', l: 'Neural2-C (Male)' },   { v: 'Standard-A', l: 'Standard-A (Female)' },
+  ],
+  'es-ES': [
+    { v: 'Neural2-A', l: 'Neural2-A (Female)' }, { v: 'Neural2-B', l: 'Neural2-B (Male)' },
+    { v: 'Neural2-C', l: 'Neural2-C (Female)' }, { v: 'Neural2-D', l: 'Neural2-D (Female)' },
+    { v: 'Neural2-E', l: 'Neural2-E (Female)' }, { v: 'Neural2-F', l: 'Neural2-F (Male)' },
+  ],
+};
+
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function parseVoice(v) {
+  // "Google.en-US-Neural2-D" → { region:"en-US", voice:"Neural2-D" }
+  const s = (v||'').replace('Google.','');
+  return { region: s.slice(0,5), voice: s.slice(6) };
+}
+
+function updateVoiceOptions(lang, selectedVoice) {
+  const region = document.getElementById(`ed-voice-${lang}-region`).value;
+  const sel = document.getElementById(`ed-voice-${lang}-voice`);
+  sel.innerHTML = (VOICE_DATA[region]||[]).map(o =>
+    `<option value="${o.v}" ${o.v===(selectedVoice||'') ? 'selected':''}>${o.l}</option>`
+  ).join('');
+}
+
+function initVoiceSelect(lang, fullVoice) {
+  const {region, voice} = parseVoice(fullVoice);
+  const rEl = document.getElementById(`ed-voice-${lang}-region`);
+  if (region && rEl) rEl.value = region;
+  updateVoiceOptions(lang, voice);
+}
+
+function getVoiceValue(lang) {
+  const region = document.getElementById(`ed-voice-${lang}-region`).value;
+  const voice  = document.getElementById(`ed-voice-${lang}-voice`).value;
+  return `Google.${region}-${voice}`;
+}
+
+function voiceRegionSelect(lang, regions) {
+  return `<select id="ed-voice-${lang}-region" onchange="updateVoiceOptions('${lang}')">` +
+    regions.map(r => `<option value="${r}">${r}</option>`).join('') + '</select>';
+}
+
+function buildTopicItem(tid, t) {
+  const enQ = (t.en.questions||[]).join('\n');
+  const esQ = (t.es.questions||[]).join('\n');
+  return `
+<div class="topic-item" data-tid="${tid}">
+  <div class="topic-header" onclick="toggleTopic('${tid}')">
+    <span class="topic-digit">${escHtml(t.digit)}</span>
+    <span class="topic-label-text">${escHtml(t.en.label)}</span>
+    <span class="topic-chevron" id="tchevron-${tid}">▼</span>
+  </div>
+  <div class="topic-body" id="tbody-${tid}" style="display:none;">
+    <div class="two-col">
+      <div>
+        <div class="lang-tag lang-en">English</div>
+        <div class="editor-field"><label>Label</label><input type="text" id="t-${tid}-en-label" value="${escHtml(t.en.label)}"></div>
+        <div class="editor-field"><label>Menu Text</label><input type="text" id="t-${tid}-en-menu_text" value="${escHtml(t.en.menu_text)}"></div>
+        <div class="editor-field"><label>Greeting</label><textarea id="t-${tid}-en-greeting">${escHtml(t.en.greeting)}</textarea></div>
+        <div class="editor-field"><label>System Instructions</label><textarea id="t-${tid}-en-system_extra">${escHtml(t.en.system_extra)}</textarea></div>
+        <div class="editor-field"><label>Questions (one per line)</label><textarea id="t-${tid}-en-questions">${escHtml(enQ)}</textarea></div>
+      </div>
+      <div>
+        <div class="lang-tag lang-es">Español</div>
+        <div class="editor-field"><label>Etiqueta</label><input type="text" id="t-${tid}-es-label" value="${escHtml(t.es.label)}"></div>
+        <div class="editor-field"><label>Texto del Menú</label><input type="text" id="t-${tid}-es-menu_text" value="${escHtml(t.es.menu_text)}"></div>
+        <div class="editor-field"><label>Saludo</label><textarea id="t-${tid}-es-greeting">${escHtml(t.es.greeting)}</textarea></div>
+        <div class="editor-field"><label>Instrucciones del Sistema</label><textarea id="t-${tid}-es-system_extra">${escHtml(t.es.system_extra)}</textarea></div>
+        <div class="editor-field"><label>Preguntas (una por línea)</label><textarea id="t-${tid}-es-questions">${escHtml(esQ)}</textarea></div>
+      </div>
+    </div>
+  </div>
+</div>`;
+}
+
+function buildEditor(ucId) {
+  const uc = USE_CASES[ucId];
+  if (!uc) return;
+  currentUCId = ucId;
+  const topicItems = Object.entries(uc.topics).map(([tid,t]) => buildTopicItem(tid,t)).join('');
+  document.getElementById('uc-editor').innerHTML = `
+<div class="editor-section">
+  <div style="font-size:11px;color:var(--muted);margin-bottom:14px;">Editing: <strong>${escHtml(uc.name)}</strong></div>
+  <div class="two-col">
+    <div class="editor-field"><label>Name</label><input type="text" id="ed-name" value="${escHtml(uc.name)}"></div>
+    <div class="editor-field"><label>Website URL</label><input type="text" id="ed-url" value="${escHtml(uc.url||'')}"></div>
+  </div>
+  <div class="two-col" style="margin-top:4px;">
+    <div class="editor-field">
+      <label>Voice (English)</label>
+      <div class="voice-row">
+        ${voiceRegionSelect('en', ['en-US','en-GB'])}
+        <select id="ed-voice-en-voice"></select>
+      </div>
+    </div>
+    <div class="editor-field">
+      <label>Voice (Español)</label>
+      <div class="voice-row">
+        ${voiceRegionSelect('es', ['es-US','es-ES'])}
+        <select id="ed-voice-es-voice"></select>
+      </div>
+    </div>
+  </div>
+  <div class="two-col" style="margin-top:4px;">
+    <div class="editor-field"><label>Slogan (English)</label><input type="text" id="ed-slogan-en" value="${escHtml(uc.slogan?.en||'')}"></div>
+    <div class="editor-field"><label>Slogan (Español)</label><input type="text" id="ed-slogan-es" value="${escHtml(uc.slogan?.es||'')}"></div>
+  </div>
+</div>
+<hr>
+<div class="editor-section">
+  <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:12px;">Topics</div>
+  ${topicItems}
+</div>
+<div style="padding:0 4px 8px;">
+  <button class="btn btn-primary" onclick="saveUseCase()">Save Changes</button>
+</div>`;
+  initVoiceSelect('en', uc.voice?.en || 'Google.en-US-Neural2-D');
+  initVoiceSelect('es', uc.voice?.es || 'Google.es-US-Neural2-B');
+}
+
+function toggleTopic(tid) {
+  const body = document.getElementById(`tbody-${tid}`);
+  const ch   = document.getElementById(`tchevron-${tid}`);
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  ch.textContent = open ? '▼' : '▲';
+}
+
+function toggleEditor() {
+  editorOpen = !editorOpen;
+  const ed  = document.getElementById('uc-editor');
+  const btn = document.getElementById('editor-toggle-btn');
+  ed.style.display  = editorOpen ? 'block' : 'none';
+  btn.textContent   = editorOpen ? '▲ Collapse' : '▼ Expand';
+  if (editorOpen) buildEditor(currentUCId);
+}
+
+function collectEditorData() {
+  const uc = JSON.parse(JSON.stringify(USE_CASES[currentUCId]));
+  uc.name       = document.getElementById('ed-name').value.trim();
+  uc.url        = document.getElementById('ed-url').value.trim();
+  uc.voice      = { en: getVoiceValue('en'), es: getVoiceValue('es') };
+  uc.slogan     = {
+    en: document.getElementById('ed-slogan-en').value.trim(),
+    es: document.getElementById('ed-slogan-es').value.trim(),
+  };
+  Object.keys(uc.topics).forEach(tid => {
+    ['en','es'].forEach(lang => {
+      ['label','menu_text','greeting','system_extra'].forEach(f => {
+        const el = document.getElementById(`t-${tid}-${lang}-${f}`);
+        if (el) uc.topics[tid][lang][f] = el.value.trim();
+      });
+      const qEl = document.getElementById(`t-${tid}-${lang}-questions`);
+      if (qEl) uc.topics[tid][lang].questions = qEl.value.split('\n').map(q=>q.trim()).filter(q=>q);
+    });
+  });
+  return uc;
+}
+
+async function saveUseCase() {
+  const data = collectEditorData();
+  const res  = await apiFetch(`/admin/api/use-case/${currentUCId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res) return;
+  if (!res.ok) { toast('Error saving use case', 'error'); return; }
+  USE_CASES[currentUCId] = data;
+  toast('Use case saved');
+}
 
 function toast(msg, type='success') {
   const el = document.getElementById('toast');
@@ -514,6 +759,7 @@ async function apiFetch(url, options) {
 }
 
 async function selectUseCase(id, name) {
+  currentUCId = id;
   const res = await apiFetch('/admin/api/config', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -539,6 +785,7 @@ async function selectUseCase(id, name) {
   document.getElementById('stat-uc').textContent = name;
   document.getElementById('stat-industry').textContent = USE_CASES[id]?.industry || '—';
 
+  if (editorOpen) buildEditor(id);
   toast(`Switched to ${name}`);
 }
 

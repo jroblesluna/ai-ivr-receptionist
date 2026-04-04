@@ -13,6 +13,14 @@ def _load_use_cases():
     return _cache["data"]
 
 
+def save_use_case(use_case_id: str, updated_uc: dict):
+    use_cases = _load_use_cases()
+    use_cases[use_case_id] = updated_uc
+    with open(USE_CASES_PATH, "w", encoding="utf-8") as f:
+        json.dump(use_cases, f, ensure_ascii=False, indent=2)
+    _cache.clear()
+
+
 def get_active_use_case() -> dict:
     import runtime_config
     use_case_id = runtime_config.get("use_case_id", os.environ.get("USE_CASE_ID", "robles_ai"))
