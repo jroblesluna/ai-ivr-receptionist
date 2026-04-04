@@ -158,6 +158,8 @@ def ai_respond():
 
     if end_call:
         resp.say(message, voice=voice)
+        # Save pre-existing conversation before overwriting (used in schedule_callback merge)
+        prescreening_conv = info.get("conversation") or []
         # Guardar historial antes de limpiar (para el reporte final)
         history_snapshot = conversation_store.pop(call_sid, [])
         info["conversation"] = [m for m in history_snapshot if m["role"] != "system"]
@@ -179,8 +181,7 @@ def ai_respond():
                           ("Callback Request" if lang == "en" else "Solicitud de Rellamada")
 
             # Merge pre-screening conversation + callback scheduling conversation
-            prescreening_conv = info.get("conversation") or []
-            callback_conv     = [m for m in history_snapshot if m["role"] != "system"]
+            callback_conv     = info.get("conversation") or []
             full_conversation = prescreening_conv + callback_conv
 
             report_data = {
