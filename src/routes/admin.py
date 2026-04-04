@@ -1,5 +1,6 @@
 import json
 import os
+import db
 from flask import Blueprint, request, session, redirect, url_for, render_template, jsonify
 from config import ADMIN_PASSWORD
 from use_case_loader import _load_use_cases, save_use_case
@@ -162,6 +163,16 @@ def api_elevenlabs_preview():
     if not resp.ok:
         return jsonify({"error": resp.text}), 502
     return jsonify({"audio": base64.b64encode(resp.content).decode()})
+
+
+@admin_bp.route("/admin/api/reports", methods=["GET"])
+def api_reports():
+    if not _logged_in():
+        return jsonify({"error": "Unauthorized"}), 401
+    offset = int(request.args.get("offset", 0))
+    rows   = db.report_list(limit=50, offset=offset)
+    total  = db.report_count()
+    return jsonify({"reports": rows, "total": total, "offset": offset})
 
 
 @admin_bp.route("/admin/api/whitelist", methods=["GET"])

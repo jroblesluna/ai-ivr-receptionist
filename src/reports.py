@@ -5,6 +5,7 @@ Reports are saved as JSON files under data/reports/ and served via /report/<id>.
 import json
 import uuid
 from pathlib import Path
+import db
 
 _DIR = Path(__file__).parent.parent / "data" / "reports"
 
@@ -16,6 +17,7 @@ def save(data: dict) -> str:
     (_DIR / f"{report_id}.json").write_text(
         json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
     )
+    db.report_insert(report_id, data)
     return report_id
 
 

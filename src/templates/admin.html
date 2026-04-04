@@ -531,6 +531,35 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
     </div>
   </div>
 
+  <!-- REPORTS -->
+  <div class="card">
+    <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
+      <span class="card-title">Call Reports</span>
+      <span id="reports-count" style="font-size:12px;color:var(--muted);"></span>
+    </div>
+    <div style="overflow-x:auto;">
+      <table id="reports-table" style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border);text-align:left;">
+            <th style="padding:10px 16px;color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.05em;">Date / Time</th>
+            <th style="padding:10px 16px;color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.05em;">Caller</th>
+            <th style="padding:10px 16px;color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.05em;">Name</th>
+            <th style="padding:10px 16px;color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.05em;">Topic</th>
+            <th style="padding:10px 16px;color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.05em;">Lang</th>
+            <th style="padding:10px 16px;"></th>
+          </tr>
+        </thead>
+        <tbody id="reports-body">
+          <tr><td colspan="6" style="padding:20px 16px;color:var(--muted);text-align:center;">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--border);">
+      <button class="btn" id="reports-prev" onclick="loadReports(-50)" disabled>← Prev</button>
+      <button class="btn" id="reports-next" onclick="loadReports(50)">Next →</button>
+    </div>
+  </div>
+
   <!-- STATUS -->
   <div class="card">
     <div class="card-header">
@@ -978,6 +1007,33 @@ function renderWhitelist(list) {
 }
 
 loadElevenLabsVoices();
+loadReports(0);
+
+let _reportsOffset = 0;
+async function loadReports(delta) {
+  _reportsOffset = Math.max(0, _reportsOffset + delta);
+  const res = await apiFetch(`/admin/api/reports?offset=${_reportsOffset}`);
+  if (!res || !res.ok) return;
+  const { reports, total, offset } = await res.json();
+  document.getElementById('reports-count').textContent = `${total} total`;
+  document.getElementById('reports-prev').disabled = offset === 0;
+  document.getElementById('reports-next').disabled = offset + reports.length >= total;
+  const tbody = document.getElementById('reports-body');
+  if (!reports.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="padding:20px 16px;color:var(--muted);text-align:center;">No reports yet</td></tr>';
+    return;
+  }
+  tbody.innerHTML = reports.map(r => `
+    <tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:10px 16px;white-space:nowrap;font-size:12px;color:var(--muted);">${r.datetime}</td>
+      <td style="padding:10px 16px;font-family:monospace;font-size:12px;">${r.caller_number || '—'}</td>
+      <td style="padding:10px 16px;">${r.caller_name || '—'}</td>
+      <td style="padding:10px 16px;">${r.topic || '—'}</td>
+      <td style="padding:10px 16px;font-size:12px;">${r.language || '—'}</td>
+      <td style="padding:10px 16px;"><a href="/report/${r.id}" target="_blank" style="color:var(--primary);font-size:12px;font-weight:600;text-decoration:none;">View →</a></td>
+    </tr>
+  `).join('');
+}
 </script>
 </body>
 </html>
