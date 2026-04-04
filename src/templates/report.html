@@ -118,6 +118,22 @@ main { max-width: 800px; margin: 0 auto; padding: 24px 16px; display: flex; flex
   text-align: center; padding: 24px;
   font-size: 12px; color: var(--muted);
 }
+
+/* ── Listen button ── */
+.listen-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  margin-top: 18px;
+  padding: 10px 20px;
+  background: rgba(255,255,255,0.15);
+  border: 1.5px solid rgba(255,255,255,0.35);
+  border-radius: 24px;
+  color: white; font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: background 0.2s;
+}
+.listen-btn:hover { background: rgba(255,255,255,0.25); }
+.listen-btn:disabled { opacity: 0.6; cursor: default; }
+.listen-btn .spin { display: inline-block; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
@@ -133,8 +149,61 @@ main { max-width: 800px; margin: 0 auto; padding: 24px 16px; display: flex; flex
       <span class="pill">🌐 {{ r.language }}</span>
       <span class="pill">🆔 {{ r.id }}</span>
     </div>
+    <div>
+      <button class="listen-btn" id="listen-btn" onclick="listenReport()">
+        🎧 {{ 'Listen to Summary' if r.language == 'English' else 'Escuchar resumen' }}
+      </button>
+    </div>
   </div>
 </div>
+
+<audio id="report-audio" style="display:none;"></audio>
+
+<script>
+let audioPlaying = false;
+const audioEl = document.getElementById('report-audio');
+const btn     = document.getElementById('listen-btn');
+const isEn    = {{ ('true' if r.language == 'English' else 'false') }};
+
+audioEl.onended = () => {
+  audioPlaying = false;
+  btn.innerHTML = isEn ? '🎧 Listen to Summary' : '🎧 Escuchar resumen';
+  btn.disabled = false;
+};
+
+function listenReport() {
+  if (audioPlaying) {
+    audioEl.pause();
+    audioEl.currentTime = 0;
+    audioPlaying = false;
+    btn.innerHTML = isEn ? '🎧 Listen to Summary' : '🎧 Escuchar resumen';
+    return;
+  }
+  btn.innerHTML = '<span class="spin">⏳</span> ' + (isEn ? 'Generating...' : 'Generando...');
+  btn.disabled = true;
+
+  if (audioEl.src && audioEl.readyState >= 2) {
+    audioEl.play();
+    audioPlaying = true;
+    btn.innerHTML = '⏸ ' + (isEn ? 'Pause' : 'Pausar');
+    btn.disabled = false;
+    return;
+  }
+
+  audioEl.src = '/report/{{ r.id }}/audio';
+  audioEl.oncanplaythrough = () => {
+    audioEl.play();
+    audioPlaying = true;
+    btn.innerHTML = '⏸ ' + (isEn ? 'Pause' : 'Pausar');
+    btn.disabled = false;
+  };
+  audioEl.onerror = () => {
+    btn.innerHTML = '❌ ' + (isEn ? 'Error generating audio' : 'Error al generar audio');
+    btn.disabled = false;
+  };
+  audioEl.load();
+}
+</script>
 
 <main>
 

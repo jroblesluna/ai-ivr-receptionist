@@ -24,3 +24,7 @@ def load(report_id: str) -> dict | None:
     if not path.exists():
         return None
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def audio_path(report_id: str) -> Path:
+    return _DIR / f"{report_id}.mp3"
