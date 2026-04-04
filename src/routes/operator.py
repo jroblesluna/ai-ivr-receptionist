@@ -82,15 +82,15 @@ def operator_hold_music():
     voice = get_voice(lang)
     url   = uc.get("url", "")
 
-    resp = VoiceResponse()
-    resp.play(request.url_root + f"wait-music-{use_case_id}.wav", loop=1)
-
     if lang == "en":
         msg = "All our agents are currently busy." + (f" You can also visit us at {url}." if url else "") + " Please hold on for a moment."
     else:
         msg = "Todos nuestros agentes están ocupados en este momento." + (f" También puede visitarnos en {url}." if url else "") + " Por favor, espere un momento."
 
+    resp = VoiceResponse()
+    resp.play(request.url_root + f"wait-music-{use_case_id}.wav", loop=1)
     resp.say(msg, voice=voice)
+    resp.redirect(f"{base_url}/operator-hold-music?room={room}&lang={lang}")
     return str(resp)
 
 
