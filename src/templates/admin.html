@@ -319,6 +319,16 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 }
 .lang-en { background: #dbeafe; color: #1e40af; }
 .lang-es { background: #d1fae5; color: #065f46; }
+.voice-preview-row { display: flex; gap: 8px; align-items: center; }
+.voice-preview-row .voice-row { flex: 1; }
+.btn-play {
+  padding: 8px 12px; border: none; border-radius: 8px;
+  background: var(--primary); color: white;
+  font-size: 13px; cursor: pointer; flex-shrink: 0;
+  transition: background .15s;
+}
+.btn-play:hover { background: var(--primary-dark); }
+.btn-play:disabled { opacity: .5; cursor: default; }
 </style>
 </head>
 <body>
@@ -612,6 +622,27 @@ function voiceRegionSelect(lang, regions) {
     regions.map(r => `<option value="${r}">${r}</option>`).join('') + '</select>';
 }
 
+async function previewVoice(lang) {
+  const voice = getVoiceValue(lang);
+  const text  = document.getElementById(`ed-slogan-${lang}`)?.value.trim()
+             || (lang === 'en' ? 'Hello, welcome.' : 'Hola, bienvenido.');
+  const btn = document.getElementById(`btn-preview-${lang}`);
+  if (btn) { btn.textContent = '…'; btn.disabled = true; }
+  try {
+    const res = await apiFetch('/admin/api/tts-preview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ voice, text }),
+    });
+    if (!res || !res.ok) { toast('Preview failed — check GOOGLE_TTS_API_KEY', 'error'); return; }
+    const data = await res.json();
+    if (data.audio) new Audio(`data:audio/mp3;base64,${data.audio}`).play();
+    else toast(data.error || 'No audio returned', 'error');
+  } finally {
+    if (btn) { btn.textContent = '▶'; btn.disabled = false; }
+  }
+}
+
 function buildTopicItem(tid, t) {
   const enQ = (t.en.questions||[]).join('\n');
   const esQ = (t.es.questions||[]).join('\n');
@@ -662,16 +693,22 @@ function buildEditor(ucId) {
   <div class="two-col" style="margin-top:4px;">
     <div class="editor-field">
       <label>Voice (English)</label>
-      <div class="voice-row">
-        ${voiceRegionSelect('en', ['en-US','en-GB'])}
-        <select id="ed-voice-en-voice"></select>
+      <div class="voice-preview-row">
+        <div class="voice-row">
+          ${voiceRegionSelect('en', ['en-US','en-GB'])}
+          <select id="ed-voice-en-voice"></select>
+        </div>
+        <button class="btn-play" id="btn-preview-en" onclick="previewVoice('en')" title="Preview">▶</button>
       </div>
     </div>
     <div class="editor-field">
       <label>Voice (Español)</label>
-      <div class="voice-row">
-        ${voiceRegionSelect('es', ['es-US','es-ES'])}
-        <select id="ed-voice-es-voice"></select>
+      <div class="voice-preview-row">
+        <div class="voice-row">
+          ${voiceRegionSelect('es', ['es-US','es-ES'])}
+          <select id="ed-voice-es-voice"></select>
+        </div>
+        <button class="btn-play" id="btn-preview-es" onclick="previewVoice('es')" title="Preview">▶</button>
       </div>
     </div>
   </div>
