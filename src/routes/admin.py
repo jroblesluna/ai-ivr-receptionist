@@ -225,3 +225,30 @@ def api_whitelist_remove(phone):
         return jsonify({"error": "Unauthorized"}), 401
     remove_number(phone)
     return jsonify(load_whitelist())
+
+
+@admin_bp.route("/admin/api/reset", methods=["POST"])
+def api_reset():
+    if not _logged_in():
+        return jsonify({"error": "Unauthorized"}), 401
+    import shutil
+    from pathlib import Path
+
+    data_dir = Path(__file__).parent.parent.parent / "data"
+
+    # Delete the database
+    db_path = data_dir / "app.db"
+    if db_path.exists():
+        db_path.unlink()
+
+    # Delete all report files
+    reports_dir = data_dir / "reports"
+    if reports_dir.exists():
+        shutil.rmtree(reports_dir)
+
+    # Re-initialize DB (creates tables + seeds from JSON files)
+    db.init()
+    db.migrate_config_from_json()
+    db.migrate_use_cases_from_json()
+
+    return jsonify({"ok": True})
