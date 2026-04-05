@@ -1111,6 +1111,8 @@ function renderWhitelist(list) {
   `).join('');
 }
 
+let _reportsOffset = 0;
+
 loadElevenLabsVoices();
 loadReports(0);
 
@@ -1124,7 +1126,6 @@ async function resetAllData() {
   setTimeout(() => location.reload(), 1200);
 }
 
-let _reportsOffset = 0;
 async function loadReports(delta) {
   _reportsOffset = Math.max(0, _reportsOffset + delta);
   const res = await apiFetch(`/admin/api/reports?offset=${_reportsOffset}`);
