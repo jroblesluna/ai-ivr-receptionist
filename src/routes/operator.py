@@ -47,6 +47,12 @@ def connect_operator():
     FORWARD_TO  = runtime_config.get("forward_to")  or ""
     TWILIO_FROM = runtime_config.get("twilio_from") or ""
     print(f"[CONNECT-OPERATOR] caller_sid={caller_sid!r} room={room!r} to={FORWARD_TO!r} from={TWILIO_FROM!r}")
+
+    if not FORWARD_TO:
+        print("[CONNECT-OPERATOR] No forward_to configured — redirecting to no-availability")
+        failed_rooms.add(room)
+        return str(resp)
+
     try:
         outbound = twilio_client().calls.create(
             to=FORWARD_TO,
@@ -62,6 +68,7 @@ def connect_operator():
         print(f"[CONNECT-OPERATOR] Outbound call created: {outbound.sid}")
     except Exception as e:
         print(f"[CONNECT-OPERATOR ERROR] Failed to create outbound call: {e}")
+        failed_rooms.add(room)
     return str(resp)
 
 
