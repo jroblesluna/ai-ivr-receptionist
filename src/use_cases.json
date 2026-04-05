@@ -3,7 +3,7 @@
     "id": "robles_ai",
     "name": "Robles AI",
     "industry": "Technology & Education",
-    "url": "roblesai.com",
+    "url": "robles.ai",
     "voice": {
       "en": "Google.en-GB-Neural2-F",
       "es": "Google.es-US-Standard-A"
@@ -607,13 +607,8 @@
   },
   "nova_auto": {
     "id": "nova_auto",
-    "name": "Nova Auto",
     "industry": "Automotive Services",
-    "url": "novaauto.com",
-    "voice": {
-      "en": "Google.en-US-Neural2-D",
-      "es": "Google.es-US-Neural2-B"
-    },
+    "name": "Nova Auto",
     "slogan": {
       "en": "Keeping you safely on the road.",
       "es": "Manteniéndole seguro en la carretera."
@@ -621,88 +616,93 @@
     "topics": {
       "meeting": {
         "digit": "1",
-        "meeting_type": true,
         "en": {
+          "greeting": "Hi! I'm the Nova Auto assistant. I'll get your details to book your service appointment. What is your name?",
           "label": "Schedule a Service",
           "menu_text": "Press 1 to Schedule a Vehicle Service.",
-          "greeting": "Hi! I'm the Nova Auto assistant. I'll get your details to book your service appointment. What is your name?",
-          "system_extra": "The caller wants to schedule a vehicle service appointment. Ask for name and confirm callback number only.",
-          "questions": []
+          "questions": [],
+          "system_extra": "The caller wants to schedule a vehicle service appointment. Ask for name and confirm callback number only."
         },
         "es": {
+          "greeting": "¡Hola! Soy el asistente de Nova Auto. Tomaré sus datos para reservar su cita de servicio. ¿Cuál es su nombre?",
           "label": "Agendar un Servicio",
           "menu_text": "Presione 1 para Agendar un Servicio de Vehículo.",
-          "greeting": "¡Hola! Soy el asistente de Nova Auto. Tomaré sus datos para reservar su cita de servicio. ¿Cuál es su nombre?",
-          "system_extra": "El llamante desea agendar una cita de servicio vehicular. Pida nombre y confirme el número de rellamada.",
-          "questions": []
-        }
+          "questions": [],
+          "system_extra": "El llamante desea agendar una cita de servicio vehicular. Pida nombre y confirme el número de rellamada."
+        },
+        "meeting_type": true
       },
       "diagnostics": {
         "digit": "3",
-        "meeting_type": false,
         "en": {
+          "greeting": "Hi! I'm the Nova Auto assistant for diagnostics and repair. I'll take a few details to connect you with our technicians. What is your name?",
           "label": "Diagnostics and Repair",
           "menu_text": "Press 3 for Diagnostics and Repair.",
-          "greeting": "Hi! I'm the Nova Auto assistant for diagnostics and repair. I'll take a few details to connect you with our technicians. What is your name?",
-          "system_extra": "The caller needs vehicle diagnostics or repair service.",
           "questions": [
             "What problem or symptom is your vehicle experiencing?"
-          ]
+          ],
+          "system_extra": "The caller needs vehicle diagnostics or repair service."
         },
         "es": {
+          "greeting": "¡Hola! Soy el asistente de Nova Auto para diagnóstico y reparación. Tomaré algunos datos para conectarle con nuestros técnicos. ¿Cuál es su nombre?",
           "label": "Diagnóstico y Reparación",
           "menu_text": "Presione 3 para Diagnóstico y Reparación.",
-          "greeting": "¡Hola! Soy el asistente de Nova Auto para diagnóstico y reparación. Tomaré algunos datos para conectarle con nuestros técnicos. ¿Cuál es su nombre?",
-          "system_extra": "El llamante necesita servicio de diagnóstico o reparación vehicular.",
           "questions": [
             "¿Qué problema o síntoma está presentando su vehículo?"
-          ]
-        }
+          ],
+          "system_extra": "El llamante necesita servicio de diagnóstico o reparación vehicular."
+        },
+        "meeting_type": false
       },
       "maintenance": {
         "digit": "4",
-        "meeting_type": false,
         "en": {
+          "greeting": "Hi! I'm the Nova Auto maintenance assistant. I'll take a few details to set up your maintenance plan. What is your name?",
           "label": "Preventive Maintenance",
           "menu_text": "Press 4 for Preventive Maintenance.",
-          "greeting": "Hi! I'm the Nova Auto maintenance assistant. I'll take a few details to set up your maintenance plan. What is your name?",
-          "system_extra": "The caller is interested in preventive maintenance services.",
           "questions": [
             "What type of maintenance does your vehicle need?"
-          ]
+          ],
+          "system_extra": "The caller is interested in preventive maintenance services."
         },
         "es": {
+          "greeting": "¡Hola! Soy el asistente de mantenimiento de Nova Auto. Tomaré algunos datos para programar su plan de mantenimiento. ¿Cuál es su nombre?",
           "label": "Mantenimiento Preventivo",
           "menu_text": "Presione 4 para Mantenimiento Preventivo.",
-          "greeting": "¡Hola! Soy el asistente de mantenimiento de Nova Auto. Tomaré algunos datos para programar su plan de mantenimiento. ¿Cuál es su nombre?",
-          "system_extra": "El llamante está interesado en servicios de mantenimiento preventivo.",
           "questions": [
             "¿Qué tipo de mantenimiento necesita su vehículo?"
-          ]
-        }
+          ],
+          "system_extra": "El llamante está interesado en servicios de mantenimiento preventivo."
+        },
+        "meeting_type": false
       },
       "customer_service": {
         "digit": "5",
-        "meeting_type": false,
         "en": {
+          "greeting": "Hi! I'm the Nova Auto customer service assistant. What is your name?",
           "label": "Customer Service",
           "menu_text": "Press 5 for Customer Service.",
-          "greeting": "Hi! I'm the Nova Auto customer service assistant. What is your name?",
-          "system_extra": "The caller needs customer service support.",
           "questions": [
             "What can I help you with today?"
-          ]
+          ],
+          "system_extra": "The caller needs customer service support."
         },
         "es": {
+          "greeting": "¡Hola! Soy el asistente de servicio al cliente de Nova Auto. ¿Cuál es su nombre?",
           "label": "Servicio al Cliente",
           "menu_text": "Presione 5 para Servicio al Cliente.",
-          "greeting": "¡Hola! Soy el asistente de servicio al cliente de Nova Auto. ¿Cuál es su nombre?",
-          "system_extra": "El llamante necesita soporte de servicio al cliente.",
           "questions": [
             "¿En qué le puedo ayudar hoy?"
-          ]
-        }
+          ],
+          "system_extra": "El llamante necesita soporte de servicio al cliente."
+        },
+        "meeting_type": false
       }
+    },
+    "url": "novaauto.com.pe",
+    "voice": {
+      "en": "Google.en-US-Neural2-D",
+      "es": "Google.es-US-Neural2-B"
     }
   },
   "grand_hotel": {

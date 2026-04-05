@@ -28,6 +28,12 @@ def get_system_prompt(lang, topic, caller_from=None):
 
     # ── schedule_callback ──────────────────────────────────────────
     if topic == "schedule_callback":
+        callback_end_rule = (
+            "CRITICAL — end_call:\n"
+            "  • Set end_call=false for every response except the final goodbye.\n"
+            "  • Set end_call=true ONLY after confirming the callback time and saying goodbye.\n"
+            "  • Do NOT say 'please hold' — there is no transfer. Just confirm and say goodbye."
+        )
         if lang == "en":
             schema = ('{\n  "message": "what to say aloud",\n  "name": null,\n'
                       '  "phone": null,\n  "notes": "preferred callback dates/times, comma-separated",\n'
@@ -38,7 +44,7 @@ def get_system_prompt(lang, topic, caller_from=None):
                 f"Your only goal: collect at least one preferred date and time for a callback.\n"
                 f"Ask one question at a time. Be warm. Keep responses SHORT — this is a phone call.\n"
                 f"Once you have a preferred time, confirm it and say goodbye.\n\n"
-                f"Respond ONLY in valid JSON:\n{schema}\n\n{end_call_rule}"
+                f"Respond ONLY in valid JSON:\n{schema}\n\n{callback_end_rule}"
             )
         else:
             schema = ('{\n  "message": "lo que debes decir en voz alta (siempre en español)",\n'
@@ -51,7 +57,7 @@ def get_system_prompt(lang, topic, caller_from=None):
                 f"Tu único objetivo: recopilar al menos una fecha y hora preferida para una rellamada.\n"
                 f"Haz una pregunta a la vez. Sé cálido. Mantén las respuestas CORTAS — es una llamada.\n"
                 f"Una vez que tengas la hora preferida, confírmala y despídete.\n\n"
-                f"Responde SOLO en JSON válido:\n{schema}\n\n{end_call_rule}"
+                f"Responde SOLO en JSON válido:\n{schema}\n\n{callback_end_rule}"
             )
 
     # ── meeting_type — collect name + phone only ───────────────────
