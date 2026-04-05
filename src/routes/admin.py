@@ -20,10 +20,15 @@ def admin():
         return redirect(url_for("admin.login"))
     use_cases = _load_use_cases()
     base_url = request.url_root.rstrip("/")
+    current_use_case = runtime_config.get("use_case_id")
+    if not current_use_case or current_use_case not in use_cases:
+        current_use_case = next(iter(use_cases), None)
+        if current_use_case:
+            runtime_config.set("use_case_id", current_use_case)
     return render_template(
         "admin.html",
         use_cases=use_cases,
-        current_use_case=runtime_config.get("use_case_id"),
+        current_use_case=current_use_case,
         twilio_from=runtime_config.get("twilio_from"),
         forward_to=runtime_config.get("forward_to"),
         report_email=runtime_config.get("report_email"),
