@@ -19,12 +19,10 @@ env/
 *.mp3
 cold-day.mp3
 
-# Runtime data — reports are ephemeral, config is committed
+# Runtime data — everything in data/ is ephemeral (Railway volume)
 data/*
-!data/runtime_config.json
 !data/reports/
 data/reports/*
-!data/reports/dummyreport.json
 
 # macOS
 .DS_Store

@@ -101,15 +101,19 @@ def migrate_reports_from_json():
 
 
 def migrate_config_from_json():
-    """Seed config table from runtime_config.json if it exists and config is empty."""
-    json_path = Path(__file__).parent.parent / "data" / "runtime_config.json"
-    if not json_path.exists():
-        return
-    try:
-        data = json.loads(json_path.read_text(encoding="utf-8"))
-        config_seed(data)
-    except Exception:
-        pass
+    """Seed config table from runtime_config_defaults.json (committed in src/).
+    Falls back to data/runtime_config.json for backwards compatibility."""
+    for json_path in [
+        Path(__file__).parent / "runtime_config_defaults.json",
+        Path(__file__).parent.parent / "data" / "runtime_config.json",
+    ]:
+        if json_path.exists():
+            try:
+                data = json.loads(json_path.read_text(encoding="utf-8"))
+                config_seed(data)
+            except Exception:
+                pass
+            return
 
 
 # ── Use Cases ─────────────────────────────────────────────────────────────────
