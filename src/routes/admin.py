@@ -232,6 +232,13 @@ def api_whitelist_remove(phone):
     return jsonify(load_whitelist())
 
 
+@admin_bp.route("/admin/test-call")
+def test_call_page():
+    if not _logged_in():
+        return redirect(url_for("admin.login"))
+    return render_template("test_call.html")
+
+
 @admin_bp.route("/admin/api/test-call-token", methods=["GET"])
 def api_test_call_token():
     if not _logged_in():

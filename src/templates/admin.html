@@ -330,7 +330,6 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 .btn-play:hover { background: var(--primary-dark); }
 .btn-play:disabled { opacity: .5; cursor: default; }
 </style>
-<script src="https://unpkg.com/@twilio/voice-sdk@2/dist/twilio.min.js"></script>
 </head>
 <body>
 
@@ -344,25 +343,12 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
       <span class="active-dot"></span>
       <span id="nav-active-name">{{ use_cases[current_use_case]['name'] }}</span>
     </span>
+    <button class="btn-logout" onclick="window.open('/admin/test-call','test_call','width=340,height=640,resizable=no,scrollbars=no')">📞 Test Call</button>
     <a href="/admin/logout" class="btn-logout">Sign Out</a>
   </div>
 </nav>
 
 <main>
-
-  <!-- TEST CALL -->
-  <div class="card" id="test-call-card">
-    <div class="card-header">
-      <span class="card-title">Test Call</span>
-      <span id="test-call-status" style="font-size:12px;color:var(--muted);">Ready</span>
-    </div>
-    <div style="padding:16px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-      <button id="test-call-btn" class="btn btn-primary" onclick="toggleTestCall()" style="min-width:140px;">
-        📞 Start Test Call
-      </button>
-      <div id="test-call-info" style="font-size:13px;color:var(--muted);"></div>
-    </div>
-  </div>
 
   <!-- USE CASE -->
   <div class="card">
@@ -1130,61 +1116,6 @@ let _reportsOffset = 0;
 
 loadElevenLabsVoices();
 loadReports(0);
-
-// ── Test Call ──────────────────────────────────────────────────────────────
-let _tcDevice = null;
-let _tcCall   = null;
-
-async function toggleTestCall() {
-  if (_tcCall) {
-    _tcCall.disconnect();
-    return;
-  }
-  const btn  = document.getElementById('test-call-btn');
-  const info = document.getElementById('test-call-info');
-  const stat = document.getElementById('test-call-status');
-  btn.disabled = true;
-  btn.textContent = '⏳ Connecting…';
-  stat.textContent = 'Getting token…';
-  try {
-    const res = await apiFetch('/admin/api/test-call-token');
-    if (!res || !res.ok) {
-      const d = await res?.json().catch(() => ({}));
-      throw new Error(d.error || 'Failed to get token');
-    }
-    const { token, caller_id } = await res.json();
-    stat.textContent = 'Initializing device…';
-    _tcDevice = new Twilio.Device(token, { codecPreferences: ['opus', 'pcmu'], logLevel: 1 });
-    await _tcDevice.register();
-    stat.textContent = 'Calling…';
-    _tcCall = await _tcDevice.connect({ params: { To: 'menu' }, rtcConstraints: { audio: true } });
-    _tcCall.on('accept', () => {
-      btn.disabled = false;
-      btn.textContent = '🔴 Hang Up';
-      btn.style.background = '#ff3b30';
-      stat.textContent = 'Connected';
-      info.textContent = `Caller ID: ${caller_id || 'client:admin_test'}`;
-    });
-    _tcCall.on('disconnect', () => { _resetTestCallUI(); });
-    _tcCall.on('error', (e) => { info.textContent = `Error: ${e.message}`; _resetTestCallUI(); });
-  } catch(e) {
-    _resetTestCallUI();
-    document.getElementById('test-call-info').textContent = `❌ ${e.message}`;
-    document.getElementById('test-call-status').textContent = 'Error';
-    console.error('[TestCall]', e);
-  }
-}
-
-function _resetTestCallUI() {
-  _tcCall = null;
-  if (_tcDevice) { _tcDevice.destroy(); _tcDevice = null; }
-  const btn = document.getElementById('test-call-btn');
-  btn.disabled = false;
-  btn.textContent = '📞 Start Test Call';
-  btn.style.background = '';
-  document.getElementById('test-call-status').textContent = 'Ready';
-  document.getElementById('test-call-info').textContent = '';
-}
 
 async function resetAllData() {
   if (!confirm('This will permanently delete all reports and reset the database to its initial state.\n\nAre you sure?')) return;

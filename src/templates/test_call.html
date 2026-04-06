@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Test Call</title>
+<script src="https://unpkg.com/@twilio/voice-sdk@2/dist/twilio.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #1a1a2e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  overflow: hidden;
+}
+
+.phone {
+  width: 300px;
+  background: #16213e;
+  border-radius: 40px;
+  padding: 20px 16px 28px;
+  box-shadow: 0 30px 80px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.08);
+}
+
+/* top notch */
+.notch {
+  width: 80px;
+  height: 6px;
+  background: rgba(255,255,255,.15);
+  border-radius: 3px;
+  margin: 0 auto 18px;
+}
+
+/* screen */
+.screen {
+  background: #0f3460;
+  border-radius: 20px;
+  padding: 16px;
+  margin-bottom: 18px;
+  min-height: 130px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.screen-status {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #64b5f6;
+}
+
+.screen-status.connected { color: #81c784; }
+.screen-status.error     { color: #ef5350; }
+.screen-status.calling   { color: #ffb74d; }
+
+.screen-digits {
+  font-size: 28px;
+  font-weight: 300;
+  color: #fff;
+  letter-spacing: 4px;
+  min-height: 38px;
+  text-align: center;
+  padding: 8px 0;
+  font-family: 'Courier New', monospace;
+}
+
+.screen-log {
+  font-size: 10px;
+  color: rgba(255,255,255,.4);
+  line-height: 1.5;
+  max-height: 36px;
+  overflow: hidden;
+}
+
+/* dial pad */
+.dialpad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.key {
+  background: #0f3460;
+  border: none;
+  border-radius: 50%;
+  width: 72px;
+  height: 72px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background .12s, transform .08s;
+  color: #fff;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.key:hover  { background: #1a4a7a; }
+.key:active { background: #2196f3; transform: scale(.93); }
+.key:disabled { opacity: .3; cursor: default; }
+
+.key-num {
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.key-sub {
+  font-size: 8px;
+  letter-spacing: .12em;
+  color: rgba(255,255,255,.45);
+  margin-top: 2px;
+  text-transform: uppercase;
+}
+
+/* action row */
+.actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 24px;
+  padding-top: 4px;
+}
+
+.btn-call {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  font-size: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .15s, transform .1s;
+}
+.btn-call:active { transform: scale(.92); }
+
+.btn-call.call    { background: #43a047; }
+.btn-call.call:hover { background: #388e3c; }
+.btn-call.hangup  { background: #e53935; }
+.btn-call.hangup:hover { background: #c62828; }
+.btn-call:disabled { opacity: .35; cursor: default; }
+
+.btn-mute {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,.1);
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .15s;
+}
+.btn-mute.muted   { background: #e53935; }
+.btn-mute:hover   { background: rgba(255,255,255,.2); }
+.btn-mute:disabled { opacity: .3; cursor: default; }
+
+.btn-back {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,.1);
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .15s;
+}
+.btn-back:hover   { background: rgba(255,255,255,.2); }
+.btn-back:disabled { opacity: .3; cursor: default; }
+
+.timer {
+  font-size: 11px;
+  color: rgba(255,255,255,.35);
+  text-align: center;
+  margin-top: 12px;
+  letter-spacing: .04em;
+}
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="notch"></div>
+
+  <!-- Screen -->
+  <div class="screen">
+    <div class="screen-status" id="status">Ready</div>
+    <div class="screen-digits" id="digits">&nbsp;</div>
+    <div class="screen-log" id="log"></div>
+  </div>
+
+  <!-- Dial Pad -->
+  <div class="dialpad">
+    <button class="key" onclick="pressKey('1')" disabled><span class="key-num">1</span><span class="key-sub">&nbsp;</span></button>
+    <button class="key" onclick="pressKey('2')" disabled><span class="key-num">2</span><span class="key-sub">ABC</span></button>
+    <button class="key" onclick="pressKey('3')" disabled><span class="key-num">3</span><span class="key-sub">DEF</span></button>
+    <button class="key" onclick="pressKey('4')" disabled><span class="key-num">4</span><span class="key-sub">GHI</span></button>
+    <button class="key" onclick="pressKey('5')" disabled><span class="key-num">5</span><span class="key-sub">JKL</span></button>
+    <button class="key" onclick="pressKey('6')" disabled><span class="key-num">6</span><span class="key-sub">MNO</span></button>
+    <button class="key" onclick="pressKey('7')" disabled><span class="key-num">7</span><span class="key-sub">PQRS</span></button>
+    <button class="key" onclick="pressKey('8')" disabled><span class="key-num">8</span><span class="key-sub">TUV</span></button>
+    <button class="key" onclick="pressKey('9')" disabled><span class="key-num">9</span><span class="key-sub">WXYZ</span></button>
+    <button class="key" onclick="pressKey('*')" disabled><span class="key-num">*</span><span class="key-sub">&nbsp;</span></button>
+    <button class="key" onclick="pressKey('0')" disabled><span class="key-num">0</span><span class="key-sub">+</span></button>
+    <button class="key" onclick="pressKey('#')" disabled><span class="key-num">#</span><span class="key-sub">&nbsp;</span></button>
+  </div>
+
+  <!-- Actions -->
+  <div class="actions">
+    <button class="btn-mute" id="btn-mute" onclick="toggleMute()" disabled title="Mute">🎤</button>
+    <button class="btn-call call" id="btn-call" onclick="startCall()">📞</button>
+    <button class="btn-back" id="btn-back" onclick="backspace()" disabled title="Delete">⌫</button>
+  </div>
+
+  <div class="timer" id="timer"></div>
+</div>
+
+<script>
+let _device = null;
+let _call   = null;
+let _muted  = false;
+let _digits = '';
+let _timerInterval = null;
+let _timerSeconds  = 0;
+
+function setStatus(text, cls) {
+  const el = document.getElementById('status');
+  el.textContent = text;
+  el.className = 'screen-status ' + (cls || '');
+}
+
+function addLog(msg) {
+  const el = document.getElementById('log');
+  el.textContent = msg;
+}
+
+function updateDigits() {
+  const el = document.getElementById('digits');
+  el.textContent = _digits || '\u00a0';
+}
+
+function enableKeys(on) {
+  document.querySelectorAll('.key').forEach(k => k.disabled = !on);
+  document.getElementById('btn-mute').disabled = !on;
+  document.getElementById('btn-back').disabled = !on;
+}
+
+function startTimer() {
+  _timerSeconds = 0;
+  _timerInterval = setInterval(() => {
+    _timerSeconds++;
+    const m = String(Math.floor(_timerSeconds/60)).padStart(2,'0');
+    const s = String(_timerSeconds % 60).padStart(2,'0');
+    document.getElementById('timer').textContent = `${m}:${s}`;
+  }, 1000);
+}
+
+function stopTimer() {
+  clearInterval(_timerInterval);
+  document.getElementById('timer').textContent = '';
+}
+
+function pressKey(digit) {
+  _digits += digit;
+  updateDigits();
+  if (_call) {
+    _call.sendDigits(digit);
+    addLog(`Sent: ${_digits}`);
+  }
+}
+
+function backspace() {
+  _digits = _digits.slice(0, -1);
+  updateDigits();
+}
+
+function toggleMute() {
+  if (!_call) return;
+  _muted = !_muted;
+  _call.mute(_muted);
+  const btn = document.getElementById('btn-mute');
+  btn.textContent = _muted ? '🔇' : '🎤';
+  btn.classList.toggle('muted', _muted);
+}
+
+async function startCall() {
+  const btn = document.getElementById('btn-call');
+  btn.disabled = true;
+  setStatus('Getting token…', 'calling');
+  addLog('');
+
+  try {
+    const res = await fetch('/admin/api/test-call-token', { credentials: 'include' });
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      throw new Error(d.error || `HTTP ${res.status}`);
+    }
+    const { token } = await res.json();
+
+    setStatus('Initializing…', 'calling');
+    _device = new Twilio.Device(token, { codecPreferences: ['opus', 'pcmu'], logLevel: 1 });
+    await _device.register();
+
+    setStatus('Calling…', 'calling');
+    _digits = '';
+    updateDigits();
+
+    _call = await _device.connect({ params: { To: 'menu' } });
+
+    _call.on('accept', () => {
+      setStatus('Connected', 'connected');
+      btn.textContent = '📵';
+      btn.classList.replace('call', 'hangup');
+      btn.disabled = false;
+      btn.onclick = hangUp;
+      enableKeys(true);
+      startTimer();
+      addLog('Call connected — use keypad to navigate');
+    });
+
+    _call.on('disconnect', () => {
+      setStatus('Call ended', '');
+      addLog('');
+      _resetUI();
+    });
+
+    _call.on('error', (e) => {
+      setStatus('Error', 'error');
+      addLog(e.message);
+      _resetUI();
+    });
+
+  } catch(e) {
+    setStatus('Error', 'error');
+    addLog(e.message);
+    console.error(e);
+    btn.textContent = '📞';
+    btn.disabled = false;
+  }
+}
+
+function hangUp() {
+  if (_call) _call.disconnect();
+}
+
+function _resetUI() {
+  _call   = null;
+  _muted  = false;
+  _digits = '';
+  updateDigits();
+  stopTimer();
+  enableKeys(false);
+  const btn = document.getElementById('btn-call');
+  btn.textContent  = '📞';
+  btn.classList.replace('hangup', 'call');
+  btn.disabled = false;
+  btn.onclick  = startCall;
+  document.getElementById('btn-mute').textContent = '🎤';
+  document.getElementById('btn-mute').classList.remove('muted');
+  if (_device) { _device.destroy(); _device = null; }
+}
+
+// keyboard support
+document.addEventListener('keydown', e => {
+  if (!_call) return;
+  if ('0123456789*#'.includes(e.key)) pressKey(e.key);
+  if (e.key === 'Backspace') backspace();
+  if (e.key === 'Escape') hangUp();
+});
+</script>
+</body>
+</html>
