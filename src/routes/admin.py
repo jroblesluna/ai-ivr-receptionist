@@ -2,7 +2,7 @@ import json
 import os
 import db
 from flask import Blueprint, request, session, redirect, url_for, render_template, jsonify
-from config import ADMIN_PASSWORD
+from config import ADMIN_PASSWORD, ACCOUNT_SID, TWILIO_API_KEY_SID, TWILIO_API_KEY_SECRET, TWILIO_TWIML_APP_SID
 from use_case_loader import _load_use_cases, save_use_case
 from whitelist import load_whitelist, add_number, remove_number
 import runtime_config
@@ -230,6 +230,24 @@ def api_whitelist_remove(phone):
         return jsonify({"error": "Unauthorized"}), 401
     remove_number(phone)
     return jsonify(load_whitelist())
+
+
+@admin_bp.route("/admin/api/test-call-token", methods=["GET"])
+def api_test_call_token():
+    if not _logged_in():
+        return jsonify({"error": "Unauthorized"}), 401
+    from twilio.jwt.access_token import AccessToken
+    from twilio.jwt.access_token.grants import VoiceGrant
+    if not TWILIO_API_KEY_SID or not TWILIO_API_KEY_SECRET or not TWILIO_TWIML_APP_SID:
+        return jsonify({"error": "TWILIO_API_KEY_SID / TWILIO_API_KEY_SECRET / TWILIO_TWIML_APP_SID not configured"}), 500
+    token = AccessToken(ACCOUNT_SID, TWILIO_API_KEY_SID, TWILIO_API_KEY_SECRET,
+                        identity="admin_test", ttl=3600)
+    grant = VoiceGrant(outgoing_application_sid=TWILIO_TWIML_APP_SID, incoming_allow=False)
+    token.add_grant(grant)
+    return jsonify({
+        "token": token.to_jwt(),
+        "caller_id": runtime_config.get("twilio_from") or "",
+    })
 
 
 @admin_bp.route("/admin/api/reset", methods=["POST"])

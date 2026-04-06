@@ -18,6 +18,10 @@ openai_client  = OpenAI(api_key=OPENAI_API_KEY)
 SECRET_KEY     = os.environ.get("SECRET_KEY",     "")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
 
+TWILIO_API_KEY_SID    = os.environ.get("TWILIO_API_KEY_SID",    "")
+TWILIO_API_KEY_SECRET = os.environ.get("TWILIO_API_KEY_SECRET", "")
+TWILIO_TWIML_APP_SID  = os.environ.get("TWILIO_TWIML_APP_SID",  "")
+
 SMTP_HOST     = os.environ.get("SMTP_HOST",     "smtp.gmail.com")
 SMTP_PORT     = int(os.environ.get("SMTP_PORT", "587"))
 SMTP_USER     = os.environ.get("SMTP_USER",     "")
