@@ -1168,20 +1168,21 @@ async function toggleTestCall() {
     _tcCall.on('disconnect', () => { _resetTestCallUI(); });
     _tcCall.on('error', (e) => { info.textContent = `Error: ${e.message}`; _resetTestCallUI(); });
   } catch(e) {
-    info.textContent = `Error: ${e.message}`;
     _resetTestCallUI();
+    document.getElementById('test-call-info').textContent = `❌ ${e.message}`;
+    document.getElementById('test-call-status').textContent = 'Error';
+    console.error('[TestCall]', e);
   }
 }
 
 function _resetTestCallUI() {
   _tcCall = null;
   if (_tcDevice) { _tcDevice.destroy(); _tcDevice = null; }
-  const btn  = document.getElementById('test-call-btn');
-  const stat = document.getElementById('test-call-status');
+  const btn = document.getElementById('test-call-btn');
   btn.disabled = false;
   btn.textContent = '📞 Start Test Call';
   btn.style.background = '';
-  stat.textContent = 'Ready';
+  document.getElementById('test-call-status').textContent = 'Ready';
   document.getElementById('test-call-info').textContent = '';
 }
 
