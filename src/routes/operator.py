@@ -6,7 +6,7 @@ from twilio.twiml.voice_response import VoiceResponse, Dial
 import runtime_config
 import reports
 from config import ACCOUNT_SID, AUTH_TOKEN, openai_client, twilio_client
-from state import collected_info, outbound_calls, failed_rooms, briefed_rooms
+from state import collected_info, outbound_calls, failed_rooms, briefed_rooms, machine_rooms
 from use_case_loader import get_topics
 from helpers import get_voice
 from use_case_loader import get_company_name, get_active_use_case
@@ -112,7 +112,14 @@ def operator_briefing():
     # Si contestó una máquina/contestadora, colgar inmediatamente sin unirse a la conferencia
     answered_by = request.values.get("AnsweredBy", "")
     if answered_by and "machine" in answered_by.lower():
-        print(f"[OPERATOR-BRIEFING] Answering machine detected ({answered_by}), hanging up")
+        count = machine_rooms.get(room, 0) + 1
+        machine_rooms[room] = count
+        print(f"[OPERATOR-BRIEFING] Answering machine detected ({answered_by}), count={count}")
+        if count >= 2:
+            # Voicemail 2 veces seguidas → ir a no-availability directamente
+            machine_rooms.pop(room, None)
+            failed_rooms.add(room)
+            print(f"[OPERATOR-BRIEFING] Machine detected {count}x — forcing no-availability")
         resp = VoiceResponse()
         resp.hangup()
         return str(resp)
@@ -120,6 +127,7 @@ def operator_briefing():
     # El operador contestó → marcar room para que operator-status no lo trate como no-answer
     if room:
         briefed_rooms.add(room)
+        machine_rooms.pop(room, None)
 
     info   = collected_info.get(caller_sid, {})
     name   = info.get("name") or "Unknown"
@@ -182,12 +190,12 @@ def operator_status():
     print(f"[OPERATOR-STATUS] CallStatus={call_status!r} operator_answered={operator_answered} is_no_answer={is_no_answer}")
 
     if is_no_answer:
-        if attempt < 5:
+        if attempt < 3:
             # Reintentar: el caller sigue esperando en la conferencia
             new_attempt = attempt + 1
             FORWARD_TO  = runtime_config.get("forward_to")  or ""
             TWILIO_FROM = runtime_config.get("twilio_from") or ""
-            print(f"[OPERATOR-STATUS] Retrying attempt {new_attempt}/5 to {FORWARD_TO!r}")
+            print(f"[OPERATOR-STATUS] Retrying attempt {new_attempt}/3 to {FORWARD_TO!r}")
             try:
                 outbound = twilio_client().calls.create(
                     to=FORWARD_TO,

@@ -3,3 +3,4 @@ collected_info     = {}  # {call_sid: {"name": None, "phone": None, "notes": Non
 outbound_calls     = {}  # {room: outbound_call_sid} — para cancelar si el caller cuelga
 failed_rooms       = set()  # rooms donde el agente no contestó → waitUrl redirige a IA
 briefed_rooms      = set()  # rooms donde el operador sí contestó (operator-briefing fue llamado)
+machine_rooms      = {}   # {room: count} — veces que se detectó voicemail/máquina
