@@ -3,9 +3,13 @@ SQLite storage for call reports index and runtime configuration.
 DB file: data/app.db (persisted via Railway Volume at /app/data)
 """
 import json
+import os
+import secrets
 import sqlite3
 import threading
 from pathlib import Path
+
+from werkzeug.security import generate_password_hash, check_password_hash
 
 _DB_PATH = Path(__file__).parent.parent / "data" / "app.db"
 _lock = threading.Lock()
@@ -120,13 +124,14 @@ def migrate_config_from_json():
 
 def _row_to_uc(row) -> dict:
     return {
-        "id":       row["id"],
-        "name":     row["name"],
-        "industry": row["industry"] or "",
-        "url":      row["url"] or "",
-        "voice":    {"en": row["voice_en"] or "", "es": row["voice_es"] or ""},
-        "slogan":   {"en": row["slogan_en"] or "", "es": row["slogan_es"] or ""},
-        "topics":   {},
+        "id":         row["id"],
+        "name":       row["name"],
+        "industry":   row["industry"] or "",
+        "url":        row["url"] or "",
+        "forward_to": row["forward_to"] or "",
+        "voice":      {"en": row["voice_en"] or "", "es": row["voice_es"] or ""},
+        "slogan":     {"en": row["slogan_en"] or "", "es": row["slogan_es"] or ""},
+        "topics":     {},
     }
 
 
@@ -190,9 +195,11 @@ def uc_upsert(uc_id: str, data: dict):
     sl = data.get("slogan", {})
     with _lock, _conn() as con:
         con.execute(
-            "INSERT OR REPLACE INTO use_cases (id, name, industry, url, voice_en, voice_es, slogan_en, slogan_es) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT OR REPLACE INTO use_cases "
+            "(id, name, industry, url, forward_to, voice_en, voice_es, slogan_en, slogan_es) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (uc_id, data.get("name", ""), data.get("industry", ""), data.get("url", ""),
+             data.get("forward_to", ""),
              v.get("en", ""), v.get("es", ""), sl.get("en", ""), sl.get("es", "")),
         )
         # Replace all topics for this use case
@@ -242,6 +249,213 @@ def migrate_use_cases_from_json():
         print(f"[DB] migrate_use_cases_from_json error: {e}")
 
 
+# ── Users / Roles ─────────────────────────────────────────────────────────────
+
+def _row_to_user(row) -> dict:
+    return {
+        "id":             row["id"],
+        "first_name":     row["first_name"],
+        "last_name":      row["last_name"],
+        "email":          row["email"],
+        "phone":          row["phone"] or "",
+        "role_id":        row["role_id"],
+        "role":           row["role_name"] if "role_name" in row.keys() else "",
+        "email_verified": bool(row["email_verified"]),
+        "phone_verified": bool(row["phone_verified"]),
+        "is_active":      bool(row["is_active"]),
+        "created_at":     row["created_at"] or "",
+    }
+
+
+def roles_list() -> list[dict]:
+    with _conn() as con:
+        rows = con.execute("SELECT * FROM roles ORDER BY id").fetchall()
+    return [{"id": r["id"], "name": r["name"]} for r in rows]
+
+
+def user_get(user_id: int) -> dict | None:
+    with _conn() as con:
+        row = con.execute(
+            "SELECT u.*, r.name AS role_name FROM users u "
+            "JOIN roles r ON r.id = u.role_id WHERE u.id = ?",
+            (user_id,)
+        ).fetchone()
+    return _row_to_user(row) if row else None
+
+
+def user_get_by_email(email: str) -> dict | None:
+    with _conn() as con:
+        row = con.execute(
+            "SELECT u.*, r.name AS role_name FROM users u "
+            "JOIN roles r ON r.id = u.role_id WHERE u.email = ?",
+            (email.lower().strip(),)
+        ).fetchone()
+    return _row_to_user(row) if row else None
+
+
+def user_get_password_hash(user_id: int) -> str:
+    with _conn() as con:
+        row = con.execute("SELECT password_hash FROM users WHERE id = ?", (user_id,)).fetchone()
+    return row["password_hash"] if row else ""
+
+
+def user_check_password(email: str, password: str) -> dict | None:
+    """Return user dict if credentials are valid, else None."""
+    with _conn() as con:
+        row = con.execute(
+            "SELECT u.*, r.name AS role_name FROM users u "
+            "JOIN roles r ON r.id = u.role_id WHERE u.email = ?",
+            (email.lower().strip(),)
+        ).fetchone()
+    if not row:
+        return None
+    if not check_password_hash(row["password_hash"], password):
+        return None
+    return _row_to_user(row)
+
+
+def user_list() -> list[dict]:
+    with _conn() as con:
+        rows = con.execute(
+            "SELECT u.*, r.name AS role_name FROM users u "
+            "JOIN roles r ON r.id = u.role_id ORDER BY u.created_at DESC"
+        ).fetchall()
+    return [_row_to_user(r) for r in rows]
+
+
+def user_create(first_name: str, last_name: str, email: str, phone: str,
+                password: str, role_id: int) -> int:
+    """Create a new user and return their id. Raises ValueError on duplicate email."""
+    token = secrets.token_urlsafe(32)
+    pw_hash = generate_password_hash(password)
+    with _lock, _conn() as con:
+        try:
+            cur = con.execute(
+                "INSERT INTO users (first_name, last_name, email, phone, password_hash, role_id, email_token) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (first_name, last_name, email.lower().strip(), phone, pw_hash, role_id, token),
+            )
+            con.commit()
+            return cur.lastrowid
+        except sqlite3.IntegrityError:
+            raise ValueError("Email already exists")
+
+
+def user_update(user_id: int, data: dict):
+    """Update editable user fields. Omit keys that should not be changed."""
+    fields, values = [], []
+    for col in ("first_name", "last_name", "phone", "role_id"):
+        if col in data:
+            fields.append(f"{col} = ?")
+            values.append(data[col])
+    if "password" in data and data["password"]:
+        fields.append("password_hash = ?")
+        values.append(generate_password_hash(data["password"]))
+    if not fields:
+        return
+    values.append(user_id)
+    with _lock, _conn() as con:
+        con.execute(f"UPDATE users SET {', '.join(fields)} WHERE id = ?", values)
+        con.commit()
+
+
+def user_delete(user_id: int):
+    with _lock, _conn() as con:
+        con.execute("DELETE FROM users WHERE id = ?", (user_id,))
+        con.commit()
+
+
+def user_set_email_verified(user_id: int):
+    with _lock, _conn() as con:
+        con.execute(
+            "UPDATE users SET email_verified = 1, email_token = NULL WHERE id = ?",
+            (user_id,)
+        )
+        con.commit()
+    _user_activate_if_ready(user_id)
+
+
+def user_set_phone_verified(user_id: int):
+    with _lock, _conn() as con:
+        con.execute("UPDATE users SET phone_verified = 1 WHERE id = ?", (user_id,))
+        con.commit()
+    _user_activate_if_ready(user_id)
+
+
+def _user_activate_if_ready(user_id: int):
+    with _lock, _conn() as con:
+        row = con.execute(
+            "SELECT email_verified, phone_verified FROM users WHERE id = ?", (user_id,)
+        ).fetchone()
+        if row and row["email_verified"] and row["phone_verified"]:
+            con.execute("UPDATE users SET is_active = 1 WHERE id = ?", (user_id,))
+            con.commit()
+
+
+def user_get_by_email_token(token: str) -> dict | None:
+    with _conn() as con:
+        row = con.execute(
+            "SELECT u.*, r.name AS role_name FROM users u "
+            "JOIN roles r ON r.id = u.role_id WHERE u.email_token = ?",
+            (token,)
+        ).fetchone()
+    return _row_to_user(row) if row else None
+
+
+def user_assign_use_cases(user_id: int, uc_ids: list):
+    with _lock, _conn() as con:
+        con.execute("DELETE FROM user_use_cases WHERE user_id = ?", (user_id,))
+        for uc_id in uc_ids:
+            con.execute(
+                "INSERT OR IGNORE INTO user_use_cases (user_id, use_case_id) VALUES (?, ?)",
+                (user_id, uc_id)
+            )
+        con.commit()
+
+
+def user_get_use_cases(user_id: int) -> list:
+    with _conn() as con:
+        rows = con.execute(
+            "SELECT use_case_id FROM user_use_cases WHERE user_id = ?", (user_id,)
+        ).fetchall()
+    return [r["use_case_id"] for r in rows]
+
+
+def seed_roles_and_admin():
+    """Seed roles table and create the first admin from env vars if no users exist."""
+    with _lock, _conn() as con:
+        for name in ("admin", "manager", "standard"):
+            con.execute("INSERT OR IGNORE INTO roles (name) VALUES (?)", (name,))
+        con.commit()
+
+    admin_email    = os.environ.get("ADMIN_EMAIL", "").strip()
+    admin_password = os.environ.get("ADMIN_PASSWORD", "").strip()
+    if not admin_email or not admin_password:
+        return
+
+    with _conn() as con:
+        count = con.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+    if count > 0:
+        return
+
+    with _conn() as con:
+        role_row = con.execute("SELECT id FROM roles WHERE name = 'admin'").fetchone()
+    if not role_row:
+        return
+
+    pw_hash = generate_password_hash(admin_password)
+    with _lock, _conn() as con:
+        con.execute(
+            "INSERT OR IGNORE INTO users "
+            "(first_name, last_name, email, phone, password_hash, role_id, "
+            " email_verified, phone_verified, is_active) "
+            "VALUES (?, ?, ?, ?, ?, ?, 1, 1, 1)",
+            ("Admin", "User", admin_email.lower(), "", pw_hash, role_row["id"]),
+        )
+        con.commit()
+    print(f"[DB] Admin user created: {admin_email}")
+
+
 # ── Bootstrap ─────────────────────────────────────────────────────────────────
 
 def init():
@@ -268,6 +482,7 @@ def init():
                 name        TEXT NOT NULL,
                 industry    TEXT,
                 url         TEXT,
+                forward_to  TEXT,
                 voice_en    TEXT,
                 voice_es    TEXT,
                 slogan_en   TEXT,
@@ -294,6 +509,40 @@ def init():
                 UNIQUE(use_case_id, key)
             )
         """)
+        con.execute("""
+            CREATE TABLE IF NOT EXISTS roles (
+                id   INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT UNIQUE NOT NULL
+            )
+        """)
+        con.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id             INTEGER PRIMARY KEY AUTOINCREMENT,
+                first_name     TEXT NOT NULL,
+                last_name      TEXT NOT NULL,
+                email          TEXT UNIQUE NOT NULL,
+                phone          TEXT,
+                password_hash  TEXT NOT NULL,
+                role_id        INTEGER NOT NULL REFERENCES roles(id),
+                email_verified INTEGER DEFAULT 0,
+                phone_verified INTEGER DEFAULT 0,
+                is_active      INTEGER DEFAULT 0,
+                email_token    TEXT,
+                created_at     TEXT DEFAULT (datetime('now'))
+            )
+        """)
+        con.execute("""
+            CREATE TABLE IF NOT EXISTS user_use_cases (
+                user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                use_case_id TEXT    NOT NULL REFERENCES use_cases(id) ON DELETE CASCADE,
+                PRIMARY KEY (user_id, use_case_id)
+            )
+        """)
+        # Add forward_to to existing use_cases tables that predate this column
+        try:
+            con.execute("ALTER TABLE use_cases ADD COLUMN forward_to TEXT")
+        except Exception:
+            pass  # column already exists
         con.commit()
 
 
@@ -301,3 +550,4 @@ init()
 migrate_config_from_json()
 migrate_reports_from_json()
 migrate_use_cases_from_json()
+seed_roles_and_admin()

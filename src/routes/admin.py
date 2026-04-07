@@ -2,22 +2,19 @@ import json
 import os
 import db
 from flask import Blueprint, request, session, redirect, url_for, render_template, jsonify
-from config import ADMIN_PASSWORD, ACCOUNT_SID, TWILIO_API_KEY_SID, TWILIO_API_KEY_SECRET, TWILIO_TWIML_APP_SID
+from config import ACCOUNT_SID, TWILIO_API_KEY_SID, TWILIO_API_KEY_SECRET, TWILIO_TWIML_APP_SID
 from use_case_loader import _load_use_cases, save_use_case
 from whitelist import load_whitelist, add_number, remove_number
+from auth import require_login, require_role, current_user
 import runtime_config
 
 admin_bp = Blueprint("admin", __name__)
 
 
-def _logged_in():
-    return session.get("admin") is True
-
-
 @admin_bp.route("/admin")
+@require_login
 def admin():
-    if not _logged_in():
-        return redirect(url_for("admin.login"))
+    user = current_user()
     use_cases = _load_use_cases()
     base_url = request.url_root.rstrip("/")
     current_use_case = runtime_config.get("use_case_id")
@@ -40,17 +37,28 @@ def admin():
         elevenlabs_api_key=os.environ.get("ELEVENLABS_API_KEY", ""),
         whitelist=load_whitelist(),
         webhook_url=f"{base_url}/menu",
+        user_role=user["role"] if user else "",
+        user_name=f"{user['first_name']} {user['last_name']}" if user else "",
     )
 
 
 @admin_bp.route("/admin/login", methods=["GET", "POST"])
 def login():
+    # Already logged in?
+    if current_user():
+        return redirect(url_for("admin.admin"))
     error = None
     if request.method == "POST":
-        if request.form.get("password") == ADMIN_PASSWORD:
-            session["admin"] = True
+        email    = request.form.get("email", "").strip()
+        password = request.form.get("password", "").strip()
+        user = db.user_check_password(email, password)
+        if user and user["is_active"]:
+            session["user_id"] = user["id"]
             return redirect(url_for("admin.admin"))
-        error = "Invalid password."
+        elif user and not user["is_active"]:
+            error = "Account not yet activated. Verify your email and phone number."
+        else:
+            error = "Invalid email or password."
     return render_template("login.html", error=error)
 
 
@@ -61,9 +69,8 @@ def logout():
 
 
 @admin_bp.route("/admin/api/config", methods=["POST"])
+@require_login
 def api_config():
-    if not _logged_in():
-        return jsonify({"error": "Unauthorized"}), 401
     data = request.json or {}
     if "use_case_id" in data:
         use_cases = _load_use_cases()
@@ -78,9 +85,8 @@ def api_config():
 
 
 @admin_bp.route("/admin/api/tts-preview", methods=["POST"])
+@require_login
 def api_tts_preview():
-    if not _logged_in():
-        return jsonify({"error": "Unauthorized"}), 401
     import os, requests as req
     api_key = os.environ.get("GOOGLE_TTS_API_KEY", "")
     if not api_key:
@@ -107,9 +113,8 @@ def api_tts_preview():
 
 
 @admin_bp.route("/admin/api/use-case", methods=["POST"])
+@require_role("admin")
 def api_create_use_case():
-    if not _logged_in():
-        return jsonify({"error": "Unauthorized"}), 401
     data = request.json or {}
     uc_id = data.get("id", "").strip()
     if not uc_id:
@@ -122,9 +127,8 @@ def api_create_use_case():
 
 
 @admin_bp.route("/admin/api/use-case/<uc_id>", methods=["PATCH"])
+@require_role("admin")
 def api_update_use_case(uc_id):
-    if not _logged_in():
-        return jsonify({"error": "Unauthorized"}), 401
     use_cases = _load_use_cases()
     if uc_id not in use_cases:
         return jsonify({"error": "Not found"}), 404
@@ -135,9 +139,8 @@ def api_update_use_case(uc_id):
 
 
 @admin_bp.route("/admin/api/use-case/<uc_id>", methods=["DELETE"])
+@require_role("admin")
 def api_delete_use_case(uc_id):
-    if not _logged_in():
-        return jsonify({"error": "Unauthorized"}), 401
     import db as _db, runtime_config
     if runtime_config.get("use_case_id") == uc_id:
         return jsonify({"error": "Cannot delete active use case"}), 400
@@ -146,9 +149,8 @@ def api_delete_use_case(uc_id):
 
 
 @admin_bp.route("/admin/api/elevenlabs-voices", methods=["GET"])
+@require_login
 def api_elevenlabs_voices():
-    if not _logged_in():
-        return jsonify({"error": "Unauthorized"}), 401
     import os, requests as req
     api_key = os.environ.get("ELEVENLABS_API_KEY", "")
     if not api_key:
@@ -169,9 +171,8 @@ def api_elevenlabs_voices():
 
 
 @admin_bp.route("/admin/api/elevenlabs-preview", methods=["POST"])
+@require_login
 def api_elevenlabs_preview():
-    if not _logged_in():
-        return jsonify({"error": "Unauthorized"}), 401
     import os, base64, requests as req
     api_key = os.environ.get("ELEVENLABS_API_KEY", "")
     if not api_key:
@@ -197,9 +198,8 @@ def api_elevenlabs_preview():
 
 
 @admin_bp.route("/admin/api/reports", methods=["GET"])
+@require_login
 def api_reports():
-    if not _logged_in():
-        return jsonify({"error": "Unauthorized"}), 401
     offset = int(request.args.get("offset", 0))
     rows   = db.report_list(limit=50, offset=offset)
     total  = db.report_count()
@@ -207,16 +207,14 @@ def api_reports():
 
 
 @admin_bp.route("/admin/api/whitelist", methods=["GET"])
+@require_login
 def api_whitelist_get():
-    if not _logged_in():
-        return jsonify({"error": "Unauthorized"}), 401
     return jsonify(load_whitelist())
 
 
 @admin_bp.route("/admin/api/whitelist", methods=["POST"])
+@require_login
 def api_whitelist_add():
-    if not _logged_in():
-        return jsonify({"error": "Unauthorized"}), 401
     phone = (request.json or {}).get("phone", "").strip()
     if not phone:
         return jsonify({"error": "Phone required"}), 400
@@ -225,24 +223,21 @@ def api_whitelist_add():
 
 
 @admin_bp.route("/admin/api/whitelist/<path:phone>", methods=["DELETE"])
+@require_login
 def api_whitelist_remove(phone):
-    if not _logged_in():
-        return jsonify({"error": "Unauthorized"}), 401
     remove_number(phone)
     return jsonify(load_whitelist())
 
 
 @admin_bp.route("/admin/test-call")
+@require_login
 def test_call_page():
-    if not _logged_in():
-        return redirect(url_for("admin.login"))
     return render_template("test_call.html")
 
 
 @admin_bp.route("/admin/api/test-call-token", methods=["GET"])
+@require_login
 def api_test_call_token():
-    if not _logged_in():
-        return jsonify({"error": "Unauthorized"}), 401
     from twilio.jwt.access_token import AccessToken
     from twilio.jwt.access_token.grants import VoiceGrant
     if not TWILIO_API_KEY_SID or not TWILIO_API_KEY_SECRET or not TWILIO_TWIML_APP_SID:
@@ -258,9 +253,8 @@ def api_test_call_token():
 
 
 @admin_bp.route("/admin/api/reset", methods=["POST"])
+@require_role("admin")
 def api_reset():
-    if not _logged_in():
-        return jsonify({"error": "Unauthorized"}), 401
     import shutil
     from pathlib import Path
 
@@ -280,5 +274,6 @@ def api_reset():
     db.init()
     db.migrate_config_from_json()
     db.migrate_use_cases_from_json()
+    db.seed_roles_and_admin()
 
     return jsonify({"ok": True})

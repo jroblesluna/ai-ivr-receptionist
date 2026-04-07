@@ -44,7 +44,8 @@ def connect_operator():
     print(f"[TWIML] connect-operator:\n{str(resp)}")
 
     # Llamar al operador; cuando conteste, escucha el briefing y luego se une a la conferencia
-    FORWARD_TO  = runtime_config.get("forward_to")  or ""
+    uc = get_active_use_case()
+    FORWARD_TO  = uc.get("forward_to") or runtime_config.get("forward_to") or ""
     TWILIO_FROM = runtime_config.get("twilio_from") or ""
     print(f"[CONNECT-OPERATOR] caller_sid={caller_sid!r} room={room!r} to={FORWARD_TO!r} from={TWILIO_FROM!r}")
 

@@ -261,6 +261,79 @@ main {
 input:checked + .slider { background: var(--primary); }
 input:checked + .slider:before { transform: translateX(20px); }
 
+/* ── Tab bar ── */
+.tab-bar {
+  background: white;
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  display: flex;
+  gap: 0;
+}
+.tab-btn {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 14px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-bottom: -1px;
+}
+.tab-btn.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+.tab-btn:hover:not(.active) { color: var(--text); }
+
+/* ── Users table ── */
+.users-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.users-table th {
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+.users-table td { padding: 12px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.users-table tr:last-child td { border-bottom: none; }
+.role-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+.role-admin    { background: #ede9fe; color: #5b21b6; }
+.role-manager  { background: #dbeafe; color: #1e40af; }
+.role-standard { background: #f3f4f6; color: #374151; }
+.status-dot {
+  display: inline-block;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  margin-right: 5px;
+}
+.dot-active  { background: var(--success); }
+.dot-pending { background: var(--warning); }
+
+/* ── Modal ── */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.6); z-index: 999;
+  align-items: center; justify-content: center;
+}
+.modal-box {
+  background: white; border-radius: 14px; padding: 28px;
+  width: 480px; max-width: 95vw; max-height: 90vh; overflow-y: auto;
+}
+.modal-title { font-weight: 700; font-size: 16px; margin-bottom: 18px; }
+.modal-footer { display: flex; gap: 10px; margin-top: 20px; }
+
 /* ── Two-column row ── */
 .two-col {
   display: grid;
@@ -344,10 +417,19 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
       <span id="nav-active-name">{{ use_cases[current_use_case]['name'] }}</span>
     </span>
     <button class="btn-logout" onclick="window.open('/admin/test-call','test_call','width=340,height=640,resizable=no,scrollbars=no')">📞 Test Call</button>
+    <span class="btn-logout" style="cursor:default;opacity:.75;">{{ user_name }}</span>
     <a href="/admin/logout" class="btn-logout">Sign Out</a>
   </div>
 </nav>
 
+<div class="tab-bar">
+  <button class="tab-btn active" id="tab-btn-dashboard" onclick="switchTab('dashboard')">Dashboard</button>
+  {% if user_role == 'admin' %}
+  <button class="tab-btn" id="tab-btn-users" onclick="switchTab('users')">Users</button>
+  {% endif %}
+</div>
+
+<div id="tab-dashboard">
 <main>
 
   <!-- USE CASE -->
@@ -629,6 +711,101 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
   </div>
 
 </main>
+</div><!-- end tab-dashboard -->
+
+<!-- USERS TAB -->
+{% if user_role == 'admin' %}
+<div id="tab-users" style="display:none;max-width:1000px;margin:0 auto;padding:28px 16px;">
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Users</span>
+      <button class="btn btn-primary" style="font-size:12px;padding:6px 14px;" onclick="showUserModal()">+ New User</button>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="users-table" id="users-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Role</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="users-body">
+          <tr><td colspan="8" style="padding:20px;color:var(--muted);text-align:center;">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- User Modal -->
+<div class="modal-overlay" id="user-modal" style="display:none;">
+  <div class="modal-box">
+    <div class="modal-title" id="user-modal-title">New User</div>
+    <input type="hidden" id="um-id">
+    <div class="two-col">
+      <div class="editor-field"><label>First Name</label><input type="text" id="um-first-name" placeholder="John"></div>
+      <div class="editor-field"><label>Last Name</label><input type="text" id="um-last-name" placeholder="Doe"></div>
+    </div>
+    <div class="two-col">
+      <div class="editor-field"><label>Email</label><input type="email" id="um-email" placeholder="john@example.com"></div>
+      <div class="editor-field"><label>Phone</label><input type="tel" id="um-phone" placeholder="+1 555 000 0000"></div>
+    </div>
+    <div class="two-col">
+      <div class="editor-field">
+        <label>Role</label>
+        <select id="um-role" onchange="umRoleChanged()">
+          <option value="standard">Standard</option>
+          <option value="manager">Manager</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+      <div class="editor-field" id="um-pw-field">
+        <label id="um-pw-label">Password</label>
+        <input type="password" id="um-password" placeholder="Set a secure password">
+      </div>
+    </div>
+    <div class="editor-field" id="um-uc-field" style="display:none;">
+      <label>Assigned Use Cases <span style="color:#ef4444;">*</span></label>
+      <div id="um-uc-checkboxes" style="display:flex;flex-wrap:wrap;gap:8px;padding:8px 0;">
+        {% for uc_id, uc in use_cases.items() %}
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:400;cursor:pointer;">
+          <input type="checkbox" name="um-uc" value="{{ uc_id }}"> {{ uc.name }}
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="saveUser()">Save</button>
+      <button class="btn" style="background:#f3f4f6;color:var(--text);" onclick="hideUserModal()">Cancel</button>
+      <button class="btn btn-danger" id="um-delete-btn" style="display:none;margin-left:auto;" onclick="deleteUser()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Phone Verify Modal -->
+<div class="modal-overlay" id="phone-modal" style="display:none;">
+  <div class="modal-box" style="max-width:360px;">
+    <div class="modal-title">Verify Phone Number</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">A 6-digit code will be sent via SMS to <strong id="pm-phone"></strong>.</p>
+    <input type="hidden" id="pm-user-id">
+    <div class="editor-field" id="pm-code-field" style="display:none;">
+      <label>Enter Code</label>
+      <input type="text" id="pm-code" placeholder="123456" maxlength="6" inputmode="numeric">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" id="pm-send-btn" onclick="pmSendCode()">Send Code</button>
+      <button class="btn btn-primary" id="pm-verify-btn" style="display:none;" onclick="pmVerifyCode()">Verify</button>
+      <button class="btn" style="background:#f3f4f6;color:var(--text);" onclick="hidePhoneModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+{% endif %}
 
 <!-- Toast -->
 <div class="toast" id="toast"></div>
@@ -765,6 +942,10 @@ function buildEditor(ucId) {
     <div class="editor-field"><label>Name</label><input type="text" id="ed-name" value="${escHtml(uc.name)}"></div>
     <div class="editor-field"><label>Website URL</label><input type="text" id="ed-url" value="${escHtml(uc.url||'')}"></div>
   </div>
+  <div class="editor-field" style="max-width:320px;">
+    <label>Operator Number (overrides global)</label>
+    <input type="tel" id="ed-forward-to" value="${escHtml(uc.forward_to||'')}" placeholder="+1 555 000 0000 (leave blank to use global)">
+  </div>
   <div class="two-col" style="margin-top:4px;">
     <div class="editor-field">
       <label>Voice (English)</label>
@@ -826,6 +1007,7 @@ function collectEditorData() {
   const uc = JSON.parse(JSON.stringify(USE_CASES[currentUCId]));
   uc.name       = document.getElementById('ed-name').value.trim();
   uc.url        = document.getElementById('ed-url').value.trim();
+  uc.forward_to = document.getElementById('ed-forward-to').value.trim();
   uc.voice      = { en: getVoiceValue('en'), es: getVoiceValue('es') };
   uc.slogan     = {
     en: document.getElementById('ed-slogan-en').value.trim(),
@@ -1125,6 +1307,194 @@ async function resetAllData() {
   if (!res.ok) { toast('Reset failed', 'error'); return; }
   toast('Reset complete — reloading…');
   setTimeout(() => location.reload(), 1200);
+}
+
+// ── Tab switching ─────────────────────────────────────────────────────────────
+
+function switchTab(name) {
+  ['dashboard','users'].forEach(t => {
+    const el = document.getElementById(`tab-${t}`);
+    const btn = document.getElementById(`tab-btn-${t}`);
+    if (!el) return;
+    el.style.display = t === name ? (t === 'dashboard' ? 'block' : 'block') : 'none';
+    if (btn) btn.classList.toggle('active', t === name);
+  });
+  if (name === 'users') loadUsers();
+}
+
+// ── User management ───────────────────────────────────────────────────────────
+
+let _editingUserId = null;
+
+function umRoleChanged() {
+  const role = document.getElementById('um-role').value;
+  document.getElementById('um-uc-field').style.display = role === 'manager' ? 'block' : 'none';
+}
+
+function showUserModal(user) {
+  _editingUserId = user ? user.id : null;
+  document.getElementById('user-modal-title').textContent = user ? 'Edit User' : 'New User';
+  document.getElementById('um-id').value = user ? user.id : '';
+  document.getElementById('um-first-name').value = user ? user.first_name : '';
+  document.getElementById('um-last-name').value = user ? user.last_name : '';
+  document.getElementById('um-email').value = user ? user.email : '';
+  document.getElementById('um-phone').value = user ? user.phone : '';
+  document.getElementById('um-role').value = user ? user.role : 'standard';
+  document.getElementById('um-password').value = '';
+  document.getElementById('um-pw-label').textContent = user ? 'New Password (leave blank to keep)' : 'Password';
+  document.getElementById('um-delete-btn').style.display = user ? 'inline-block' : 'none';
+  // Reset checkboxes
+  document.querySelectorAll('input[name="um-uc"]').forEach(cb => {
+    cb.checked = user && user.use_cases ? user.use_cases.includes(cb.value) : false;
+  });
+  umRoleChanged();
+  document.getElementById('user-modal').style.display = 'flex';
+}
+
+function hideUserModal() {
+  document.getElementById('user-modal').style.display = 'none';
+}
+
+async function saveUser() {
+  const id         = document.getElementById('um-id').value;
+  const first_name = document.getElementById('um-first-name').value.trim();
+  const last_name  = document.getElementById('um-last-name').value.trim();
+  const email      = document.getElementById('um-email').value.trim();
+  const phone      = document.getElementById('um-phone').value.trim();
+  const role       = document.getElementById('um-role').value;
+  const password   = document.getElementById('um-password').value;
+  const use_cases  = Array.from(document.querySelectorAll('input[name="um-uc"]:checked')).map(cb => cb.value);
+
+  if (!first_name || !last_name || !email) { toast('Name and email are required', 'error'); return; }
+  if (!id && !password) { toast('Password is required for new users', 'error'); return; }
+  if (role === 'manager' && !use_cases.length) { toast('Managers must have at least one use case assigned', 'error'); return; }
+
+  const payload = { first_name, last_name, email, phone, role, use_cases };
+  if (password) payload.password = password;
+
+  let res;
+  if (id) {
+    res = await apiFetch(`/admin/api/users/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+  } else {
+    res = await apiFetch('/admin/api/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+  }
+  if (!res) return;
+  if (!res.ok) {
+    const d = await res.json().catch(() => ({}));
+    toast(d.error || 'Error saving user', 'error');
+    return;
+  }
+  hideUserModal();
+  toast(id ? 'User updated' : 'User created — verification email sent');
+  loadUsers();
+}
+
+async function deleteUser() {
+  const id = document.getElementById('um-id').value;
+  if (!confirm('Delete this user? This cannot be undone.')) return;
+  const res = await apiFetch(`/admin/api/users/${id}`, { method: 'DELETE' });
+  if (!res) return;
+  if (!res.ok) {
+    const d = await res.json().catch(() => ({}));
+    toast(d.error || 'Error deleting user', 'error');
+    return;
+  }
+  hideUserModal();
+  toast('User deleted');
+  loadUsers();
+}
+
+async function resendVerification(userId) {
+  const res = await apiFetch(`/admin/api/users/${userId}/resend-verification`, { method: 'POST' });
+  if (!res || !res.ok) { toast('Could not resend verification', 'error'); return; }
+  toast('Verification email sent');
+}
+
+function showPhoneModal(userId, phone) {
+  document.getElementById('pm-user-id').value = userId;
+  document.getElementById('pm-phone').textContent = phone;
+  document.getElementById('pm-code-field').style.display = 'none';
+  document.getElementById('pm-code').value = '';
+  document.getElementById('pm-send-btn').style.display = 'inline-block';
+  document.getElementById('pm-verify-btn').style.display = 'none';
+  document.getElementById('phone-modal').style.display = 'flex';
+}
+
+function hidePhoneModal() {
+  document.getElementById('phone-modal').style.display = 'none';
+}
+
+async function pmSendCode() {
+  const userId = document.getElementById('pm-user-id').value;
+  const res = await apiFetch(`/admin/api/users/${userId}/send-phone-code`, { method: 'POST' });
+  if (!res || !res.ok) {
+    const d = await res?.json().catch(() => ({})) || {};
+    toast(d.error || 'Error sending code', 'error'); return;
+  }
+  document.getElementById('pm-code-field').style.display = 'block';
+  document.getElementById('pm-send-btn').style.display = 'none';
+  document.getElementById('pm-verify-btn').style.display = 'inline-block';
+  toast('Code sent via SMS');
+}
+
+async function pmVerifyCode() {
+  const userId = document.getElementById('pm-user-id').value;
+  const code   = document.getElementById('pm-code').value.trim();
+  if (!code) { toast('Enter the code', 'error'); return; }
+  const res = await apiFetch(`/admin/api/users/${userId}/check-phone-code`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code }),
+  });
+  if (!res || !res.ok) {
+    const d = await res?.json().catch(() => ({})) || {};
+    toast(d.error || 'Verification failed', 'error'); return;
+  }
+  const d = await res.json();
+  hidePhoneModal();
+  toast(d.is_active ? 'Phone verified — account activated!' : 'Phone verified — awaiting email');
+  loadUsers();
+}
+
+async function loadUsers() {
+  const res = await apiFetch('/admin/api/users');
+  if (!res || !res.ok) return;
+  const users = await res.json();
+  const tbody = document.getElementById('users-body');
+  if (!users.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="padding:20px;color:var(--muted);text-align:center;">No users yet</td></tr>';
+    return;
+  }
+  tbody.innerHTML = users.map(u => {
+    const fullName  = `${u.first_name} ${u.last_name}`;
+    const roleCls   = `role-${u.role}`;
+    const emailVer  = u.email_verified ? '✅' : `<a href="#" onclick="resendVerification(${u.id})" style="color:var(--primary);font-size:11px;">Resend</a>`;
+    const phoneVer  = u.phone_verified
+      ? '✅'
+      : u.phone
+        ? `<a href="#" onclick="showPhoneModal(${u.id},'${u.phone}')" style="color:var(--primary);font-size:11px;">Verify</a>`
+        : '<span style="color:var(--muted);font-size:11px;">—</span>';
+    const statusDot = u.is_active ? '<span class="status-dot dot-active"></span>Active' : '<span class="status-dot dot-pending"></span>Pending';
+    const ucNames   = (u.use_cases || []).join(', ') || '—';
+    return `<tr>
+      <td style="font-weight:500;">${escHtml(fullName)}</td>
+      <td style="font-size:12px;color:var(--muted);">${escHtml(u.email)}</td>
+      <td style="font-family:monospace;font-size:12px;">${escHtml(u.phone||'—')}</td>
+      <td><span class="role-badge ${roleCls}">${u.role}</span></td>
+      <td>${emailVer}</td>
+      <td>${phoneVer}</td>
+      <td style="font-size:12px;">${statusDot}</td>
+      <td><a href="#" onclick='showUserModal(${JSON.stringify(u)})' style="color:var(--primary);font-size:12px;font-weight:600;text-decoration:none;">Edit</a></td>
+    </tr>`;
+  }).join('');
 }
 
 async function loadReports(delta) {

@@ -21,6 +21,9 @@ ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
 TWILIO_API_KEY_SID    = os.environ.get("TWILIO_API_KEY_SID",    "")
 TWILIO_API_KEY_SECRET = os.environ.get("TWILIO_API_KEY_SECRET", "")
 TWILIO_TWIML_APP_SID  = os.environ.get("TWILIO_TWIML_APP_SID",  "")
+TWILIO_VERIFY_SID     = os.environ.get("TWILIO_VERIFY_SID",     "")
+
+ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "")
 
 SMTP_HOST     = os.environ.get("SMTP_HOST",     "smtp.gmail.com")
 SMTP_PORT     = int(os.environ.get("SMTP_PORT", "587"))
