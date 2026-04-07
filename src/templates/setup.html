@@ -130,11 +130,15 @@ button:hover { background: #4338ca; }
       </div>
     </div>
     <div class="field" style="margin-top:6px;padding-top:16px;border-top:1px solid #f3f4f6;">
-      <label>Resend API Key <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#9ca3af;">(optional)</span></label>
-      <input type="password" name="resend_api_key" placeholder="re_… (resend.com → API Keys)" autocomplete="off">
-      <div class="hint">Required to send the verification email automatically. If left blank, the verification link will be shown on screen instead.</div>
+      <label>Resend API Key <span style="color:#ef4444;">*</span></label>
+      <input type="password" name="resend_api_key" placeholder="re_… (resend.com → API Keys)" autocomplete="off" required>
+      <div class="hint">
+        Needed to send the verification email to your address.
+        Get a free key at <strong>resend.com</strong> → API Keys.
+        If the key is invalid the email will fail and you can retry with a different one.
+      </div>
     </div>
-    <button type="submit">Create Account &amp; Send Verification →</button>
+    <button type="submit">Send Verification Email →</button>
   </form>
 </div>
 </body>

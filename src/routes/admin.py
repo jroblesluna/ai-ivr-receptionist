@@ -33,47 +33,47 @@ def setup():
         return redirect(url_for("admin.login"))
     error = None
     if request.method == "POST":
-        first_name    = request.form.get("first_name",    "").strip()
-        last_name     = request.form.get("last_name",     "").strip()
-        email         = request.form.get("email",         "").strip()
-        phone         = request.form.get("phone",         "").strip()
-        password      = request.form.get("password",      "").strip()
-        confirm       = request.form.get("confirm",       "").strip()
+        import secrets as _sec
+        from werkzeug.security import generate_password_hash
+        from email_helper import send_verification_email
+
+        first_name     = request.form.get("first_name",     "").strip()
+        last_name      = request.form.get("last_name",      "").strip()
+        email          = request.form.get("email",          "").strip()
+        phone          = request.form.get("phone",          "").strip()
+        password       = request.form.get("password",       "").strip()
+        confirm        = request.form.get("confirm",        "").strip()
         resend_api_key = request.form.get("resend_api_key", "").strip()
 
         if not all([first_name, last_name, email, phone, password]):
             error = "All fields are required."
         elif password != confirm:
             error = "Passwords do not match."
+        elif not resend_api_key:
+            error = "A valid Resend API key is required to send the verification email."
         else:
-            import secrets as _sec
-            from werkzeug.security import generate_password_hash
-            token = _sec.token_urlsafe(32)
-            # Save to DB config table (not users table) until email is verified
-            db.pending_setup_save({
-                "first_name":    first_name,
-                "last_name":     last_name,
-                "email":         email.lower(),
-                "phone":         phone,
-                "password_hash": generate_password_hash(password),
-                "token":         token,
-            })
-            # If Resend key provided, save it now so we can send the email
-            if resend_api_key:
-                db.config_set_secure("resend_api_key", resend_api_key)
-
+            token      = _sec.token_urlsafe(32)
             base_url   = request.url_root.rstrip("/")
             verify_url = f"{base_url}/verify-email/{token}"
-            email_sent = False
-            if config.resend_api_key():
-                from email_helper import send_verification_email
-                send_verification_email(email, verify_url, first_name)
-                email_sent = True
 
-            return render_template("setup_pending.html",
-                                   email=email,
-                                   verify_url=verify_url,
-                                   email_sent=email_sent)
+            # Try sending BEFORE persisting anything
+            ok, send_error = send_verification_email(email, verify_url, first_name,
+                                                     api_key=resend_api_key)
+            if not ok:
+                error = f"Could not send verification email: {send_error}"
+            else:
+                # Email sent — now persist pending setup and save the working key
+                db.pending_setup_save({
+                    "first_name":    first_name,
+                    "last_name":     last_name,
+                    "email":         email.lower(),
+                    "phone":         phone,
+                    "password_hash": generate_password_hash(password),
+                    "token":         token,
+                })
+                db.config_set_secure("resend_api_key", resend_api_key)
+                return render_template("setup_pending.html", email=email)
+
     return render_template("setup.html", error=error)
 
 
