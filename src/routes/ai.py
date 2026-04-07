@@ -2,7 +2,8 @@ import json
 from datetime import datetime
 from flask import Blueprint, request
 from twilio.twiml.voice_response import VoiceResponse, Gather
-from config import ACCOUNT_SID, AUTH_TOKEN, openai_client, twilio_client
+import config
+from config import twilio_client
 import runtime_config
 import reports
 from state import conversation_store, collected_info
@@ -96,7 +97,7 @@ def ai_respond():
 
     # Llamar a OpenAI
     try:
-        completion = openai_client.chat.completions.create(
+        completion = config.openai_client().chat.completions.create(
             model="gpt-4o-mini",
             messages=history,
             response_format={"type": "json_object"}

@@ -1,3 +1,9 @@
+"""
+Configuration module.
+All sensitive credentials are read from the encrypted DB config table.
+Env-var fallbacks are kept for migration convenience.
+Only SECRET_KEY must be set as an environment variable.
+"""
 import os
 
 try:
@@ -6,31 +12,66 @@ try:
 except ImportError:
     pass
 
-from twilio.rest import Client
-from openai import OpenAI
+# The one env var that must stay outside the DB (needed to decrypt the DB itself)
+SECRET_KEY = os.environ.get("SECRET_KEY", "changeme")
 
-ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID", "")
-AUTH_TOKEN  = os.environ.get("TWILIO_AUTH_TOKEN",  "")
 
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
-openai_client  = OpenAI(api_key=OPENAI_API_KEY)
+def _get(db_key: str, env_key: str = "", default: str = "") -> str:
+    """Read from encrypted DB, fall back to env var, then to default."""
+    try:
+        import db
+        val = db.config_get_secure(db_key)
+        if val:
+            return val
+    except Exception:
+        pass
+    if env_key:
+        return os.environ.get(env_key, default)
+    return default
 
-SECRET_KEY     = os.environ.get("SECRET_KEY",     "")
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
 
-TWILIO_API_KEY_SID    = os.environ.get("TWILIO_API_KEY_SID",    "")
-TWILIO_API_KEY_SECRET = os.environ.get("TWILIO_API_KEY_SECRET", "")
-TWILIO_TWIML_APP_SID  = os.environ.get("TWILIO_TWIML_APP_SID",  "")
-TWILIO_VERIFY_SID     = os.environ.get("TWILIO_VERIFY_SID",     "")
+# ── Accessor functions (lazy — read from DB on every call) ────────────────────
 
-ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "")
+def account_sid() -> str:
+    return _get("twilio_account_sid", "TWILIO_ACCOUNT_SID")
 
-SMTP_HOST     = os.environ.get("SMTP_HOST",     "smtp.gmail.com")
-SMTP_PORT     = int(os.environ.get("SMTP_PORT", "587"))
-SMTP_USER     = os.environ.get("SMTP_USER",     "")
-SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
-SMTP_FROM     = os.environ.get("SMTP_FROM",     SMTP_USER)
+def auth_token() -> str:
+    return _get("twilio_auth_token", "TWILIO_AUTH_TOKEN")
 
+def openai_api_key() -> str:
+    return _get("openai_api_key", "OPENAI_API_KEY")
+
+def resend_api_key() -> str:
+    return _get("resend_api_key", "RESEND_API_KEY")
+
+def resend_from_addr() -> str:
+    return _get("resend_from", "RESEND_FROM", "AI Receptionist <onboarding@resend.dev>")
+
+def elevenlabs_api_key() -> str:
+    return _get("elevenlabs_api_key", "ELEVENLABS_API_KEY")
+
+def google_tts_api_key() -> str:
+    return _get("google_tts_api_key", "GOOGLE_TTS_API_KEY")
+
+def twilio_api_key_sid() -> str:
+    return _get("twilio_api_key_sid", "TWILIO_API_KEY_SID")
+
+def twilio_api_key_secret() -> str:
+    return _get("twilio_api_key_secret", "TWILIO_API_KEY_SECRET")
+
+def twilio_twiml_app_sid() -> str:
+    return _get("twilio_twiml_app_sid", "TWILIO_TWIML_APP_SID")
+
+def twilio_verify_sid() -> str:
+    return _get("twilio_verify_sid", "TWILIO_VERIFY_SID")
+
+
+# ── Client factories ──────────────────────────────────────────────────────────
 
 def twilio_client():
-    return Client(ACCOUNT_SID, AUTH_TOKEN)
+    from twilio.rest import Client
+    return Client(account_sid(), auth_token())
+
+def openai_client():
+    from openai import OpenAI
+    return OpenAI(api_key=openai_api_key())

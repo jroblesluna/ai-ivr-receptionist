@@ -6,3 +6,4 @@ python-dotenv
 requests
 pydub
 audioop-lts
+cryptography

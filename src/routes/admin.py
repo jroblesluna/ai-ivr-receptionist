@@ -1,8 +1,7 @@
-import json
 import os
 import db
+import config
 from flask import Blueprint, request, session, redirect, url_for, render_template, jsonify
-from config import ACCOUNT_SID, TWILIO_API_KEY_SID, TWILIO_API_KEY_SECRET, TWILIO_TWIML_APP_SID
 from use_case_loader import _load_use_cases, save_use_case
 from whitelist import load_whitelist, add_number, remove_number
 from auth import require_login, require_role, current_user
@@ -10,10 +9,68 @@ import runtime_config
 
 admin_bp = Blueprint("admin", __name__)
 
+# Keys stored encrypted in DB config table
+_CREDENTIAL_KEYS = [
+    "twilio_account_sid",
+    "twilio_auth_token",
+    "twilio_api_key_sid",
+    "twilio_api_key_secret",
+    "twilio_twiml_app_sid",
+    "twilio_verify_sid",
+    "openai_api_key",
+    "resend_api_key",
+    "resend_from",
+    "elevenlabs_api_key",
+    "google_tts_api_key",
+]
+
+
+# ── First-run setup ───────────────────────────────────────────────────────────
+
+@admin_bp.route("/admin/setup", methods=["GET", "POST"])
+def setup():
+    if db.has_users():
+        return redirect(url_for("admin.login"))
+    error = None
+    if request.method == "POST":
+        first_name = request.form.get("first_name", "").strip()
+        last_name  = request.form.get("last_name",  "").strip()
+        email      = request.form.get("email",      "").strip()
+        phone      = request.form.get("phone",      "").strip()
+        password   = request.form.get("password",   "").strip()
+        confirm    = request.form.get("confirm",    "").strip()
+        if not all([first_name, last_name, email, phone, password]):
+            error = "All fields are required."
+        elif password != confirm:
+            error = "Passwords do not match."
+        else:
+            roles = {r["name"]: r["id"] for r in db.roles_list()}
+            admin_role_id = roles.get("admin")
+            if not admin_role_id:
+                error = "Roles not seeded — contact support."
+            else:
+                try:
+                    user_id = db.user_create(first_name, last_name, email, phone, password, admin_role_id)
+                    # Send verification email
+                    token = _get_email_token(user_id)
+                    if token:
+                        base_url = request.url_root.rstrip("/")
+                        from email_helper import send_verification_email
+                        send_verification_email(email, f"{base_url}/verify-email/{token}", first_name)
+                    return render_template("setup_pending.html", email=email)
+                except ValueError as e:
+                    error = str(e)
+    return render_template("setup.html", error=error)
+
+
+# ── Main admin ────────────────────────────────────────────────────────────────
 
 @admin_bp.route("/admin")
 @require_login
 def admin():
+    # Redirect to setup if no users exist (fresh install)
+    if not db.has_users():
+        return redirect(url_for("admin.setup"))
     user = current_user()
     use_cases = _load_use_cases()
     base_url = request.url_root.rstrip("/")
@@ -34,17 +91,22 @@ def admin():
         notify_email=runtime_config.get("notify_email", "1"),
         notify_whatsapp=runtime_config.get("notify_whatsapp", "1"),
         elevenlabs_voice_id=runtime_config.get("elevenlabs_voice_id"),
-        elevenlabs_api_key=os.environ.get("ELEVENLABS_API_KEY", ""),
+        elevenlabs_api_key=config.elevenlabs_api_key(),
         whitelist=load_whitelist(),
         webhook_url=f"{base_url}/menu",
         user_role=user["role"] if user else "",
         user_name=f"{user['first_name']} {user['last_name']}" if user else "",
+        phone_verified=user["phone_verified"] if user else False,
+        current_user_id=user["id"] if user else None,
+        current_user_phone=user["phone"] if user else "",
     )
 
 
 @admin_bp.route("/admin/login", methods=["GET", "POST"])
 def login():
-    # Already logged in?
+    # Redirect to setup if no users yet
+    if not db.has_users():
+        return redirect(url_for("admin.setup"))
     if current_user():
         return redirect(url_for("admin.admin"))
     error = None
@@ -52,11 +114,11 @@ def login():
         email    = request.form.get("email", "").strip()
         password = request.form.get("password", "").strip()
         user = db.user_check_password(email, password)
-        if user and user["is_active"]:
+        if user and user["email_verified"]:
             session["user_id"] = user["id"]
             return redirect(url_for("admin.admin"))
-        elif user and not user["is_active"]:
-            error = "Account not yet activated. Verify your email and phone number."
+        elif user and not user["email_verified"]:
+            error = "Please verify your email first — check your inbox."
         else:
             error = "Invalid email or password."
     return render_template("login.html", error=error)
@@ -67,6 +129,8 @@ def logout():
     session.clear()
     return redirect(url_for("admin.login"))
 
+
+# ── Config ────────────────────────────────────────────────────────────────────
 
 @admin_bp.route("/admin/api/config", methods=["POST"])
 @require_login
@@ -84,20 +148,49 @@ def api_config():
     return jsonify({"ok": True, "config": runtime_config.all_config()})
 
 
+# ── Credentials (admin only) ──────────────────────────────────────────────────
+
+@admin_bp.route("/admin/api/credentials", methods=["GET"])
+@require_role("admin")
+def api_credentials_get():
+    """Return which credentials are set (masked, not the actual values)."""
+    result = {}
+    for key in _CREDENTIAL_KEYS:
+        val = db.config_get_secure(key)
+        result[key] = bool(val)  # True = set, False = not set
+    return jsonify(result)
+
+
+@admin_bp.route("/admin/api/credentials", methods=["POST"])
+@require_role("admin")
+def api_credentials_set():
+    """Save credentials encrypted in DB. Only non-empty values are updated."""
+    data = request.json or {}
+    saved = []
+    for key in _CREDENTIAL_KEYS:
+        val = data.get(key, "").strip()
+        if val:
+            db.config_set_secure(key, val)
+            saved.append(key)
+    return jsonify({"ok": True, "saved": saved})
+
+
+# ── TTS preview ───────────────────────────────────────────────────────────────
+
 @admin_bp.route("/admin/api/tts-preview", methods=["POST"])
 @require_login
 def api_tts_preview():
-    import os, requests as req
-    api_key = os.environ.get("GOOGLE_TTS_API_KEY", "")
+    import requests as req
+    api_key = config.google_tts_api_key()
     if not api_key:
-        return jsonify({"error": "GOOGLE_TTS_API_KEY not configured"}), 500
+        return jsonify({"error": "google_tts_api_key not configured"}), 500
     data  = request.json or {}
-    voice = data.get("voice", "")    # "Google.en-GB-Neural2-F"
+    voice = data.get("voice", "")
     text  = data.get("text", "").strip()
     if not voice or not text:
         return jsonify({"error": "voice and text required"}), 400
-    voice_name    = voice.replace("Google.", "")   # "en-GB-Neural2-F"
-    language_code = voice_name[:5]                 # "en-GB"
+    voice_name    = voice.replace("Google.", "")
+    language_code = voice_name[:5]
     resp = req.post(
         f"https://texttospeech.googleapis.com/v1/text:synthesize?key={api_key}",
         json={
@@ -112,6 +205,8 @@ def api_tts_preview():
     return jsonify({"audio": resp.json().get("audioContent", "")})
 
 
+# ── Use Case CRUD ─────────────────────────────────────────────────────────────
+
 @admin_bp.route("/admin/api/use-case", methods=["POST"])
 @require_role("admin")
 def api_create_use_case():
@@ -119,8 +214,7 @@ def api_create_use_case():
     uc_id = data.get("id", "").strip()
     if not uc_id:
         return jsonify({"error": "id required"}), 400
-    import db as _db
-    if _db.uc_get(uc_id):
+    if db.uc_get(uc_id):
         return jsonify({"error": "Use case already exists"}), 409
     save_use_case(uc_id, data)
     return jsonify({"ok": True, "id": uc_id}), 201
@@ -141,20 +235,21 @@ def api_update_use_case(uc_id):
 @admin_bp.route("/admin/api/use-case/<uc_id>", methods=["DELETE"])
 @require_role("admin")
 def api_delete_use_case(uc_id):
-    import db as _db, runtime_config
     if runtime_config.get("use_case_id") == uc_id:
         return jsonify({"error": "Cannot delete active use case"}), 400
-    _db.uc_delete(uc_id)
+    db.uc_delete(uc_id)
     return jsonify({"ok": True})
 
+
+# ── ElevenLabs ────────────────────────────────────────────────────────────────
 
 @admin_bp.route("/admin/api/elevenlabs-voices", methods=["GET"])
 @require_login
 def api_elevenlabs_voices():
-    import os, requests as req
-    api_key = os.environ.get("ELEVENLABS_API_KEY", "")
+    import requests as req
+    api_key = config.elevenlabs_api_key()
     if not api_key:
-        return jsonify({"error": "ELEVENLABS_API_KEY not configured"}), 500
+        return jsonify({"error": "elevenlabs_api_key not configured"}), 500
     resp = req.get(
         "https://api.elevenlabs.io/v1/voices",
         headers={"xi-api-key": api_key},
@@ -173,10 +268,10 @@ def api_elevenlabs_voices():
 @admin_bp.route("/admin/api/elevenlabs-preview", methods=["POST"])
 @require_login
 def api_elevenlabs_preview():
-    import os, base64, requests as req
-    api_key = os.environ.get("ELEVENLABS_API_KEY", "")
+    import base64, requests as req
+    api_key = config.elevenlabs_api_key()
     if not api_key:
-        return jsonify({"error": "ELEVENLABS_API_KEY not configured"}), 500
+        return jsonify({"error": "elevenlabs_api_key not configured"}), 500
     data     = request.json or {}
     voice_id = data.get("voice_id", "").strip()
     text     = data.get("text", "").strip()
@@ -197,6 +292,8 @@ def api_elevenlabs_preview():
     return jsonify({"audio": base64.b64encode(resp.content).decode()})
 
 
+# ── Reports ───────────────────────────────────────────────────────────────────
+
 @admin_bp.route("/admin/api/reports", methods=["GET"])
 @require_login
 def api_reports():
@@ -205,6 +302,8 @@ def api_reports():
     total  = db.report_count()
     return jsonify({"reports": rows, "total": total, "offset": offset})
 
+
+# ── Whitelist ─────────────────────────────────────────────────────────────────
 
 @admin_bp.route("/admin/api/whitelist", methods=["GET"])
 @require_login
@@ -229,6 +328,8 @@ def api_whitelist_remove(phone):
     return jsonify(load_whitelist())
 
 
+# ── Test Call ─────────────────────────────────────────────────────────────────
+
 @admin_bp.route("/admin/test-call")
 @require_login
 def test_call_page():
@@ -240,17 +341,22 @@ def test_call_page():
 def api_test_call_token():
     from twilio.jwt.access_token import AccessToken
     from twilio.jwt.access_token.grants import VoiceGrant
-    if not TWILIO_API_KEY_SID or not TWILIO_API_KEY_SECRET or not TWILIO_TWIML_APP_SID:
-        return jsonify({"error": "TWILIO_API_KEY_SID / TWILIO_API_KEY_SECRET / TWILIO_TWIML_APP_SID not configured"}), 500
-    token = AccessToken(ACCOUNT_SID, TWILIO_API_KEY_SID, TWILIO_API_KEY_SECRET,
+    api_key_sid    = config.twilio_api_key_sid()
+    api_key_secret = config.twilio_api_key_secret()
+    twiml_app_sid  = config.twilio_twiml_app_sid()
+    if not api_key_sid or not api_key_secret or not twiml_app_sid:
+        return jsonify({"error": "twilio_api_key_sid / twilio_api_key_secret / twilio_twiml_app_sid not configured"}), 500
+    token = AccessToken(config.account_sid(), api_key_sid, api_key_secret,
                         identity="admin_test", ttl=3600)
-    grant = VoiceGrant(outgoing_application_sid=TWILIO_TWIML_APP_SID, incoming_allow=False)
+    grant = VoiceGrant(outgoing_application_sid=twiml_app_sid, incoming_allow=False)
     token.add_grant(grant)
     return jsonify({
         "token": token.to_jwt(),
         "caller_id": runtime_config.get("twilio_from") or "",
     })
 
+
+# ── Reset ─────────────────────────────────────────────────────────────────────
 
 @admin_bp.route("/admin/api/reset", methods=["POST"])
 @require_role("admin")
@@ -260,20 +366,30 @@ def api_reset():
 
     data_dir = Path(__file__).parent.parent.parent / "data"
 
-    # Delete the database
     db_path = data_dir / "app.db"
     if db_path.exists():
         db_path.unlink()
 
-    # Delete all report files
     reports_dir = data_dir / "reports"
     if reports_dir.exists():
         shutil.rmtree(reports_dir)
 
-    # Re-initialize DB (creates tables + seeds from JSON files)
     db.init()
     db.migrate_config_from_json()
     db.migrate_use_cases_from_json()
     db.seed_roles_and_admin()
 
     return jsonify({"ok": True})
+
+
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+def _get_email_token(user_id: int) -> str | None:
+    import sqlite3
+    from pathlib import Path
+    db_path = Path(__file__).parent.parent.parent / "data" / "app.db"
+    con = sqlite3.connect(str(db_path))
+    con.row_factory = sqlite3.Row
+    row = con.execute("SELECT email_token FROM users WHERE id = ?", (user_id,)).fetchone()
+    con.close()
+    return row["email_token"] if row else None

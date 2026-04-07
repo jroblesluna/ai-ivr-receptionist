@@ -5,7 +5,8 @@ from flask import Blueprint, request
 from twilio.twiml.voice_response import VoiceResponse, Dial
 import runtime_config
 import reports
-from config import ACCOUNT_SID, AUTH_TOKEN, openai_client, twilio_client
+import config
+from config import twilio_client
 from state import collected_info, outbound_calls, failed_rooms, briefed_rooms, machine_rooms
 from use_case_loader import get_topics
 from helpers import get_voice
@@ -273,7 +274,7 @@ def recording_ready():
         import requests as req
         audio_resp = req.get(
             recording_url + ".mp3",
-            auth=(ACCOUNT_SID, AUTH_TOKEN),
+            auth=(config.account_sid(), config.auth_token()),
             timeout=30,
         )
         audio_bytes = audio_resp.content
@@ -286,7 +287,7 @@ def recording_ready():
             buf = io.BytesIO()
             audio_seg.export(buf, format="mp3")
             buf.seek(0)
-            return openai_client.audio.transcriptions.create(
+            return config.openai_client().audio.transcriptions.create(
                 model="whisper-1",
                 file=(filename, buf, "audio/mpeg"),
                 response_format="verbose_json",
@@ -326,7 +327,7 @@ def recording_ready():
             f"acuerdos o próximos pasos, y detalles importantes."
         )
 
-        summary_resp = openai_client.chat.completions.create(
+        summary_resp = config.openai_client().chat.completions.create(
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": summary_prompt}],
         )

@@ -429,6 +429,17 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
   {% endif %}
 </div>
 
+{% if not phone_verified %}
+<div id="phone-banner" style="background:#fffbeb;border-bottom:1px solid #fde68a;padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+  <div style="font-size:13px;color:#92400e;">
+    <strong>Verify your phone number</strong> to unlock all features (inviting users, etc.)
+    — SMS will be sent to <strong>{{ current_user_phone or 'your phone' }}</strong>
+  </div>
+  <button class="btn" style="background:#f59e0b;color:white;font-size:12px;padding:6px 16px;white-space:nowrap;"
+          onclick="showSelfPhoneModal()">Verify Phone</button>
+</div>
+{% endif %}
+
 <div id="tab-dashboard">
 <main>
 
@@ -696,6 +707,42 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
     </div>
   </div>
 
+  <!-- CREDENTIALS -->
+  {% if user_role == 'admin' %}
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">API Credentials</span>
+      <span class="card-badge badge-blue">Encrypted in DB</span>
+    </div>
+    <div id="creds-status" style="font-size:12px;color:var(--muted);margin-bottom:16px;">Loading…</div>
+    <div class="two-col">
+      <div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px;">Twilio</div>
+        <div class="editor-field"><label>Account SID</label><input type="password" id="cred-twilio_account_sid" placeholder="AC…" autocomplete="off"></div>
+        <div class="editor-field"><label>Auth Token</label><input type="password" id="cred-twilio_auth_token" placeholder="••••" autocomplete="off"></div>
+        <div class="editor-field"><label>API Key SID</label><input type="password" id="cred-twilio_api_key_sid" placeholder="SK…" autocomplete="off"></div>
+        <div class="editor-field"><label>API Key Secret</label><input type="password" id="cred-twilio_api_key_secret" placeholder="••••" autocomplete="off"></div>
+        <div class="editor-field"><label>TwiML App SID</label><input type="password" id="cred-twilio_twiml_app_sid" placeholder="AP…" autocomplete="off"></div>
+        <div class="editor-field"><label>Verify Service SID</label><input type="password" id="cred-twilio_verify_sid" placeholder="VA…" autocomplete="off"></div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px;">OpenAI</div>
+        <div class="editor-field"><label>API Key</label><input type="password" id="cred-openai_api_key" placeholder="sk-…" autocomplete="off"></div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:12px 0 8px;">Resend (Email)</div>
+        <div class="editor-field"><label>API Key</label><input type="password" id="cred-resend_api_key" placeholder="re_…" autocomplete="off"></div>
+        <div class="editor-field"><label>From Address</label><input type="text" id="cred-resend_from" placeholder="Name <email@domain.com>" autocomplete="off"></div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:12px 0 8px;">ElevenLabs / Google TTS</div>
+        <div class="editor-field"><label>ElevenLabs API Key</label><input type="password" id="cred-elevenlabs_api_key" placeholder="••••" autocomplete="off"></div>
+        <div class="editor-field"><label>Google TTS API Key</label><input type="password" id="cred-google_tts_api_key" placeholder="AIza…" autocomplete="off"></div>
+      </div>
+    </div>
+    <div style="margin-top:4px;">
+      <button class="btn btn-primary" onclick="saveCredentials()">Save Credentials</button>
+      <span style="font-size:12px;color:var(--muted);margin-left:12px;">Leave blank to keep existing values unchanged.</span>
+    </div>
+  </div>
+  {% endif %}
+
   <!-- DANGER ZONE -->
   <div class="card" style="border:1px solid rgba(255,59,48,.35);">
     <div class="card-header">
@@ -806,6 +853,25 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
   </div>
 </div>
 {% endif %}
+
+<!-- Self-serve Phone Verify Modal -->
+<div class="modal-overlay" id="self-phone-modal" style="display:none;">
+  <div class="modal-box" style="max-width:360px;">
+    <div class="modal-title">Verify Your Phone</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">
+      A 6-digit code will be sent to <strong>{{ current_user_phone or 'your phone' }}</strong>.
+    </p>
+    <div class="editor-field" id="sp-code-field" style="display:none;">
+      <label>Enter Code</label>
+      <input type="text" id="sp-code" placeholder="123456" maxlength="6" inputmode="numeric">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" id="sp-send-btn" onclick="spSendCode()">Send Code</button>
+      <button class="btn btn-primary" id="sp-verify-btn" style="display:none;" onclick="spVerifyCode()">Verify</button>
+      <button class="btn" style="background:#f3f4f6;color:var(--text);" onclick="hideSelfPhoneModal()">Cancel</button>
+    </div>
+  </div>
+</div>
 
 <!-- Toast -->
 <div class="toast" id="toast"></div>
@@ -1298,6 +1364,7 @@ let _reportsOffset = 0;
 
 loadElevenLabsVoices();
 loadReports(0);
+loadCredentialStatus();
 
 async function resetAllData() {
   if (!confirm('This will permanently delete all reports and reset the database to its initial state.\n\nAre you sure?')) return;
@@ -1307,6 +1374,93 @@ async function resetAllData() {
   if (!res.ok) { toast('Reset failed', 'error'); return; }
   toast('Reset complete — reloading…');
   setTimeout(() => location.reload(), 1200);
+}
+
+const CURRENT_USER_ID = {{ current_user_id | tojson }};
+const IS_ADMIN = {{ (user_role == 'admin') | tojson }};
+
+// ── Self-serve phone verify ───────────────────────────────────────────────────
+
+function showSelfPhoneModal() {
+  document.getElementById('sp-code-field').style.display = 'none';
+  document.getElementById('sp-code').value = '';
+  document.getElementById('sp-send-btn').style.display = 'inline-block';
+  document.getElementById('sp-verify-btn').style.display = 'none';
+  document.getElementById('self-phone-modal').style.display = 'flex';
+}
+function hideSelfPhoneModal() {
+  document.getElementById('self-phone-modal').style.display = 'none';
+}
+async function spSendCode() {
+  const res = await apiFetch('/admin/api/my/send-phone-code', { method: 'POST' });
+  if (!res || !res.ok) {
+    const d = await res?.json().catch(() => ({})) || {};
+    toast(d.error || 'Error sending code', 'error'); return;
+  }
+  document.getElementById('sp-code-field').style.display = 'block';
+  document.getElementById('sp-send-btn').style.display = 'none';
+  document.getElementById('sp-verify-btn').style.display = 'inline-block';
+  toast('Code sent via SMS');
+}
+async function spVerifyCode() {
+  const code = document.getElementById('sp-code').value.trim();
+  if (!code) { toast('Enter the code', 'error'); return; }
+  const res = await apiFetch('/admin/api/my/check-phone-code', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code }),
+  });
+  if (!res || !res.ok) {
+    const d = await res?.json().catch(() => ({})) || {};
+    toast(d.error || 'Verification failed', 'error'); return;
+  }
+  hideSelfPhoneModal();
+  toast('Phone verified!');
+  // Hide the banner and reload to reflect updated state
+  const banner = document.getElementById('phone-banner');
+  if (banner) banner.style.display = 'none';
+  setTimeout(() => location.reload(), 800);
+}
+
+// ── Credentials ───────────────────────────────────────────────────────────────
+
+const _CRED_KEYS = [
+  'twilio_account_sid','twilio_auth_token','twilio_api_key_sid','twilio_api_key_secret',
+  'twilio_twiml_app_sid','twilio_verify_sid','openai_api_key',
+  'resend_api_key','resend_from','elevenlabs_api_key','google_tts_api_key'
+];
+
+async function loadCredentialStatus() {
+  if (!IS_ADMIN) return;
+  const res = await apiFetch('/admin/api/credentials');
+  if (!res || !res.ok) return;
+  const status = await res.json();
+  const set = Object.values(status).filter(Boolean).length;
+  const total = Object.keys(status).length;
+  const el = document.getElementById('creds-status');
+  if (el) el.textContent = `${set} of ${total} credentials configured.`;
+}
+
+async function saveCredentials() {
+  const payload = {};
+  _CRED_KEYS.forEach(k => {
+    const el = document.getElementById(`cred-${k}`);
+    if (el && el.value.trim()) payload[k] = el.value.trim();
+  });
+  if (!Object.keys(payload).length) { toast('Nothing to save', 'error'); return; }
+  const res = await apiFetch('/admin/api/credentials', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res || !res.ok) { toast('Error saving credentials', 'error'); return; }
+  // Clear fields after save for security
+  _CRED_KEYS.forEach(k => {
+    const el = document.getElementById(`cred-${k}`);
+    if (el) el.value = '';
+  });
+  loadCredentialStatus();
+  toast('Credentials saved');
 }
 
 // ── Tab switching ─────────────────────────────────────────────────────────────

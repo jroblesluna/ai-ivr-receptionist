@@ -2,6 +2,8 @@
 SQLite storage for call reports index and runtime configuration.
 DB file: data/app.db (persisted via Railway Volume at /app/data)
 """
+import base64
+import hashlib
 import json
 import os
 import secrets
@@ -10,6 +12,34 @@ import threading
 from pathlib import Path
 
 from werkzeug.security import generate_password_hash, check_password_hash
+
+
+# ── Fernet encryption (used for sensitive config values) ──────────────────────
+
+def _fernet():
+    from cryptography.fernet import Fernet
+    secret = os.environ.get("SECRET_KEY", "")
+    if not secret:
+        raise RuntimeError("SECRET_KEY env var not set — cannot encrypt/decrypt credentials")
+    key = base64.urlsafe_b64encode(hashlib.sha256(secret.encode()).digest())
+    return Fernet(key)
+
+
+def config_set_secure(key: str, value: str):
+    """Store a config value encrypted with SECRET_KEY."""
+    encrypted = _fernet().encrypt(value.encode()).decode()
+    config_set(f"_sec_{key}", encrypted)
+
+
+def config_get_secure(key: str, default: str = "") -> str:
+    """Read and decrypt a secure config value. Returns default if not set or on error."""
+    raw = config_get(f"_sec_{key}")
+    if not raw:
+        return default
+    try:
+        return _fernet().decrypt(raw.encode()).decode()
+    except Exception:
+        return default
 
 _DB_PATH = Path(__file__).parent.parent / "data" / "app.db"
 _lock = threading.Lock()
@@ -422,38 +452,16 @@ def user_get_use_cases(user_id: int) -> list:
 
 
 def seed_roles_and_admin():
-    """Seed roles table and create the first admin from env vars if no users exist."""
+    """Seed the roles table (admin, manager, standard). Admin user is created via /admin/setup."""
     with _lock, _conn() as con:
         for name in ("admin", "manager", "standard"):
             con.execute("INSERT OR IGNORE INTO roles (name) VALUES (?)", (name,))
         con.commit()
 
-    admin_email    = os.environ.get("ADMIN_EMAIL", "").strip()
-    admin_password = os.environ.get("ADMIN_PASSWORD", "").strip()
-    if not admin_email or not admin_password:
-        return
 
+def has_users() -> bool:
     with _conn() as con:
-        count = con.execute("SELECT COUNT(*) FROM users").fetchone()[0]
-    if count > 0:
-        return
-
-    with _conn() as con:
-        role_row = con.execute("SELECT id FROM roles WHERE name = 'admin'").fetchone()
-    if not role_row:
-        return
-
-    pw_hash = generate_password_hash(admin_password)
-    with _lock, _conn() as con:
-        con.execute(
-            "INSERT OR IGNORE INTO users "
-            "(first_name, last_name, email, phone, password_hash, role_id, "
-            " email_verified, phone_verified, is_active) "
-            "VALUES (?, ?, ?, ?, ?, ?, 1, 1, 1)",
-            ("Admin", "User", admin_email.lower(), "", pw_hash, role_row["id"]),
-        )
-        con.commit()
-    print(f"[DB] Admin user created: {admin_email}")
+        return con.execute("SELECT COUNT(*) FROM users").fetchone()[0] > 0
 
 
 # ── Bootstrap ─────────────────────────────────────────────────────────────────
