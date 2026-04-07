@@ -432,12 +432,12 @@ def recording_ready():
                     f"🔗 {report_url}",
                 ])
                 try:
-                    twilio_client().messages.create(
+                    msg = twilio_client().messages.create(
                         from_=f"whatsapp:{wa_from}",
                         to=f"whatsapp:{wa_to}",
                         body=wa_body,
                     )
-                    print(f"[WHATSAPP] Report link sent to {wa_to}")
+                    print(f"[WHATSAPP] Report link sent to {wa_to} | SID: {msg.sid}")
                 except Exception as e:
                     print(f"[WHATSAPP ERROR] {e}")
 

@@ -37,7 +37,8 @@ def send_report_email(subject: str, body: str) -> None:
             timeout=15,
         )
         if resp.ok:
-            print(f"[EMAIL] Report sent to {report_email}")
+            resend_id = resp.json().get("id", "?")
+            print(f"[EMAIL] Report sent to {report_email} | Resend ID: {resend_id}")
         else:
             print(f"[EMAIL ERROR] Resend returned {resp.status_code}: {resp.text}")
     except Exception as e:

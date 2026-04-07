@@ -148,11 +148,12 @@ def ai_respond():
         wa_to   = runtime_config.get("whatsapp_to")   or ""
         if runtime_config.get("notify_whatsapp") == "1" and wa_from and wa_to:
             try:
-                twilio_client().messages.create(
+                msg = twilio_client().messages.create(
                     from_=f"whatsapp:{wa_from}",
                     to=f"whatsapp:{wa_to}",
                     body="\n".join(lines),
                 )
+                print(f"[WHATSAPP] Pre-screening alert sent to {wa_to} | SID: {msg.sid}")
             except Exception as e:
                 print(f"[WHATSAPP ERROR] {e}")
 
@@ -227,12 +228,12 @@ def ai_respond():
                         f"🔗 {report_url}",
                     ])
                     try:
-                        twilio_client().messages.create(
+                        msg = twilio_client().messages.create(
                             from_=f"whatsapp:{wa_from}",
                             to=f"whatsapp:{wa_to}",
                             body=wa_body,
                         )
-                        print(f"[WHATSAPP] Callback report sent to {wa_to}")
+                        print(f"[WHATSAPP] Callback report sent to {wa_to} | SID: {msg.sid}")
                     except Exception as e:
                         print(f"[WHATSAPP ERROR] {e}")
 
