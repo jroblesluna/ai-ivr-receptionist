@@ -981,6 +981,8 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 const USE_CASES = {{ use_cases | tojson }};
 let currentUCId = {{ current_use_case | tojson }};
 const ELEVENLABS_KEY = {{ elevenlabs_api_key | tojson }};
+const CURRENT_USER_ID = {{ current_user_id | tojson }};
+const IS_ADMIN = {{ (user_role == 'admin') | tojson }};
 let editorOpen = false;
 
 const VOICE_DATA = {
@@ -1476,9 +1478,6 @@ async function resetAllData() {
   toast('Reset complete — reloading…');
   setTimeout(() => location.reload(), 1200);
 }
-
-const CURRENT_USER_ID = {{ current_user_id | tojson }};
-const IS_ADMIN = {{ (user_role == 'admin') | tojson }};
 
 // ── Self-serve phone verify ───────────────────────────────────────────────────
 
