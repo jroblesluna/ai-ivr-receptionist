@@ -356,7 +356,6 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 .cred-dot.dot-set { background:#10b981; }
 .cred-dot.dot-empty { background:#d1d5db; }
 .cred-tag { font-size:10px; font-weight:600; background:#f3f4f6; color:#6b7280; padding:1px 6px; border-radius:4px; text-transform:none; letter-spacing:0; white-space:nowrap; }
-.cred-hint { font-size:11px; color:#9ca3af; margin-top:3px; }
 .cred-field input { width:100%; padding:8px 12px; border:1.5px solid var(--border); border-radius:8px; font-size:13px; font-family:monospace; outline:none; transition:border-color .15s; }
 .cred-field input:focus { border-color:var(--primary); }
 
@@ -763,63 +762,50 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
         <div class="cred-group-title">Twilio</div>
         <div class="cred-field">
           <div class="cred-label-row"><span class="cred-dot" id="dot-twilio_account_sid"></span><label>Account SID</label></div>
-          <input type="password" id="cred-twilio_account_sid" placeholder="AC…" autocomplete="off">
-          <div class="cred-hint">Twilio Console → Dashboard</div>
+          <input type="password" id="cred-twilio_account_sid" placeholder="AC…" autocomplete="off" title="Twilio Console → Dashboard">
         </div>
         <div class="cred-field">
           <div class="cred-label-row"><span class="cred-dot" id="dot-twilio_auth_token"></span><label>Auth Token</label></div>
-          <input type="password" id="cred-twilio_auth_token" placeholder="••••" autocomplete="off">
-          <div class="cred-hint">Found next to Account SID</div>
+          <input type="password" id="cred-twilio_auth_token" placeholder="••••" autocomplete="off" title="Found next to Account SID">
         </div>
         <div class="cred-field">
           <div class="cred-label-row"><span class="cred-dot" id="dot-twilio_api_key_sid"></span><label>API Key SID</label><span class="cred-tag">Test Call</span></div>
-          <input type="password" id="cred-twilio_api_key_sid" placeholder="SK…" autocomplete="off">
-          <div class="cred-hint">Console → Account → API keys &amp; tokens</div>
+          <input type="password" id="cred-twilio_api_key_sid" placeholder="SK…" autocomplete="off" title="Console → Account → API keys & tokens">
         </div>
         <div class="cred-field">
           <div class="cred-label-row"><span class="cred-dot" id="dot-twilio_api_key_secret"></span><label>API Key Secret</label><span class="cred-tag">Test Call</span></div>
-          <input type="password" id="cred-twilio_api_key_secret" placeholder="••••" autocomplete="off">
-          <div class="cred-hint">Shown only once at key creation</div>
+          <input type="password" id="cred-twilio_api_key_secret" placeholder="••••" autocomplete="off" title="Shown only once at key creation">
         </div>
         <div class="cred-field">
           <div class="cred-label-row"><span class="cred-dot" id="dot-twilio_twiml_app_sid"></span><label>TwiML App SID</label><span class="cred-tag">Test Call</span></div>
-          <input type="password" id="cred-twilio_twiml_app_sid" placeholder="AP…" autocomplete="off">
-          <div class="cred-hint">Console → Voice → TwiML → TwiML Apps</div>
+          <input type="password" id="cred-twilio_twiml_app_sid" placeholder="AP…" autocomplete="off" title="Console → Voice → TwiML → TwiML Apps">
         </div>
         <div class="cred-field">
           <div class="cred-label-row"><span class="cred-dot" id="dot-twilio_verify_sid"></span><label>Verify Service SID</label><span class="cred-tag">SMS verify</span></div>
-          <input type="password" id="cred-twilio_verify_sid" placeholder="VA…" autocomplete="off">
-          <div class="cred-hint">Console → Verify → Services</div>
+          <input type="password" id="cred-twilio_verify_sid" placeholder="VA…" autocomplete="off" title="Console → Verify → Services">
         </div>
       </div>
       <div>
         <div class="cred-group-title">OpenAI</div>
         <div class="cred-field">
           <div class="cred-label-row"><span class="cred-dot" id="dot-openai_api_key"></span><label>API Key</label></div>
-          <input type="password" id="cred-openai_api_key" placeholder="sk-…" autocomplete="off">
-          <div class="cred-hint">platform.openai.com → API keys · AI conversation &amp; transcription</div>
-        </div>
-        <div class="cred-group-title" style="margin-top:16px;">Resend <span style="font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;">(email reports &amp; verification)</span></div>
-        <div class="cred-field">
-          <div class="cred-label-row"><span class="cred-dot" id="dot-resend_api_key"></span><label>API Key</label></div>
-          <input type="password" id="cred-resend_api_key" placeholder="re_…" autocomplete="off">
-          <div class="cred-hint">resend.com → API Keys</div>
+          <input type="password" id="cred-openai_api_key" placeholder="sk-…" autocomplete="off" title="platform.openai.com → API keys · AI conversation & transcription">
         </div>
         <div class="cred-field">
-          <div class="cred-label-row"><span class="cred-dot" id="dot-resend_from"></span><label>From Address</label></div>
-          <input type="text" id="cred-resend_from" placeholder="IVR Reports <noreply@yourdomain.com>" autocomplete="off">
-          <div class="cred-hint">Must be a verified domain in Resend</div>
+          <div class="cred-label-row"><span class="cred-dot" id="dot-resend_api_key"></span><label>Resend API Key</label></div>
+          <input type="password" id="cred-resend_api_key" placeholder="re_…" autocomplete="off" title="resend.com → API Keys · email reports & verification">
         </div>
-        <div class="cred-group-title" style="margin-top:16px;">ElevenLabs / Google TTS <span style="font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;">(voice preview &amp; report audio)</span></div>
+        <div class="cred-field">
+          <div class="cred-label-row"><span class="cred-dot" id="dot-resend_from"></span><label>Resend From Address</label></div>
+          <input type="text" id="cred-resend_from" placeholder="IVR Reports <noreply@yourdomain.com>" autocomplete="off" title="Must be a verified domain in Resend">
+        </div>
         <div class="cred-field">
           <div class="cred-label-row"><span class="cred-dot" id="dot-elevenlabs_api_key"></span><label>ElevenLabs API Key</label></div>
-          <input type="password" id="cred-elevenlabs_api_key" placeholder="••••" autocomplete="off">
-          <div class="cred-hint">elevenlabs.io → Profile → API Key</div>
+          <input type="password" id="cred-elevenlabs_api_key" placeholder="••••" autocomplete="off" title="elevenlabs.io → Profile → API Key · voice preview & report audio">
         </div>
         <div class="cred-field">
           <div class="cred-label-row"><span class="cred-dot" id="dot-google_tts_api_key"></span><label>Google TTS API Key</label><span class="cred-tag">optional</span></div>
-          <input type="password" id="cred-google_tts_api_key" placeholder="AIza…" autocomplete="off">
-          <div class="cred-hint">console.cloud.google.com · For voice preview only</div>
+          <input type="password" id="cred-google_tts_api_key" placeholder="AIza…" autocomplete="off" title="console.cloud.google.com · for voice preview only">
         </div>
       </div>
     </div>
