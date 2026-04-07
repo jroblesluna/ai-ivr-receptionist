@@ -348,16 +348,22 @@ input:checked + .slider:before { transform: translateX(20px); }
 hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 
 /* ── Credentials ── */
-.cred-group-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin-bottom:8px; }
+.cred-sections { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.cred-right-col { display:flex; flex-direction:column; gap:12px; }
+.cred-group { background:#f9fafb; border:1px solid var(--border); border-radius:10px; padding:14px 16px; }
+.cred-group-header { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--text); padding-bottom:8px; margin-bottom:10px; border-bottom:1px solid var(--border); }
+.cred-group-header small { font-weight:400; text-transform:none; letter-spacing:0; color:var(--muted); font-size:11px; }
 .cred-field { margin-bottom:10px; }
+.cred-field:last-child { margin-bottom:0; }
 .cred-label-row { display:flex; align-items:center; gap:6px; margin-bottom:4px; }
 .cred-label-row label { font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; margin:0; white-space:nowrap; }
 .cred-dot { width:8px; height:8px; border-radius:50%; background:#d1d5db; flex-shrink:0; transition:background .2s; }
 .cred-dot.dot-set { background:#10b981; }
 .cred-dot.dot-empty { background:#d1d5db; }
-.cred-tag { font-size:10px; font-weight:600; background:#f3f4f6; color:#6b7280; padding:1px 6px; border-radius:4px; text-transform:none; letter-spacing:0; white-space:nowrap; }
-.cred-field input { width:100%; padding:8px 12px; border:1.5px solid var(--border); border-radius:8px; font-size:13px; font-family:monospace; outline:none; transition:border-color .15s; }
+.cred-tag { font-size:10px; font-weight:600; background:#e0e7ff; color:#4f46e5; padding:1px 6px; border-radius:4px; text-transform:none; letter-spacing:0; white-space:nowrap; }
+.cred-field input { width:100%; padding:8px 12px; border:1.5px solid var(--border); border-radius:8px; font-size:13px; font-family:monospace; outline:none; transition:border-color .15s; background:white; }
 .cred-field input:focus { border-color:var(--primary); }
+@media(max-width:640px){ .cred-sections { grid-template-columns:1fr; } }
 
 /* ── Use Case Editor ── */
 .editor-body { padding-top: 4px; }
@@ -757,55 +763,65 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
     <div id="creds-status" style="display:flex;align-items:center;gap:10px;margin-bottom:18px;padding:10px 14px;background:#f9fafb;border-radius:8px;font-size:13px;">
       <span style="color:var(--muted);">Checking configured credentials…</span>
     </div>
-    <div class="two-col">
-      <div>
-        <div class="cred-group-title">Twilio</div>
+    <div class="cred-sections">
+      <!-- Twilio -->
+      <div class="cred-group">
+        <div class="cred-group-header">Twilio <small>— console.twilio.com</small></div>
         <div class="cred-field">
           <div class="cred-label-row"><span class="cred-dot" id="dot-twilio_account_sid"></span><label>Account SID</label></div>
-          <input type="password" id="cred-twilio_account_sid" placeholder="AC…" autocomplete="off" title="Twilio Console → Dashboard">
+          <input type="text" id="cred-twilio_account_sid" placeholder="AC…" autocomplete="off" title="Console → Dashboard">
         </div>
         <div class="cred-field">
           <div class="cred-label-row"><span class="cred-dot" id="dot-twilio_auth_token"></span><label>Auth Token</label></div>
-          <input type="password" id="cred-twilio_auth_token" placeholder="••••" autocomplete="off" title="Found next to Account SID">
+          <input type="password" id="cred-twilio_auth_token" placeholder="Found next to Account SID" autocomplete="off" title="Console → Dashboard">
         </div>
         <div class="cred-field">
           <div class="cred-label-row"><span class="cred-dot" id="dot-twilio_api_key_sid"></span><label>API Key SID</label><span class="cred-tag">Test Call</span></div>
-          <input type="password" id="cred-twilio_api_key_sid" placeholder="SK…" autocomplete="off" title="Console → Account → API keys & tokens">
+          <input type="text" id="cred-twilio_api_key_sid" placeholder="SK…" autocomplete="off" title="Console → Account → API keys & tokens">
         </div>
         <div class="cred-field">
           <div class="cred-label-row"><span class="cred-dot" id="dot-twilio_api_key_secret"></span><label>API Key Secret</label><span class="cred-tag">Test Call</span></div>
-          <input type="password" id="cred-twilio_api_key_secret" placeholder="••••" autocomplete="off" title="Shown only once at key creation">
+          <input type="password" id="cred-twilio_api_key_secret" placeholder="Shown once at key creation" autocomplete="off" title="Console → Account → API keys & tokens">
         </div>
         <div class="cred-field">
           <div class="cred-label-row"><span class="cred-dot" id="dot-twilio_twiml_app_sid"></span><label>TwiML App SID</label><span class="cred-tag">Test Call</span></div>
-          <input type="password" id="cred-twilio_twiml_app_sid" placeholder="AP…" autocomplete="off" title="Console → Voice → TwiML → TwiML Apps">
+          <input type="text" id="cred-twilio_twiml_app_sid" placeholder="AP…" autocomplete="off" title="Console → Voice → TwiML → TwiML Apps">
         </div>
         <div class="cred-field">
           <div class="cred-label-row"><span class="cred-dot" id="dot-twilio_verify_sid"></span><label>Verify Service SID</label><span class="cred-tag">SMS verify</span></div>
-          <input type="password" id="cred-twilio_verify_sid" placeholder="VA…" autocomplete="off" title="Console → Verify → Services">
+          <input type="text" id="cred-twilio_verify_sid" placeholder="VA…" autocomplete="off" title="Console → Verify → Services">
         </div>
       </div>
-      <div>
-        <div class="cred-group-title">OpenAI</div>
-        <div class="cred-field">
-          <div class="cred-label-row"><span class="cred-dot" id="dot-openai_api_key"></span><label>API Key</label></div>
-          <input type="password" id="cred-openai_api_key" placeholder="sk-…" autocomplete="off" title="platform.openai.com → API keys · AI conversation & transcription">
+      <!-- Right column: OpenAI + Resend + ElevenLabs -->
+      <div class="cred-right-col">
+        <div class="cred-group">
+          <div class="cred-group-header">OpenAI <small>— platform.openai.com</small></div>
+          <div class="cred-field">
+            <div class="cred-label-row"><span class="cred-dot" id="dot-openai_api_key"></span><label>API Key</label></div>
+            <input type="password" id="cred-openai_api_key" placeholder="sk-… (AI conversation & transcription)" autocomplete="off">
+          </div>
         </div>
-        <div class="cred-field">
-          <div class="cred-label-row"><span class="cred-dot" id="dot-resend_api_key"></span><label>Resend API Key</label></div>
-          <input type="password" id="cred-resend_api_key" placeholder="re_…" autocomplete="off" title="resend.com → API Keys · email reports & verification">
+        <div class="cred-group">
+          <div class="cred-group-header">Resend <small>— resend.com (email reports &amp; verification)</small></div>
+          <div class="cred-field">
+            <div class="cred-label-row"><span class="cred-dot" id="dot-resend_api_key"></span><label>API Key</label></div>
+            <input type="password" id="cred-resend_api_key" placeholder="re_…" autocomplete="off">
+          </div>
+          <div class="cred-field">
+            <div class="cred-label-row"><span class="cred-dot" id="dot-resend_from"></span><label>From Address</label></div>
+            <input type="text" id="cred-resend_from" placeholder="IVR Reports <noreply@yourdomain.com>" autocomplete="off" title="Must be a verified domain in Resend">
+          </div>
         </div>
-        <div class="cred-field">
-          <div class="cred-label-row"><span class="cred-dot" id="dot-resend_from"></span><label>Resend From Address</label></div>
-          <input type="text" id="cred-resend_from" placeholder="IVR Reports <noreply@yourdomain.com>" autocomplete="off" title="Must be a verified domain in Resend">
-        </div>
-        <div class="cred-field">
-          <div class="cred-label-row"><span class="cred-dot" id="dot-elevenlabs_api_key"></span><label>ElevenLabs API Key</label></div>
-          <input type="password" id="cred-elevenlabs_api_key" placeholder="••••" autocomplete="off" title="elevenlabs.io → Profile → API Key · voice preview & report audio">
-        </div>
-        <div class="cred-field">
-          <div class="cred-label-row"><span class="cred-dot" id="dot-google_tts_api_key"></span><label>Google TTS API Key</label><span class="cred-tag">optional</span></div>
-          <input type="password" id="cred-google_tts_api_key" placeholder="AIza…" autocomplete="off" title="console.cloud.google.com · for voice preview only">
+        <div class="cred-group">
+          <div class="cred-group-header">ElevenLabs / Google TTS <small>— voice preview &amp; report audio</small></div>
+          <div class="cred-field">
+            <div class="cred-label-row"><span class="cred-dot" id="dot-elevenlabs_api_key"></span><label>ElevenLabs API Key</label></div>
+            <input type="password" id="cred-elevenlabs_api_key" placeholder="elevenlabs.io → Profile → API Key" autocomplete="off">
+          </div>
+          <div class="cred-field">
+            <div class="cred-label-row"><span class="cred-dot" id="dot-google_tts_api_key"></span><label>Google TTS API Key</label><span class="cred-tag">optional</span></div>
+            <input type="password" id="cred-google_tts_api_key" placeholder="AIza… (console.cloud.google.com)" autocomplete="off">
+          </div>
         </div>
       </div>
     </div>
@@ -1517,19 +1533,28 @@ const _CRED_KEYS = [
 
 async function loadCredentialStatus() {
   if (!IS_ADMIN) return;
-  const res = await apiFetch('/admin/api/credentials');
-  if (!res || !res.ok) return;
-  const status = await res.json();
-  const set = Object.values(status).filter(Boolean).length;
-  const total = Object.keys(status).length;
   const el = document.getElementById('creds-status');
-  if (el) el.innerHTML = `<span style="color:${set===total?'var(--success)':'var(--warning)'}">●</span> <strong>${set} of ${total}</strong> credentials configured`;
-  _CRED_KEYS.forEach(k => {
-    const dot = document.getElementById(`dot-${k}`);
-    const inp = document.getElementById(`cred-${k}`);
-    if (dot) dot.className = `cred-dot ${status[k] ? 'dot-set' : 'dot-empty'}`;
-    if (inp && !inp.value) inp.style.borderColor = status[k] ? '#10b981' : '#e5e7eb';
-  });
+  try {
+    const res = await apiFetch('/admin/api/credentials');
+    if (!res) return; // redirected to login
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      if (el) el.innerHTML = `<span style="color:var(--danger)">● Error loading credentials: ${err.error || res.status}</span>`;
+      return;
+    }
+    const status = await res.json();
+    const set = Object.values(status).filter(Boolean).length;
+    const total = Object.keys(status).length;
+    if (el) el.innerHTML = `<span style="color:${set===total?'var(--success)':'var(--warning)'}">●</span> <strong>${set} of ${total}</strong> credentials configured`;
+    _CRED_KEYS.forEach(k => {
+      const dot = document.getElementById(`dot-${k}`);
+      const inp = document.getElementById(`cred-${k}`);
+      if (dot) dot.className = `cred-dot ${status[k] ? 'dot-set' : 'dot-empty'}`;
+      if (inp && !inp.value) inp.style.borderColor = status[k] ? '#10b981' : '#e5e7eb';
+    });
+  } catch(e) {
+    if (el) el.innerHTML = `<span style="color:var(--danger)">● Could not load credential status</span>`;
+  }
 }
 
 async function saveCredentials() {
