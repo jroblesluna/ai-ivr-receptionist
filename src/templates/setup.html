@@ -129,6 +129,11 @@ button:hover { background: #4338ca; }
         <input type="password" name="confirm" required autocomplete="new-password">
       </div>
     </div>
+    <div class="field" style="margin-top:6px;padding-top:16px;border-top:1px solid #f3f4f6;">
+      <label>Resend API Key <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#9ca3af;">(optional)</span></label>
+      <input type="password" name="resend_api_key" placeholder="re_… (resend.com → API Keys)" autocomplete="off">
+      <div class="hint">Required to send the verification email automatically. If left blank, the verification link will be shown on screen instead.</div>
+    </div>
     <button type="submit">Create Account &amp; Send Verification →</button>
   </form>
 </div>

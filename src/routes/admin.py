@@ -33,33 +33,47 @@ def setup():
         return redirect(url_for("admin.login"))
     error = None
     if request.method == "POST":
-        first_name = request.form.get("first_name", "").strip()
-        last_name  = request.form.get("last_name",  "").strip()
-        email      = request.form.get("email",      "").strip()
-        phone      = request.form.get("phone",      "").strip()
-        password   = request.form.get("password",   "").strip()
-        confirm    = request.form.get("confirm",    "").strip()
+        first_name    = request.form.get("first_name",    "").strip()
+        last_name     = request.form.get("last_name",     "").strip()
+        email         = request.form.get("email",         "").strip()
+        phone         = request.form.get("phone",         "").strip()
+        password      = request.form.get("password",      "").strip()
+        confirm       = request.form.get("confirm",       "").strip()
+        resend_api_key = request.form.get("resend_api_key", "").strip()
+
         if not all([first_name, last_name, email, phone, password]):
             error = "All fields are required."
         elif password != confirm:
             error = "Passwords do not match."
         else:
-            roles = {r["name"]: r["id"] for r in db.roles_list()}
-            admin_role_id = roles.get("admin")
-            if not admin_role_id:
-                error = "Roles not seeded — contact support."
-            else:
-                try:
-                    user_id = db.user_create(first_name, last_name, email, phone, password, admin_role_id)
-                    # Send verification email
-                    token = _get_email_token(user_id)
-                    if token:
-                        base_url = request.url_root.rstrip("/")
-                        from email_helper import send_verification_email
-                        send_verification_email(email, f"{base_url}/verify-email/{token}", first_name)
-                    return render_template("setup_pending.html", email=email)
-                except ValueError as e:
-                    error = str(e)
+            import secrets as _sec
+            from werkzeug.security import generate_password_hash
+            token = _sec.token_urlsafe(32)
+            # Save to DB config table (not users table) until email is verified
+            db.pending_setup_save({
+                "first_name":    first_name,
+                "last_name":     last_name,
+                "email":         email.lower(),
+                "phone":         phone,
+                "password_hash": generate_password_hash(password),
+                "token":         token,
+            })
+            # If Resend key provided, save it now so we can send the email
+            if resend_api_key:
+                db.config_set_secure("resend_api_key", resend_api_key)
+
+            base_url   = request.url_root.rstrip("/")
+            verify_url = f"{base_url}/verify-email/{token}"
+            email_sent = False
+            if config.resend_api_key():
+                from email_helper import send_verification_email
+                send_verification_email(email, verify_url, first_name)
+                email_sent = True
+
+            return render_template("setup_pending.html",
+                                   email=email,
+                                   verify_url=verify_url,
+                                   email_sent=email_sent)
     return render_template("setup.html", error=error)
 
 

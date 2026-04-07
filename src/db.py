@@ -464,6 +464,36 @@ def has_users() -> bool:
         return con.execute("SELECT COUNT(*) FROM users").fetchone()[0] > 0
 
 
+# ── Pending first-admin setup (not yet in users table) ────────────────────────
+
+def pending_setup_save(data: dict):
+    """Store first-admin form data temporarily until email is verified."""
+    config_set("_pending_setup", json.dumps(data))
+
+
+def pending_setup_get() -> dict | None:
+    raw = config_get("_pending_setup")
+    if not raw:
+        return None
+    try:
+        return json.loads(raw)
+    except Exception:
+        return None
+
+
+def pending_setup_get_by_token(token: str) -> dict | None:
+    data = pending_setup_get()
+    if data and data.get("token") == token:
+        return data
+    return None
+
+
+def pending_setup_clear():
+    with _lock, _conn() as con:
+        con.execute("DELETE FROM config WHERE key = '_pending_setup'")
+        con.commit()
+
+
 # ── Bootstrap ─────────────────────────────────────────────────────────────────
 
 def init():

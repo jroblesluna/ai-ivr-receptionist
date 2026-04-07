@@ -18,6 +18,37 @@ users_bp = Blueprint("users", __name__)
 
 @users_bp.route("/verify-email/<token>")
 def verify_email(token):
+    # ── First-admin pending setup ──────────────────────────────────────────────
+    pending = db.pending_setup_get_by_token(token)
+    if pending:
+        # Create the admin user now that email is confirmed
+        roles = {r["name"]: r["id"] for r in db.roles_list()}
+        admin_role_id = roles.get("admin")
+        if admin_role_id:
+            from werkzeug.security import generate_password_hash
+            try:
+                import sqlite3 as _sq
+                import secrets as _sec
+                db_path = __import__("pathlib").Path(__file__).parent.parent.parent / "data" / "app.db"
+                con = _sq.connect(str(db_path))
+                con.row_factory = _sq.Row
+                cur = con.execute(
+                    "INSERT INTO users (first_name, last_name, email, phone, password_hash, role_id, "
+                    "email_verified, phone_verified, is_active) VALUES (?,?,?,?,?,?,1,0,0)",
+                    (pending["first_name"], pending["last_name"], pending["email"],
+                     pending["phone"], pending["password_hash"], admin_role_id),
+                )
+                con.commit()
+                user_id = cur.lastrowid
+                con.close()
+            except Exception as e:
+                print(f"[SETUP] Error creating admin user: {e}")
+                return redirect(url_for("admin.setup"))
+        db.pending_setup_clear()
+        session["user_id"] = user_id
+        return redirect(url_for("admin.admin"))
+
+    # ── Normal user email verification ────────────────────────────────────────
     user = db.user_get_by_email_token(token)
     if not user:
         return render_template_string("""
@@ -33,7 +64,6 @@ def verify_email(token):
         </div></body></html>"""), 400
 
     db.user_set_email_verified(user["id"])
-    # Auto-login: set session so the user lands directly in admin
     session["user_id"] = user["id"]
     return redirect(url_for("admin.admin"))
 
