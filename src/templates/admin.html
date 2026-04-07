@@ -449,6 +449,9 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
       <span class="card-title">Active Use Case</span>
       <span class="card-badge badge-green" id="uc-status">Live</span>
     </div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">
+      Select which business profile the AI receptionist is currently representing. The active use case determines the greeting, menu options, voice, and system prompt used on all incoming calls.
+    </p>
     <div class="uc-grid" id="uc-grid">
       {% set icons = {
         'robles_ai': '🤖',
@@ -487,6 +490,11 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
         <button class="btn btn-primary" style="font-size:12px;padding:6px 14px;" id="editor-toggle-btn" onclick="toggleEditor()">▼ Expand</button>
       </div>
     </div>
+    <p style="font-size:12px;color:var(--muted);">
+      Edit the name, voices, slogans, and conversation topics for the currently active use case.
+      Each topic maps to a DTMF menu option and has its own greeting, AI instructions, and bilingual labels.
+      <strong>Operator Number</strong> (per use case) overrides the global forward-to number for this profile only.
+    </p>
     <div id="uc-editor" style="display:none;" class="editor-body"></div>
   </div>
 
@@ -514,6 +522,10 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
         <span class="card-title">Phone Numbers</span>
         <span class="card-badge badge-blue">Twilio</span>
       </div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">
+        <strong>Twilio From</strong> is the purchased Twilio number that callers see and that the system uses to make outbound calls.<br>
+        <strong>Operator Number</strong> is where calls are forwarded once the AI pre-screens a caller. Use E.164 format, e.g. <code>+15550001234</code>.
+      </p>
       <label style="display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;">Twilio From (your Twilio number)</label>
       <div class="input-row" style="margin-bottom:12px;">
         <input type="tel" id="twilio-from" placeholder="+1 555 000 0000"
@@ -533,6 +545,9 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
         <span class="card-title">Direct Transfer Whitelist</span>
         <span class="card-badge badge-blue" id="wl-count">{{ whitelist|length }} numbers</span>
       </div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">
+        Callers on this list skip the AI menu entirely and are transferred directly to the operator. Add the full number in E.164 format.
+      </p>
       <div class="wl-list" id="wl-list">
         {% if whitelist %}
           {% for number in whitelist %}
@@ -569,7 +584,9 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
       <button class="btn btn-primary" onclick="copyWebhook()">Copy</button>
     </div>
     <p style="font-size:12px;color:var(--muted);margin-top:10px;">
-      Set this URL as <strong>A call comes in</strong> webhook in your Twilio phone number settings.
+      Set this URL as the <strong>A call comes in</strong> webhook (HTTP POST) in your
+      <a href="https://console.twilio.com/us1/develop/phone-numbers/manage/incoming" target="_blank" style="color:var(--primary);">Twilio phone number settings</a>.
+      This is the entry point for all incoming calls.
     </p>
     {% if '127.0.0.1' in webhook_url or 'localhost' in webhook_url %}
     <div style="margin-top:12px;padding:10px 14px;background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;font-size:13px;color:#92400e;">
@@ -587,6 +604,11 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
       <span class="card-title">Notifications</span>
       <span class="card-badge badge-blue">Email · WhatsApp</span>
     </div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:16px;">
+      After each call, the system can send a summary to your email (via Resend) and/or a WhatsApp message.
+      WhatsApp requires a <a href="https://console.twilio.com/us1/develop/sms/try-it-out/whatsapp-learn" target="_blank" style="color:var(--primary);">Twilio WhatsApp Sandbox</a> or an approved sender number.
+      Configure the Resend API key in the <strong>API Credentials</strong> section below.
+    </p>
 
     <!-- Toggles -->
     <div style="margin-bottom:16px;">
@@ -649,6 +671,9 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
       <span class="card-title">Call Reports</span>
       <span id="reports-count" style="font-size:12px;color:var(--muted);"></span>
     </div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">
+      Full transcripts, AI summaries, and recordings for every completed call. Click <strong>View →</strong> to open the detailed report page with the audio player.
+    </p>
     <div style="overflow-x:auto;">
       <table id="reports-table" style="width:100%;border-collapse:collapse;font-size:13px;">
         <thead>
@@ -714,31 +739,67 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
       <span class="card-title">API Credentials</span>
       <span class="card-badge badge-blue">Encrypted in DB</span>
     </div>
-    <div id="creds-status" style="font-size:12px;color:var(--muted);margin-bottom:16px;">Loading…</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:6px;">
+      All credentials are stored encrypted using your <code>SECRET_KEY</code>. Fields are shown blank for security — only fill in what you want to update.
+    </p>
+    <div id="creds-status" style="font-size:12px;color:var(--muted);margin-bottom:16px;padding:8px 12px;background:#f9fafb;border-radius:8px;">Loading…</div>
     <div class="two-col">
       <div>
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px;">Twilio</div>
-        <div class="editor-field"><label>Account SID</label><input type="password" id="cred-twilio_account_sid" placeholder="AC…" autocomplete="off"></div>
-        <div class="editor-field"><label>Auth Token</label><input type="password" id="cred-twilio_auth_token" placeholder="••••" autocomplete="off"></div>
-        <div class="editor-field"><label>API Key SID</label><input type="password" id="cred-twilio_api_key_sid" placeholder="SK…" autocomplete="off"></div>
-        <div class="editor-field"><label>API Key Secret</label><input type="password" id="cred-twilio_api_key_secret" placeholder="••••" autocomplete="off"></div>
-        <div class="editor-field"><label>TwiML App SID</label><input type="password" id="cred-twilio_twiml_app_sid" placeholder="AP…" autocomplete="off"></div>
-        <div class="editor-field"><label>Verify Service SID</label><input type="password" id="cred-twilio_verify_sid" placeholder="VA…" autocomplete="off"></div>
+        <div class="editor-field">
+          <label>Account SID</label>
+          <input type="password" id="cred-twilio_account_sid" placeholder="AC… (found in Twilio Console dashboard)" autocomplete="off">
+        </div>
+        <div class="editor-field">
+          <label>Auth Token</label>
+          <input type="password" id="cred-twilio_auth_token" placeholder="•••• (found next to Account SID)" autocomplete="off">
+        </div>
+        <div class="editor-field">
+          <label>API Key SID <span style="font-weight:400;text-transform:none;letter-spacing:0;">(for Test Call only)</span></label>
+          <input type="password" id="cred-twilio_api_key_sid" placeholder="SK… (create in Console → API keys)" autocomplete="off">
+        </div>
+        <div class="editor-field">
+          <label>API Key Secret <span style="font-weight:400;text-transform:none;letter-spacing:0;">(for Test Call only)</span></label>
+          <input type="password" id="cred-twilio_api_key_secret" placeholder="•••• (shown once at creation)" autocomplete="off">
+        </div>
+        <div class="editor-field">
+          <label>TwiML App SID <span style="font-weight:400;text-transform:none;letter-spacing:0;">(for Test Call only)</span></label>
+          <input type="password" id="cred-twilio_twiml_app_sid" placeholder="AP… (create in Console → TwiML Apps)" autocomplete="off">
+        </div>
+        <div class="editor-field">
+          <label>Verify Service SID <span style="font-weight:400;text-transform:none;letter-spacing:0;">(SMS phone verification)</span></label>
+          <input type="password" id="cred-twilio_verify_sid" placeholder="VA… (create in Console → Verify)" autocomplete="off">
+        </div>
       </div>
       <div>
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px;">OpenAI</div>
-        <div class="editor-field"><label>API Key</label><input type="password" id="cred-openai_api_key" placeholder="sk-…" autocomplete="off"></div>
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:12px 0 8px;">Resend (Email)</div>
-        <div class="editor-field"><label>API Key</label><input type="password" id="cred-resend_api_key" placeholder="re_…" autocomplete="off"></div>
-        <div class="editor-field"><label>From Address</label><input type="text" id="cred-resend_from" placeholder="Name <email@domain.com>" autocomplete="off"></div>
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:12px 0 8px;">ElevenLabs / Google TTS</div>
-        <div class="editor-field"><label>ElevenLabs API Key</label><input type="password" id="cred-elevenlabs_api_key" placeholder="••••" autocomplete="off"></div>
-        <div class="editor-field"><label>Google TTS API Key</label><input type="password" id="cred-google_tts_api_key" placeholder="AIza…" autocomplete="off"></div>
+        <div class="editor-field">
+          <label>API Key <span style="font-weight:400;text-transform:none;letter-spacing:0;">(AI conversation + transcription)</span></label>
+          <input type="password" id="cred-openai_api_key" placeholder="sk-… (platform.openai.com → API keys)" autocomplete="off">
+        </div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:16px 0 8px;">Resend <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:10px;">(email reports &amp; verification)</span></div>
+        <div class="editor-field">
+          <label>API Key</label>
+          <input type="password" id="cred-resend_api_key" placeholder="re_… (resend.com → API Keys)" autocomplete="off">
+        </div>
+        <div class="editor-field">
+          <label>From Address</label>
+          <input type="text" id="cred-resend_from" placeholder="IVR Reports <noreply@yourdomain.com>" autocomplete="off">
+        </div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:16px 0 8px;">ElevenLabs / Google TTS <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:10px;">(voice preview &amp; report audio)</span></div>
+        <div class="editor-field">
+          <label>ElevenLabs API Key</label>
+          <input type="password" id="cred-elevenlabs_api_key" placeholder="•••• (elevenlabs.io → Profile → API Key)" autocomplete="off">
+        </div>
+        <div class="editor-field">
+          <label>Google TTS API Key <span style="font-weight:400;text-transform:none;letter-spacing:0;">(optional, for voice preview)</span></label>
+          <input type="password" id="cred-google_tts_api_key" placeholder="AIza… (console.cloud.google.com)" autocomplete="off">
+        </div>
       </div>
     </div>
-    <div style="margin-top:4px;">
+    <div style="margin-top:8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
       <button class="btn btn-primary" onclick="saveCredentials()">Save Credentials</button>
-      <span style="font-size:12px;color:var(--muted);margin-left:12px;">Leave blank to keep existing values unchanged.</span>
+      <span style="font-size:12px;color:var(--muted);">Only filled fields are updated. Existing credentials are never overwritten by blank fields.</span>
     </div>
   </div>
   {% endif %}
@@ -750,10 +811,16 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
     </div>
     <div style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
       <div>
-        <div style="font-size:13px;font-weight:600;margin-bottom:3px;">Reset All Data</div>
-        <div style="font-size:12px;color:var(--muted);">Deletes the database and all reports, then re-initializes from the default SQL scripts.</div>
+        <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Reset All Data</div>
+        <div style="font-size:12px;color:#b91c1c;line-height:1.6;">
+          Permanently deletes <strong>everything</strong> in the database:
+          all call reports &amp; recordings, all users &amp; roles, all API credentials,
+          all use cases &amp; topics, and all system configuration.
+          The app will restart in first-run setup mode.
+          <strong>This cannot be undone.</strong>
+        </div>
       </div>
-      <button class="btn" style="background:#ff3b30;color:#fff;white-space:nowrap;" onclick="resetAllData()">Reset All Data</button>
+      <button class="btn" style="background:#ff3b30;color:#fff;white-space:nowrap;flex-shrink:0;" onclick="resetAllData()">Reset All Data</button>
     </div>
   </div>
 
@@ -768,6 +835,12 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
       <span class="card-title">Users</span>
       <button class="btn btn-primary" style="font-size:12px;padding:6px 14px;" onclick="showUserModal()">+ New User</button>
     </div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:16px;">
+      <strong>Admin</strong> — full access including credentials and user management.<br>
+      <strong>Manager</strong> — access to the admin panel for their assigned use cases; must have at least one use case assigned.<br>
+      <strong>Standard</strong> — same panel access as Manager, for general staff.<br>
+      New users receive a verification email. Their account activates only after both email and phone are verified.
+    </p>
     <div style="overflow-x:auto;">
       <table class="users-table" id="users-table">
         <thead>
@@ -776,9 +849,9 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
             <th>Email</th>
             <th>Phone</th>
             <th>Role</th>
-            <th>Email</th>
-            <th>Phone</th>
-            <th>Status</th>
+            <th>Email ✓</th>
+            <th>Phone ✓</th>
+            <th>Active</th>
             <th></th>
           </tr>
         </thead>
