@@ -347,6 +347,19 @@ input:checked + .slider:before { transform: translateX(20px); }
 /* ── Divider ── */
 hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 
+/* ── Credentials ── */
+.cred-group-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin-bottom:8px; }
+.cred-field { margin-bottom:10px; }
+.cred-label-row { display:flex; align-items:center; gap:6px; margin-bottom:4px; }
+.cred-label-row label { font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; margin:0; white-space:nowrap; }
+.cred-dot { width:8px; height:8px; border-radius:50%; background:#d1d5db; flex-shrink:0; transition:background .2s; }
+.cred-dot.dot-set { background:#10b981; }
+.cred-dot.dot-empty { background:#d1d5db; }
+.cred-tag { font-size:10px; font-weight:600; background:#f3f4f6; color:#6b7280; padding:1px 6px; border-radius:4px; text-transform:none; letter-spacing:0; white-space:nowrap; }
+.cred-hint { font-size:11px; color:#9ca3af; margin-top:3px; }
+.cred-field input { width:100%; padding:8px 12px; border:1.5px solid var(--border); border-radius:8px; font-size:13px; font-family:monospace; outline:none; transition:border-color .15s; }
+.cred-field input:focus { border-color:var(--primary); }
+
 /* ── Use Case Editor ── */
 .editor-body { padding-top: 4px; }
 .editor-section { padding: 0 4px 16px; }
@@ -739,69 +752,83 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
       <span class="card-title">API Credentials</span>
       <span class="card-badge badge-blue">Encrypted in DB</span>
     </div>
-    <p style="font-size:12px;color:var(--muted);margin-bottom:6px;">
-      All credentials are stored encrypted using your <code>SECRET_KEY</code>. Fields are shown blank for security — only fill in what you want to update.
+    <p style="font-size:12px;color:var(--muted);margin-bottom:10px;">
+      Stored encrypted with your <code>SECRET_KEY</code>. Fields are always blank for security — only type in what you want to update.
     </p>
-    <div id="creds-status" style="font-size:12px;color:var(--muted);margin-bottom:16px;padding:8px 12px;background:#f9fafb;border-radius:8px;">Loading…</div>
+    <div id="creds-status" style="display:flex;align-items:center;gap:10px;margin-bottom:18px;padding:10px 14px;background:#f9fafb;border-radius:8px;font-size:13px;">
+      <span style="color:var(--muted);">Checking configured credentials…</span>
+    </div>
     <div class="two-col">
       <div>
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px;">Twilio</div>
-        <div class="editor-field">
-          <label>Account SID</label>
-          <input type="password" id="cred-twilio_account_sid" placeholder="AC… (found in Twilio Console dashboard)" autocomplete="off">
+        <div class="cred-group-title">Twilio</div>
+        <div class="cred-field">
+          <div class="cred-label-row"><span class="cred-dot" id="dot-twilio_account_sid"></span><label>Account SID</label></div>
+          <input type="password" id="cred-twilio_account_sid" placeholder="AC…" autocomplete="off">
+          <div class="cred-hint">Twilio Console → Dashboard</div>
         </div>
-        <div class="editor-field">
-          <label>Auth Token</label>
-          <input type="password" id="cred-twilio_auth_token" placeholder="•••• (found next to Account SID)" autocomplete="off">
+        <div class="cred-field">
+          <div class="cred-label-row"><span class="cred-dot" id="dot-twilio_auth_token"></span><label>Auth Token</label></div>
+          <input type="password" id="cred-twilio_auth_token" placeholder="••••" autocomplete="off">
+          <div class="cred-hint">Found next to Account SID</div>
         </div>
-        <div class="editor-field">
-          <label>API Key SID <span style="font-weight:400;text-transform:none;letter-spacing:0;">(for Test Call only)</span></label>
-          <input type="password" id="cred-twilio_api_key_sid" placeholder="SK… (create in Console → API keys)" autocomplete="off">
+        <div class="cred-field">
+          <div class="cred-label-row"><span class="cred-dot" id="dot-twilio_api_key_sid"></span><label>API Key SID</label><span class="cred-tag">Test Call</span></div>
+          <input type="password" id="cred-twilio_api_key_sid" placeholder="SK…" autocomplete="off">
+          <div class="cred-hint">Console → Account → API keys &amp; tokens</div>
         </div>
-        <div class="editor-field">
-          <label>API Key Secret <span style="font-weight:400;text-transform:none;letter-spacing:0;">(for Test Call only)</span></label>
-          <input type="password" id="cred-twilio_api_key_secret" placeholder="•••• (shown once at creation)" autocomplete="off">
+        <div class="cred-field">
+          <div class="cred-label-row"><span class="cred-dot" id="dot-twilio_api_key_secret"></span><label>API Key Secret</label><span class="cred-tag">Test Call</span></div>
+          <input type="password" id="cred-twilio_api_key_secret" placeholder="••••" autocomplete="off">
+          <div class="cred-hint">Shown only once at key creation</div>
         </div>
-        <div class="editor-field">
-          <label>TwiML App SID <span style="font-weight:400;text-transform:none;letter-spacing:0;">(for Test Call only)</span></label>
-          <input type="password" id="cred-twilio_twiml_app_sid" placeholder="AP… (create in Console → TwiML Apps)" autocomplete="off">
+        <div class="cred-field">
+          <div class="cred-label-row"><span class="cred-dot" id="dot-twilio_twiml_app_sid"></span><label>TwiML App SID</label><span class="cred-tag">Test Call</span></div>
+          <input type="password" id="cred-twilio_twiml_app_sid" placeholder="AP…" autocomplete="off">
+          <div class="cred-hint">Console → Voice → TwiML → TwiML Apps</div>
         </div>
-        <div class="editor-field">
-          <label>Verify Service SID <span style="font-weight:400;text-transform:none;letter-spacing:0;">(SMS phone verification)</span></label>
-          <input type="password" id="cred-twilio_verify_sid" placeholder="VA… (create in Console → Verify)" autocomplete="off">
+        <div class="cred-field">
+          <div class="cred-label-row"><span class="cred-dot" id="dot-twilio_verify_sid"></span><label>Verify Service SID</label><span class="cred-tag">SMS verify</span></div>
+          <input type="password" id="cred-twilio_verify_sid" placeholder="VA…" autocomplete="off">
+          <div class="cred-hint">Console → Verify → Services</div>
         </div>
       </div>
       <div>
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px;">OpenAI</div>
-        <div class="editor-field">
-          <label>API Key <span style="font-weight:400;text-transform:none;letter-spacing:0;">(AI conversation + transcription)</span></label>
-          <input type="password" id="cred-openai_api_key" placeholder="sk-… (platform.openai.com → API keys)" autocomplete="off">
+        <div class="cred-group-title">OpenAI</div>
+        <div class="cred-field">
+          <div class="cred-label-row"><span class="cred-dot" id="dot-openai_api_key"></span><label>API Key</label></div>
+          <input type="password" id="cred-openai_api_key" placeholder="sk-…" autocomplete="off">
+          <div class="cred-hint">platform.openai.com → API keys · AI conversation &amp; transcription</div>
         </div>
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:16px 0 8px;">Resend <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:10px;">(email reports &amp; verification)</span></div>
-        <div class="editor-field">
-          <label>API Key</label>
-          <input type="password" id="cred-resend_api_key" placeholder="re_… (resend.com → API Keys)" autocomplete="off">
+        <div class="cred-group-title" style="margin-top:16px;">Resend <span style="font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;">(email reports &amp; verification)</span></div>
+        <div class="cred-field">
+          <div class="cred-label-row"><span class="cred-dot" id="dot-resend_api_key"></span><label>API Key</label></div>
+          <input type="password" id="cred-resend_api_key" placeholder="re_…" autocomplete="off">
+          <div class="cred-hint">resend.com → API Keys</div>
         </div>
-        <div class="editor-field">
-          <label>From Address</label>
+        <div class="cred-field">
+          <div class="cred-label-row"><span class="cred-dot" id="dot-resend_from"></span><label>From Address</label></div>
           <input type="text" id="cred-resend_from" placeholder="IVR Reports <noreply@yourdomain.com>" autocomplete="off">
+          <div class="cred-hint">Must be a verified domain in Resend</div>
         </div>
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:16px 0 8px;">ElevenLabs / Google TTS <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:10px;">(voice preview &amp; report audio)</span></div>
-        <div class="editor-field">
-          <label>ElevenLabs API Key</label>
-          <input type="password" id="cred-elevenlabs_api_key" placeholder="•••• (elevenlabs.io → Profile → API Key)" autocomplete="off">
+        <div class="cred-group-title" style="margin-top:16px;">ElevenLabs / Google TTS <span style="font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;">(voice preview &amp; report audio)</span></div>
+        <div class="cred-field">
+          <div class="cred-label-row"><span class="cred-dot" id="dot-elevenlabs_api_key"></span><label>ElevenLabs API Key</label></div>
+          <input type="password" id="cred-elevenlabs_api_key" placeholder="••••" autocomplete="off">
+          <div class="cred-hint">elevenlabs.io → Profile → API Key</div>
         </div>
-        <div class="editor-field">
-          <label>Google TTS API Key <span style="font-weight:400;text-transform:none;letter-spacing:0;">(optional, for voice preview)</span></label>
-          <input type="password" id="cred-google_tts_api_key" placeholder="AIza… (console.cloud.google.com)" autocomplete="off">
+        <div class="cred-field">
+          <div class="cred-label-row"><span class="cred-dot" id="dot-google_tts_api_key"></span><label>Google TTS API Key</label><span class="cred-tag">optional</span></div>
+          <input type="password" id="cred-google_tts_api_key" placeholder="AIza…" autocomplete="off">
+          <div class="cred-hint">console.cloud.google.com · For voice preview only</div>
         </div>
       </div>
     </div>
-    <div style="margin-top:8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+    <div style="margin-top:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
       <button class="btn btn-primary" onclick="saveCredentials()">Save Credentials</button>
-      <span style="font-size:12px;color:var(--muted);">Only filled fields are updated. Existing credentials are never overwritten by blank fields.</span>
+      <span style="font-size:12px;color:var(--muted);">Only filled fields are updated — blank fields are ignored.</span>
     </div>
   </div>
+  {% endif %}
   {% endif %}
 
   <!-- DANGER ZONE -->
@@ -1511,7 +1538,13 @@ async function loadCredentialStatus() {
   const set = Object.values(status).filter(Boolean).length;
   const total = Object.keys(status).length;
   const el = document.getElementById('creds-status');
-  if (el) el.textContent = `${set} of ${total} credentials configured.`;
+  if (el) el.innerHTML = `<span style="color:${set===total?'var(--success)':'var(--warning)'}">●</span> <strong>${set} of ${total}</strong> credentials configured`;
+  _CRED_KEYS.forEach(k => {
+    const dot = document.getElementById(`dot-${k}`);
+    const inp = document.getElementById(`cred-${k}`);
+    if (dot) dot.className = `cred-dot ${status[k] ? 'dot-set' : 'dot-empty'}`;
+    if (inp && !inp.value) inp.style.borderColor = status[k] ? '#10b981' : '#e5e7eb';
+  });
 }
 
 async function saveCredentials() {
