@@ -167,11 +167,10 @@ def api_config():
 @admin_bp.route("/admin/api/credentials", methods=["GET"])
 @require_role("admin")
 def api_credentials_get():
-    """Return which credentials are set (masked, not the actual values)."""
+    """Return actual decrypted credential values (admin only)."""
     result = {}
     for key in _CREDENTIAL_KEYS:
-        val = db.config_get_secure(key)
-        result[key] = bool(val)  # True = set, False = not set
+        result[key] = db.config_get_secure(key) or ""
     return jsonify(result)
 
 

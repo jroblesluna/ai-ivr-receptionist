@@ -758,10 +758,13 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
       <span class="card-badge badge-blue">Encrypted in DB</span>
     </div>
     <p style="font-size:12px;color:var(--muted);margin-bottom:10px;">
-      Stored encrypted with your <code>SECRET_KEY</code>. Fields are always blank for security — only type in what you want to update.
+      Stored encrypted with your <code>SECRET_KEY</code>. Edit any field and save to update it.
     </p>
-    <div id="creds-status" style="display:flex;align-items:center;gap:10px;margin-bottom:18px;padding:10px 14px;background:#f9fafb;border-radius:8px;font-size:13px;">
-      <span style="color:var(--muted);">Checking configured credentials…</span>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap;">
+      <div id="creds-status" style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 14px;background:#f9fafb;border-radius:8px;font-size:13px;">
+        <span style="color:var(--muted);">Checking configured credentials…</span>
+      </div>
+      <button class="btn" id="btn-cred-reveal" onclick="toggleCredVisibility()" style="font-size:12px;padding:8px 14px;background:#f3f4f6;color:var(--text);border:1px solid var(--border);">👁 Show values</button>
     </div>
     <div class="cred-sections">
       <!-- Twilio -->
@@ -773,7 +776,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
         </div>
         <div class="cred-field">
           <div class="cred-label-row"><span class="cred-dot" id="dot-twilio_auth_token"></span><label>Auth Token</label></div>
-          <input type="password" id="cred-twilio_auth_token" placeholder="Found next to Account SID" autocomplete="off" title="Console → Dashboard">
+          <input type="password" data-sensitive="true" id="cred-twilio_auth_token" placeholder="Found next to Account SID" autocomplete="off" title="Console → Dashboard">
         </div>
         <div class="cred-field">
           <div class="cred-label-row"><span class="cred-dot" id="dot-twilio_api_key_sid"></span><label>API Key SID</label><span class="cred-tag">Test Call</span></div>
@@ -781,7 +784,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
         </div>
         <div class="cred-field">
           <div class="cred-label-row"><span class="cred-dot" id="dot-twilio_api_key_secret"></span><label>API Key Secret</label><span class="cred-tag">Test Call</span></div>
-          <input type="password" id="cred-twilio_api_key_secret" placeholder="Shown once at key creation" autocomplete="off" title="Console → Account → API keys & tokens">
+          <input type="password" data-sensitive="true" id="cred-twilio_api_key_secret" placeholder="Shown once at key creation" autocomplete="off" title="Console → Account → API keys & tokens">
         </div>
         <div class="cred-field">
           <div class="cred-label-row"><span class="cred-dot" id="dot-twilio_twiml_app_sid"></span><label>TwiML App SID</label><span class="cred-tag">Test Call</span></div>
@@ -798,14 +801,14 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
           <div class="cred-group-header">OpenAI <small>— platform.openai.com</small></div>
           <div class="cred-field">
             <div class="cred-label-row"><span class="cred-dot" id="dot-openai_api_key"></span><label>API Key</label></div>
-            <input type="password" id="cred-openai_api_key" placeholder="sk-… (AI conversation & transcription)" autocomplete="off">
+            <input type="password" data-sensitive="true" id="cred-openai_api_key" placeholder="sk-… (AI conversation & transcription)" autocomplete="off">
           </div>
         </div>
         <div class="cred-group">
           <div class="cred-group-header">Resend <small>— resend.com (email reports &amp; verification)</small></div>
           <div class="cred-field">
             <div class="cred-label-row"><span class="cred-dot" id="dot-resend_api_key"></span><label>API Key</label></div>
-            <input type="password" id="cred-resend_api_key" placeholder="re_…" autocomplete="off">
+            <input type="password" data-sensitive="true" id="cred-resend_api_key" placeholder="re_…" autocomplete="off">
           </div>
           <div class="cred-field">
             <div class="cred-label-row"><span class="cred-dot" id="dot-resend_from"></span><label>From Address</label></div>
@@ -816,18 +819,17 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
           <div class="cred-group-header">ElevenLabs / Google TTS <small>— voice preview &amp; report audio</small></div>
           <div class="cred-field">
             <div class="cred-label-row"><span class="cred-dot" id="dot-elevenlabs_api_key"></span><label>ElevenLabs API Key</label></div>
-            <input type="password" id="cred-elevenlabs_api_key" placeholder="elevenlabs.io → Profile → API Key" autocomplete="off">
+            <input type="password" data-sensitive="true" id="cred-elevenlabs_api_key" placeholder="elevenlabs.io → Profile → API Key" autocomplete="off">
           </div>
           <div class="cred-field">
             <div class="cred-label-row"><span class="cred-dot" id="dot-google_tts_api_key"></span><label>Google TTS API Key</label><span class="cred-tag">optional</span></div>
-            <input type="password" id="cred-google_tts_api_key" placeholder="AIza… (console.cloud.google.com)" autocomplete="off">
+            <input type="password" data-sensitive="true" id="cred-google_tts_api_key" placeholder="AIza… (console.cloud.google.com)" autocomplete="off">
           </div>
         </div>
       </div>
     </div>
     <div style="margin-top:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
       <button class="btn btn-primary" onclick="saveCredentials()">Save Credentials</button>
-      <span style="font-size:12px;color:var(--muted);">Only filled fields are updated — blank fields are ignored.</span>
     </div>
   </div>
   {% endif %}
@@ -1530,6 +1532,17 @@ const _CRED_KEYS = [
   'resend_api_key','resend_from','elevenlabs_api_key','google_tts_api_key'
 ];
 
+let _credVisible = false;
+
+function toggleCredVisibility() {
+  _credVisible = !_credVisible;
+  document.querySelectorAll('.cred-field input[data-sensitive="true"]').forEach(inp => {
+    inp.type = _credVisible ? 'text' : 'password';
+  });
+  const btn = document.getElementById('btn-cred-reveal');
+  if (btn) btn.textContent = _credVisible ? '🙈 Hide values' : '👁 Show values';
+}
+
 async function loadCredentialStatus() {
   // Section only rendered for admins — if element missing, nothing to do
   const el = document.getElementById('creds-status');
@@ -1540,15 +1553,19 @@ async function loadCredentialStatus() {
       el.innerHTML = `<span style="color:var(--danger)">● Error ${res.status} loading credentials</span>`;
       return;
     }
-    const status = await res.json();
-    const set = Object.values(status).filter(Boolean).length;
-    const total = Object.keys(status).length;
+    const values = await res.json();
+    const set = Object.values(values).filter(Boolean).length;
+    const total = Object.keys(values).length;
     el.innerHTML = `<span style="color:${set===total?'var(--success)':'var(--warning)'}">●</span> <strong>${set} of ${total}</strong> credentials configured`;
     _CRED_KEYS.forEach(k => {
       const dot = document.getElementById(`dot-${k}`);
       const inp = document.getElementById(`cred-${k}`);
-      if (dot) dot.className = `cred-dot ${status[k] ? 'dot-set' : 'dot-empty'}`;
-      if (inp && !inp.value) inp.style.borderColor = status[k] ? '#10b981' : '#e5e7eb';
+      const isSet = Boolean(values[k]);
+      if (dot) dot.className = `cred-dot ${isSet ? 'dot-set' : 'dot-empty'}`;
+      if (inp) {
+        inp.value = values[k] || '';
+        inp.style.borderColor = isSet ? '#10b981' : '#e5e7eb';
+      }
     });
   } catch(e) {
     el.innerHTML = `<span style="color:var(--danger)">● Could not reach credentials API</span>`;
@@ -1568,11 +1585,6 @@ async function saveCredentials() {
     body: JSON.stringify(payload),
   });
   if (!res || !res.ok) { toast('Error saving credentials', 'error'); return; }
-  // Clear fields after save for security
-  _CRED_KEYS.forEach(k => {
-    const el = document.getElementById(`cred-${k}`);
-    if (el) el.value = '';
-  });
   loadCredentialStatus();
   toast('Credentials saved');
 }
