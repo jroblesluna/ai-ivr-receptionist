@@ -75,8 +75,38 @@ nav {
 }
 .btn-logout:hover { background: rgba(255,255,255,0.22); }
 
-/* ── Layout ── */
-main {
+/* ── Tab bar ── */
+.tab-bar {
+  background: white;
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  display: flex;
+  gap: 0;
+  position: sticky;
+  top: 58px;
+  z-index: 40;
+}
+.tab-btn {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 14px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-bottom: -1px;
+}
+.tab-btn.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+.tab-btn:hover:not(.active) { color: var(--text); }
+
+/* ── Tab content wrapper ── */
+.tab-wrap { display: block; }
+.tab-wrap main {
   max-width: 1000px;
   margin: 0 auto;
   padding: 28px 16px;
@@ -113,6 +143,20 @@ main {
 .badge-green { background: #d1fae5; color: #065f46; }
 .badge-blue  { background: var(--primary-light); color: var(--primary); }
 
+/* ── Section description ── */
+.section-desc {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 16px;
+  line-height: 1.6;
+}
+.field-hint {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
 /* ── Use Case Grid ── */
 .uc-grid {
   display: grid;
@@ -137,6 +181,8 @@ main {
   background: var(--primary-light);
   box-shadow: 0 0 0 3px rgba(79,70,229,0.1);
 }
+.uc-card.view-only { cursor: default; }
+.uc-card.view-only:hover { border-color: var(--border); background: none; transform: none; }
 .uc-icon { font-size: 22px; margin-bottom: 8px; }
 .uc-name { font-weight: 600; font-size: 13px; color: var(--text); line-height: 1.3; }
 .uc-industry { font-size: 11px; color: var(--muted); margin-top: 3px; }
@@ -148,7 +194,7 @@ main {
   border-radius: 50%;
 }
 
-/* ── Operator section ── */
+/* ── Inputs ── */
 .input-row { display: flex; gap: 8px; }
 .input-row input {
   flex: 1;
@@ -202,7 +248,7 @@ main {
 .btn-remove:hover { color: var(--danger); }
 .empty-msg { color: var(--muted); font-size: 14px; font-style: italic; padding: 8px 0; }
 
-/* ── Status bar ── */
+/* ── Status grid ── */
 .status-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -260,32 +306,6 @@ main {
 }
 input:checked + .slider { background: var(--primary); }
 input:checked + .slider:before { transform: translateX(20px); }
-
-/* ── Tab bar ── */
-.tab-bar {
-  background: white;
-  border-bottom: 1px solid var(--border);
-  padding: 0 24px;
-  display: flex;
-  gap: 0;
-}
-.tab-btn {
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  padding: 14px 20px;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--muted);
-  cursor: pointer;
-  transition: all 0.15s;
-  margin-bottom: -1px;
-}
-.tab-btn.active {
-  color: var(--primary);
-  border-bottom-color: var(--primary);
-}
-.tab-btn:hover:not(.active) { color: var(--text); }
 
 /* ── Users table ── */
 .users-table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -442,7 +462,12 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 
 <div class="tab-bar">
   <button class="tab-btn active" id="tab-btn-dashboard" onclick="switchTab('dashboard')">Dashboard</button>
+  {% if user_role == 'admin' or user_role == 'manager' %}
+  <button class="tab-btn" id="tab-btn-use-cases" onclick="switchTab('use-cases')">Use Cases</button>
+  {% endif %}
   {% if user_role == 'admin' %}
+  <button class="tab-btn" id="tab-btn-credentials" onclick="switchTab('credentials')">Credentials</button>
+  <button class="tab-btn" id="tab-btn-system" onclick="switchTab('system')">System</button>
   <button class="tab-btn" id="tab-btn-users" onclick="switchTab('users')">Users</button>
   {% endif %}
 </div>
@@ -458,38 +483,43 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 </div>
 {% endif %}
 
-<div id="tab-dashboard">
+{% set icons = {
+  'robles_ai': '🤖',
+  'sweet_crust': '🧁',
+  'lex_partners': '⚖️',
+  'vita_clinic': '🏥',
+  'sol_realty': '🏠',
+  'chem_supply': '🧪',
+  'nova_auto': '🔧',
+  'grand_hotel': '🏨',
+  'smile_dental': '🦷',
+  'flex_gym': '💪',
+  'safe_guard': '🛡️',
+  'luma_academy': '📚',
+  'blue_star': '⭐'
+} %}
+
+<!-- ═══════════════════ TAB: Dashboard ═══════════════════ -->
+<div id="tab-dashboard" class="tab-wrap">
 <main>
 
-  <!-- USE CASE -->
+  <!-- Active Use Case -->
   <div class="card">
     <div class="card-header">
       <span class="card-title">Active Use Case</span>
       <span class="card-badge badge-green" id="uc-status">Live</span>
     </div>
-    <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">
-      Select which business profile the AI receptionist is currently representing. The active use case determines the greeting, menu options, voice, and system prompt used on all incoming calls.
+    <p class="section-desc">
+      The AI receptionist is currently running on this profile. It controls the greeting, menu options, voice, and conversation behavior for all incoming calls.
+      {% if user_role == 'admin' or user_role == 'manager' %}Click a card to switch the active profile instantly.{% endif %}
     </p>
-    <div class="uc-grid" id="uc-grid">
-      {% set icons = {
-        'robles_ai': '🤖',
-        'sweet_crust': '🧁',
-        'lex_partners': '⚖️',
-        'vita_clinic': '🏥',
-        'sol_realty': '🏠',
-        'chem_supply': '🧪',
-        'nova_auto': '🔧',
-        'grand_hotel': '🏨',
-        'smile_dental': '🦷',
-        'flex_gym': '💪',
-        'safe_guard': '🛡️',
-        'luma_academy': '📚',
-        'blue_star': '⭐'
-      } %}
+    <div class="uc-grid">
       {% for uc_id, uc in use_cases.items() %}
-      <div class="uc-card {% if uc_id == current_use_case %}active{% endif %}"
+      <div class="uc-card {% if uc_id == current_use_case %}active{% endif %} {% if user_role != 'admin' and user_role != 'manager' %}view-only{% endif %}"
            data-id="{{ uc_id }}"
-           onclick="selectUseCase('{{ uc_id }}', '{{ uc.name }}')">
+           {% if user_role == 'admin' or user_role == 'manager' %}
+           onclick="selectUseCase('{{ uc_id }}', '{{ uc.name }}')"
+           {% endif %}>
         {% if uc_id == current_use_case %}<span class="uc-active-tag"></span>{% endif %}
         <div class="uc-icon">{{ icons.get(uc_id, '🏢') }}</div>
         <div class="uc-name">{{ uc.name }}</div>
@@ -499,57 +529,256 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
     </div>
   </div>
 
-  <!-- CUSTOMIZE USE CASE -->
+  <!-- Current Configuration -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Current Configuration</span>
+    </div>
+    <p class="section-desc">A snapshot of key settings currently active in the system.</p>
+    <div class="status-grid">
+      <div class="stat-item">
+        <div class="stat-label">Use Case</div>
+        <div class="stat-value" id="stat-uc">{{ use_cases[current_use_case]['name'] }}</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">Industry</div>
+        <div class="stat-value" id="stat-industry">{{ use_cases[current_use_case]['industry'] }}</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">Operator Number</div>
+        <div class="stat-value" id="stat-fwd" style="font-family:monospace; font-size:13px;">{{ forward_to or '—' }}</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">Whitelist Entries</div>
+        <div class="stat-value" id="stat-wl">{{ whitelist|length }}</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">Menu Topics</div>
+        <div class="stat-value">{{ use_cases[current_use_case]['topics']|length }}</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">Languages</div>
+        <div class="stat-value">English · Español</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Call Reports -->
+  <div class="card">
+    <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
+      <span class="card-title">Call Reports</span>
+      <span id="reports-count" style="font-size:12px;color:var(--muted);"></span>
+    </div>
+    <p class="section-desc">
+      Full transcripts, AI summaries, and caller details for every completed call.
+      Click <strong>View →</strong> to open the detailed report page with audio playback.
+    </p>
+    <div style="overflow-x:auto;">
+      <table id="reports-table" style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border);text-align:left;">
+            <th style="padding:10px 16px;color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.05em;">Date / Time</th>
+            <th style="padding:10px 16px;color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.05em;">Caller</th>
+            <th style="padding:10px 16px;color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.05em;">Name</th>
+            <th style="padding:10px 16px;color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.05em;">Topic</th>
+            <th style="padding:10px 16px;color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.05em;">Lang</th>
+            <th style="padding:10px 16px;"></th>
+          </tr>
+        </thead>
+        <tbody id="reports-body">
+          <tr><td colspan="6" style="padding:20px 16px;color:var(--muted);text-align:center;">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--border);">
+      <button class="btn" id="reports-prev" onclick="loadReports(-50)" disabled>← Prev</button>
+      <button class="btn" id="reports-next" onclick="loadReports(50)">Next →</button>
+    </div>
+  </div>
+
+</main>
+</div>
+<!-- end tab-dashboard -->
+
+{% if user_role == 'admin' or user_role == 'manager' %}
+<!-- ═══════════════════ TAB: Use Cases ═══════════════════ -->
+<div id="tab-use-cases" class="tab-wrap" style="display:none;">
+<main>
+
+  <!-- UC List -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Business Profiles</span>
+      <div style="display:flex;gap:8px;">
+        {% if user_role == 'admin' %}
+        <button class="btn btn-primary" style="font-size:12px;padding:6px 14px;" onclick="showNewUCModal()">+ New</button>
+        {% endif %}
+      </div>
+    </div>
+    <p class="section-desc">
+      Each business profile defines the AI's persona, topics, voices, slogans, and conversation instructions.
+      Click a card to select it and edit its details below. The blue dot marks the currently active profile.
+    </p>
+    <div class="uc-grid" id="uc-grid-edit">
+      {% for uc_id, uc in use_cases.items() %}
+      <div class="uc-card {% if uc_id == current_use_case %}active{% endif %}"
+           data-id="{{ uc_id }}"
+           onclick="selectAndEditUC('{{ uc_id }}', '{{ uc.name }}')">
+        {% if uc_id == current_use_case %}<span class="uc-active-tag"></span>{% endif %}
+        <div class="uc-icon">{{ icons.get(uc_id, '🏢') }}</div>
+        <div class="uc-name">{{ uc.name }}</div>
+        <div class="uc-industry">{{ uc.industry }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Customize Use Case -->
   <div class="card">
     <div class="card-header">
       <span class="card-title">Customize Use Case</span>
-      <div style="display:flex;gap:8px;">
-        <button class="btn" style="font-size:12px;padding:6px 14px;background:var(--surface-2);color:var(--text);" onclick="showNewUCModal()">+ New</button>
-        <button class="btn btn-primary" style="font-size:12px;padding:6px 14px;" id="editor-toggle-btn" onclick="toggleEditor()">▼ Expand</button>
-      </div>
     </div>
-    <p style="font-size:12px;color:var(--muted);">
-      Edit the name, voices, slogans, and conversation topics for the currently active use case.
-      Each topic maps to a DTMF menu option and has its own greeting, AI instructions, and bilingual labels.
-      <strong>Operator Number</strong> (per use case) overrides the global forward-to number for this profile only.
+    <p class="section-desc">
+      Edit the name, voices, slogans, and conversation topics for the selected profile.
+      Each topic maps to a DTMF menu option (press 1, press 2…) and has its own greeting, AI instructions, and bilingual labels.
+      The <strong>Operator Number</strong> field overrides the global forward-to number for this profile only.
     </p>
-    <div id="uc-editor" style="display:none;" class="editor-body"></div>
-  </div>
-
-  <!-- New Use Case Modal -->
-  <div id="new-uc-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;align-items:center;justify-content:center;">
-    <div style="background:var(--surface);border-radius:12px;padding:28px;width:380px;max-width:90vw;">
-      <div style="font-weight:700;font-size:15px;margin-bottom:16px;">New Use Case</div>
-      <div class="editor-field"><label>ID (slug, e.g. my_company)</label><input type="text" id="new-uc-id" placeholder="my_company"></div>
-      <div class="editor-field"><label>Name</label><input type="text" id="new-uc-name" placeholder="My Company"></div>
-      <div class="editor-field"><label>Industry</label><input type="text" id="new-uc-industry" placeholder="Technology"></div>
-      <div class="editor-field"><label>Website URL</label><input type="text" id="new-uc-url" placeholder="mycompany.com"></div>
-      <div style="display:flex;gap:10px;margin-top:18px;">
-        <button class="btn btn-primary" onclick="createUseCase()">Create</button>
-        <button class="btn" style="background:var(--surface-2);color:var(--text);" onclick="hideNewUCModal()">Cancel</button>
-      </div>
+    <div id="uc-editor" class="editor-body">
+      <div style="color:var(--muted);font-size:14px;padding:12px 0;">Select a profile above to edit it.</div>
     </div>
   </div>
 
-  <!-- OPERATOR & WHITELIST side by side on wide screens -->
+</main>
+</div>
+<!-- end tab-use-cases -->
+{% endif %}
+
+{% if user_role == 'admin' %}
+<!-- ═══════════════════ TAB: Credentials ═══════════════════ -->
+<div id="tab-credentials" class="tab-wrap" style="display:none;">
+<main>
+
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">API Credentials</span>
+      <span class="card-badge badge-blue">Encrypted in DB</span>
+    </div>
+    <p class="section-desc">
+      All credentials are stored encrypted using your <code>SECRET_KEY</code> environment variable.
+      Edit any field and click <strong>Save Credentials</strong> to update. Only non-empty fields are updated on save —
+      leaving a field blank will not clear an existing value.
+    </p>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap;">
+      <div id="creds-status" style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 14px;background:#f9fafb;border-radius:8px;font-size:13px;">
+        <span style="color:var(--muted);">Checking configured credentials…</span>
+      </div>
+      <button class="btn" id="btn-cred-reveal" onclick="toggleCredVisibility()" style="font-size:12px;padding:8px 14px;background:#f3f4f6;color:var(--text);border:1px solid var(--border);">👁 Show values</button>
+    </div>
+    <div class="cred-sections">
+      <!-- Twilio -->
+      <div class="cred-group">
+        <div class="cred-group-header">Twilio <small>— console.twilio.com</small></div>
+        <div class="cred-field">
+          <div class="cred-label-row"><span class="cred-dot" id="dot-twilio_account_sid"></span><label>Account SID</label></div>
+          <input type="text" id="cred-twilio_account_sid" placeholder="AC…" autocomplete="off" title="Console → Dashboard → Account SID">
+          <div class="field-hint">Found on your Twilio Console Dashboard. Starts with <code>AC</code>.</div>
+        </div>
+        <div class="cred-field">
+          <div class="cred-label-row"><span class="cred-dot" id="dot-twilio_auth_token"></span><label>Auth Token</label></div>
+          <input type="password" data-sensitive="true" id="cred-twilio_auth_token" placeholder="Found next to Account SID" autocomplete="off">
+          <div class="field-hint">Displayed next to Account SID on the Console Dashboard. Keep this secret.</div>
+        </div>
+        <div class="cred-field">
+          <div class="cred-label-row"><span class="cred-dot" id="dot-twilio_api_key_sid"></span><label>API Key SID</label><span class="cred-tag">Test Call</span></div>
+          <input type="text" id="cred-twilio_api_key_sid" placeholder="SK…" autocomplete="off">
+          <div class="field-hint">Console → Account → API keys &amp; tokens → Create API Key. Starts with <code>SK</code>. Required for browser test calls.</div>
+        </div>
+        <div class="cred-field">
+          <div class="cred-label-row"><span class="cred-dot" id="dot-twilio_api_key_secret"></span><label>API Key Secret</label><span class="cred-tag">Test Call</span></div>
+          <input type="password" data-sensitive="true" id="cred-twilio_api_key_secret" placeholder="Shown once at key creation" autocomplete="off">
+          <div class="field-hint">Shown only once when you create the API Key. Copy it immediately and store securely.</div>
+        </div>
+        <div class="cred-field">
+          <div class="cred-label-row"><span class="cred-dot" id="dot-twilio_twiml_app_sid"></span><label>TwiML App SID</label><span class="cred-tag">Test Call</span></div>
+          <input type="text" id="cred-twilio_twiml_app_sid" placeholder="AP…" autocomplete="off">
+          <div class="field-hint">Console → Voice → TwiML → TwiML Apps. Create one pointing to your <code>/voice</code> webhook. Starts with <code>AP</code>.</div>
+        </div>
+        <div class="cred-field">
+          <div class="cred-label-row"><span class="cred-dot" id="dot-twilio_verify_sid"></span><label>Verify Service SID</label><span class="cred-tag">SMS verify</span></div>
+          <input type="text" id="cred-twilio_verify_sid" placeholder="VA…" autocomplete="off">
+          <div class="field-hint">Console → Verify → Services → Create Service. Used to verify user phone numbers via SMS. Starts with <code>VA</code>.</div>
+        </div>
+      </div>
+      <!-- Right column -->
+      <div class="cred-right-col">
+        <div class="cred-group">
+          <div class="cred-group-header">OpenAI <small>— platform.openai.com</small></div>
+          <div class="cred-field">
+            <div class="cred-label-row"><span class="cred-dot" id="dot-openai_api_key"></span><label>API Key</label></div>
+            <input type="password" data-sensitive="true" id="cred-openai_api_key" placeholder="sk-…" autocomplete="off">
+            <div class="field-hint">platform.openai.com → API keys → Create new secret key. Powers all AI conversations and transcriptions.</div>
+          </div>
+        </div>
+        <div class="cred-group">
+          <div class="cred-group-header">Resend <small>— resend.com (email reports &amp; verification)</small></div>
+          <div class="cred-field">
+            <div class="cred-label-row"><span class="cred-dot" id="dot-resend_api_key"></span><label>API Key</label></div>
+            <input type="password" data-sensitive="true" id="cred-resend_api_key" placeholder="re_…" autocomplete="off">
+            <div class="field-hint">resend.com → API Keys. Used to send email reports and account verification emails.</div>
+          </div>
+          <div class="cred-field">
+            <div class="cred-label-row"><span class="cred-dot" id="dot-resend_from"></span><label>From Address</label></div>
+            <input type="text" id="cred-resend_from" placeholder="IVR Reports &lt;noreply@yourdomain.com&gt;" autocomplete="off">
+            <div class="field-hint">Must be a verified domain in your Resend account. E.g. <code>Reports &lt;noreply@yourdomain.com&gt;</code>.</div>
+          </div>
+        </div>
+        <div class="cred-group">
+          <div class="cred-group-header">ElevenLabs / Google TTS <small>— voice &amp; report audio</small></div>
+          <div class="cred-field">
+            <div class="cred-label-row"><span class="cred-dot" id="dot-elevenlabs_api_key"></span><label>ElevenLabs API Key</label></div>
+            <input type="password" data-sensitive="true" id="cred-elevenlabs_api_key" placeholder="elevenlabs.io → Profile → API Key" autocomplete="off">
+            <div class="field-hint">elevenlabs.io → Profile Settings → API Key. Used to generate report audio summaries and voice previews.</div>
+          </div>
+          <div class="cred-field">
+            <div class="cred-label-row"><span class="cred-dot" id="dot-google_tts_api_key"></span><label>Google TTS API Key</label><span class="cred-tag">optional</span></div>
+            <input type="password" data-sensitive="true" id="cred-google_tts_api_key" placeholder="AIza…" autocomplete="off">
+            <div class="field-hint">console.cloud.google.com → APIs → Cloud Text-to-Speech. Used to preview IVR voices in the Use Cases editor.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <button class="btn btn-primary" onclick="saveCredentials()">Save Credentials</button>
+    </div>
+  </div>
+
+</main>
+</div>
+<!-- end tab-credentials -->
+
+<!-- ═══════════════════ TAB: System ═══════════════════ -->
+<div id="tab-system" class="tab-wrap" style="display:none;">
+<main>
+
+  <!-- Phone Numbers + Whitelist -->
   <div class="two-col">
 
-    <!-- OPERATOR NUMBER -->
     <div class="card">
       <div class="card-header">
         <span class="card-title">Phone Numbers</span>
         <span class="card-badge badge-blue">Twilio</span>
       </div>
-      <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">
-        <strong>Twilio From</strong> is the purchased Twilio number that callers see and that the system uses to make outbound calls.<br>
-        <strong>Operator Number</strong> is where calls are forwarded once the AI pre-screens a caller. Use E.164 format, e.g. <code>+15550001234</code>.
+      <p class="section-desc">
+        Configure the Twilio phone number used for inbound calls and the operator number where screened callers are forwarded.
       </p>
-      <label style="display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;">Twilio From (your Twilio number)</label>
-      <div class="input-row" style="margin-bottom:12px;">
+      <label style="display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:4px;">Twilio From (your Twilio number)</label>
+      <div class="field-hint" style="margin-bottom:8px;">The number you purchased in Twilio. Callers see this on outbound calls. Use E.164 format, e.g. <code>+15550001234</code>.</div>
+      <div class="input-row" style="margin-bottom:16px;">
         <input type="tel" id="twilio-from" placeholder="+1 555 000 0000"
                value="{{ twilio_from or '' }}">
       </div>
-      <label style="display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;">Operator Number (forward calls to)</label>
+      <label style="display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:4px;">Operator Number (forward calls to)</label>
+      <div class="field-hint" style="margin-bottom:8px;">Where calls are forwarded once the AI pre-screens a caller. Use E.164 format. Can be overridden per use case in the Use Cases editor.</div>
       <div class="input-row">
         <input type="tel" id="forward-to" placeholder="+1 555 000 0000"
                value="{{ forward_to or '' }}">
@@ -557,14 +786,14 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
       </div>
     </div>
 
-    <!-- WHITELIST -->
     <div class="card">
       <div class="card-header">
         <span class="card-title">Direct Transfer Whitelist</span>
         <span class="card-badge badge-blue" id="wl-count">{{ whitelist|length }} numbers</span>
       </div>
-      <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">
-        Callers on this list skip the AI menu entirely and are transferred directly to the operator. Add the full number in E.164 format.
+      <p class="section-desc">
+        Callers on this list skip the AI menu entirely and are transferred directly to the operator.
+        Add numbers in E.164 format, e.g. <code>+15550001234</code>.
       </p>
       <div class="wl-list" id="wl-list">
         {% if whitelist %}
@@ -590,50 +819,48 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 
   </div>
 
-  <!-- TWILIO WEBHOOK -->
+  <!-- Twilio Webhook -->
   <div class="card">
     <div class="card-header">
       <span class="card-title">Twilio Webhook</span>
       <span class="card-badge badge-green">Voice · HTTP POST</span>
     </div>
+    <p class="section-desc">
+      Copy this URL and set it as the <strong>A call comes in</strong> webhook (HTTP POST) in your
+      <a href="https://console.twilio.com/us1/develop/phone-numbers/manage/incoming" target="_blank" style="color:var(--primary);">Twilio phone number settings</a>.
+      This is the entry point for all incoming calls to the IVR system.
+    </p>
     <div class="input-row">
       <input type="text" id="webhook-url" value="{{ webhook_url }}" readonly
              style="font-family:monospace;font-size:13px;background:#f9fafb;cursor:default;">
       <button class="btn btn-primary" onclick="copyWebhook()">Copy</button>
     </div>
-    <p style="font-size:12px;color:var(--muted);margin-top:10px;">
-      Set this URL as the <strong>A call comes in</strong> webhook (HTTP POST) in your
-      <a href="https://console.twilio.com/us1/develop/phone-numbers/manage/incoming" target="_blank" style="color:var(--primary);">Twilio phone number settings</a>.
-      This is the entry point for all incoming calls.
-    </p>
     {% if '127.0.0.1' in webhook_url or 'localhost' in webhook_url %}
     <div style="margin-top:12px;padding:10px 14px;background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;font-size:13px;color:#92400e;">
       <strong>Local server detected.</strong> Twilio cannot reach localhost directly.
       Use <a href="https://ngrok.com" target="_blank" style="color:#b45309;">ngrok</a> as a proxy:
       <code style="display:block;margin-top:6px;background:#fef3c7;padding:6px 10px;border-radius:6px;font-size:12px;">ngrok http 5000</code>
-      Then update the webhook URL above with the ngrok <code>https://</code> URL.
+      Then paste the ngrok <code>https://…/menu</code> URL into your Twilio phone number webhook settings.
     </div>
     {% endif %}
   </div>
 
-  <!-- NOTIFICATIONS -->
+  <!-- Notifications -->
   <div class="card">
     <div class="card-header">
       <span class="card-title">Notifications</span>
       <span class="card-badge badge-blue">Email · WhatsApp</span>
     </div>
-    <p style="font-size:12px;color:var(--muted);margin-bottom:16px;">
-      After each call, the system can send a summary to your email (via Resend) and/or a WhatsApp message.
-      WhatsApp requires a <a href="https://console.twilio.com/us1/develop/sms/try-it-out/whatsapp-learn" target="_blank" style="color:var(--primary);">Twilio WhatsApp Sandbox</a> or an approved sender number.
-      Configure the Resend API key in the <strong>API Credentials</strong> section below.
+    <p class="section-desc">
+      After each call, the system can send a full report to your email (via Resend) and/or a summary via WhatsApp.
+      WhatsApp requires a <a href="https://console.twilio.com/us1/develop/sms/try-it-out/whatsapp-learn" target="_blank" style="color:var(--primary);">Twilio WhatsApp Sandbox</a> or an approved sender.
+      Configure the Resend API key and From Address in the <strong>Credentials</strong> tab.
     </p>
-
-    <!-- Toggles -->
     <div style="margin-bottom:16px;">
       <div class="toggle-row">
         <div>
           <div class="toggle-label">Email Report</div>
-          <div class="toggle-desc">Send full call report via email after each call</div>
+          <div class="toggle-desc">Send the full call report via email after each call completes</div>
         </div>
         <label class="switch">
           <input type="checkbox" id="toggle-email" {% if notify_email == '1' %}checked{% endif %}
@@ -644,7 +871,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
       <div class="toggle-row">
         <div>
           <div class="toggle-label">WhatsApp Notification</div>
-          <div class="toggle-desc">Send pre-screening summary + full call report via WhatsApp</div>
+          <div class="toggle-desc">Send pre-screening summary and full report via WhatsApp after each call</div>
         </div>
         <label class="switch">
           <input type="checkbox" id="toggle-whatsapp" {% if notify_whatsapp == '1' %}checked{% endif %}
@@ -653,24 +880,25 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
         </label>
       </div>
     </div>
-
-    <!-- Config fields -->
-    <div class="two-col">
+    <div class="two-col" style="margin-bottom:16px;">
       <div>
-        <label style="display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;">Report Email</label>
+        <label style="display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:4px;">Report Email</label>
+        <div class="field-hint" style="margin-bottom:6px;">Address where email reports are sent after each call.</div>
         <div class="input-row">
-          <input type="email" id="report-email" placeholder="antonio@domain.com" value="{{ report_email or '' }}">
+          <input type="email" id="report-email" placeholder="you@example.com" value="{{ report_email or '' }}">
         </div>
       </div>
       <div>
-        <label style="display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;">WhatsApp To</label>
+        <label style="display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:4px;">WhatsApp To</label>
+        <div class="field-hint" style="margin-bottom:6px;">Number to receive WhatsApp notifications, in E.164 format.</div>
         <div class="input-row">
           <input type="tel" id="whatsapp-to" placeholder="+1 555 000 0000" value="{{ whatsapp_to or '' }}">
         </div>
       </div>
     </div>
-    <div style="margin-top:16px;">
-      <label style="display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;">ElevenLabs Voice (Report Audio)</label>
+    <div style="margin-bottom:16px;">
+      <label style="display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:4px;">ElevenLabs Voice (Report Audio)</label>
+      <div class="field-hint" style="margin-bottom:6px;">Voice used to narrate the call report audio summary. Requires an ElevenLabs API key in Credentials.</div>
       <div style="display:flex;gap:8px;align-items:center;">
         <select id="elevenlabs-voice-id" data-saved="{{ elevenlabs_voice_id or '' }}" style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:white;">
           <option disabled selected>Loading voices…</option>
@@ -678,163 +906,10 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
         <button class="btn" style="white-space:nowrap;" onclick="previewElevenLabsVoice(this)">▶ Preview</button>
       </div>
     </div>
-    <div style="margin-top:12px;">
-      <button class="btn btn-primary" onclick="saveNotifications()">Save</button>
-    </div>
+    <button class="btn btn-primary" onclick="saveNotifications()">Save Notifications</button>
   </div>
 
-  <!-- REPORTS -->
-  <div class="card">
-    <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
-      <span class="card-title">Call Reports</span>
-      <span id="reports-count" style="font-size:12px;color:var(--muted);"></span>
-    </div>
-    <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">
-      Full transcripts, AI summaries, and recordings for every completed call. Click <strong>View →</strong> to open the detailed report page with the audio player.
-    </p>
-    <div style="overflow-x:auto;">
-      <table id="reports-table" style="width:100%;border-collapse:collapse;font-size:13px;">
-        <thead>
-          <tr style="border-bottom:1px solid var(--border);text-align:left;">
-            <th style="padding:10px 16px;color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.05em;">Date / Time</th>
-            <th style="padding:10px 16px;color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.05em;">Caller</th>
-            <th style="padding:10px 16px;color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.05em;">Name</th>
-            <th style="padding:10px 16px;color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.05em;">Topic</th>
-            <th style="padding:10px 16px;color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.05em;">Lang</th>
-            <th style="padding:10px 16px;"></th>
-          </tr>
-        </thead>
-        <tbody id="reports-body">
-          <tr><td colspan="6" style="padding:20px 16px;color:var(--muted);text-align:center;">Loading…</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <div style="display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--border);">
-      <button class="btn" id="reports-prev" onclick="loadReports(-50)" disabled>← Prev</button>
-      <button class="btn" id="reports-next" onclick="loadReports(50)">Next →</button>
-    </div>
-  </div>
-
-  <!-- STATUS -->
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">Current Configuration</span>
-    </div>
-    <div class="status-grid">
-      <div class="stat-item">
-        <div class="stat-label">Use Case</div>
-        <div class="stat-value" id="stat-uc">{{ use_cases[current_use_case]['name'] }}</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-label">Industry</div>
-        <div class="stat-value" id="stat-industry">{{ use_cases[current_use_case]['industry'] }}</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-label">Operator Number</div>
-        <div class="stat-value" id="stat-fwd" style="font-family:monospace; font-size:13px;">
-          {{ forward_to or '—' }}
-        </div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-label">Whitelist Entries</div>
-        <div class="stat-value" id="stat-wl">{{ whitelist|length }}</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-label">Menu Topics</div>
-        <div class="stat-value">{{ use_cases[current_use_case]['topics']|length }}</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-label">Languages</div>
-        <div class="stat-value">English · Español</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- CREDENTIALS -->
-  {% if user_role == 'admin' %}
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">API Credentials</span>
-      <span class="card-badge badge-blue">Encrypted in DB</span>
-    </div>
-    <p style="font-size:12px;color:var(--muted);margin-bottom:10px;">
-      Stored encrypted with your <code>SECRET_KEY</code>. Edit any field and save to update it.
-    </p>
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap;">
-      <div id="creds-status" style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 14px;background:#f9fafb;border-radius:8px;font-size:13px;">
-        <span style="color:var(--muted);">Checking configured credentials…</span>
-      </div>
-      <button class="btn" id="btn-cred-reveal" onclick="toggleCredVisibility()" style="font-size:12px;padding:8px 14px;background:#f3f4f6;color:var(--text);border:1px solid var(--border);">👁 Show values</button>
-    </div>
-    <div class="cred-sections">
-      <!-- Twilio -->
-      <div class="cred-group">
-        <div class="cred-group-header">Twilio <small>— console.twilio.com</small></div>
-        <div class="cred-field">
-          <div class="cred-label-row"><span class="cred-dot" id="dot-twilio_account_sid"></span><label>Account SID</label></div>
-          <input type="text" id="cred-twilio_account_sid" placeholder="AC…" autocomplete="off" title="Console → Dashboard">
-        </div>
-        <div class="cred-field">
-          <div class="cred-label-row"><span class="cred-dot" id="dot-twilio_auth_token"></span><label>Auth Token</label></div>
-          <input type="password" data-sensitive="true" id="cred-twilio_auth_token" placeholder="Found next to Account SID" autocomplete="off" title="Console → Dashboard">
-        </div>
-        <div class="cred-field">
-          <div class="cred-label-row"><span class="cred-dot" id="dot-twilio_api_key_sid"></span><label>API Key SID</label><span class="cred-tag">Test Call</span></div>
-          <input type="text" id="cred-twilio_api_key_sid" placeholder="SK…" autocomplete="off" title="Console → Account → API keys & tokens">
-        </div>
-        <div class="cred-field">
-          <div class="cred-label-row"><span class="cred-dot" id="dot-twilio_api_key_secret"></span><label>API Key Secret</label><span class="cred-tag">Test Call</span></div>
-          <input type="password" data-sensitive="true" id="cred-twilio_api_key_secret" placeholder="Shown once at key creation" autocomplete="off" title="Console → Account → API keys & tokens">
-        </div>
-        <div class="cred-field">
-          <div class="cred-label-row"><span class="cred-dot" id="dot-twilio_twiml_app_sid"></span><label>TwiML App SID</label><span class="cred-tag">Test Call</span></div>
-          <input type="text" id="cred-twilio_twiml_app_sid" placeholder="AP…" autocomplete="off" title="Console → Voice → TwiML → TwiML Apps">
-        </div>
-        <div class="cred-field">
-          <div class="cred-label-row"><span class="cred-dot" id="dot-twilio_verify_sid"></span><label>Verify Service SID</label><span class="cred-tag">SMS verify</span></div>
-          <input type="text" id="cred-twilio_verify_sid" placeholder="VA…" autocomplete="off" title="Console → Verify → Services">
-        </div>
-      </div>
-      <!-- Right column: OpenAI + Resend + ElevenLabs -->
-      <div class="cred-right-col">
-        <div class="cred-group">
-          <div class="cred-group-header">OpenAI <small>— platform.openai.com</small></div>
-          <div class="cred-field">
-            <div class="cred-label-row"><span class="cred-dot" id="dot-openai_api_key"></span><label>API Key</label></div>
-            <input type="password" data-sensitive="true" id="cred-openai_api_key" placeholder="sk-… (AI conversation & transcription)" autocomplete="off">
-          </div>
-        </div>
-        <div class="cred-group">
-          <div class="cred-group-header">Resend <small>— resend.com (email reports &amp; verification)</small></div>
-          <div class="cred-field">
-            <div class="cred-label-row"><span class="cred-dot" id="dot-resend_api_key"></span><label>API Key</label></div>
-            <input type="password" data-sensitive="true" id="cred-resend_api_key" placeholder="re_…" autocomplete="off">
-          </div>
-          <div class="cred-field">
-            <div class="cred-label-row"><span class="cred-dot" id="dot-resend_from"></span><label>From Address</label></div>
-            <input type="text" id="cred-resend_from" placeholder="IVR Reports <noreply@yourdomain.com>" autocomplete="off" title="Must be a verified domain in Resend">
-          </div>
-        </div>
-        <div class="cred-group">
-          <div class="cred-group-header">ElevenLabs / Google TTS <small>— voice preview &amp; report audio</small></div>
-          <div class="cred-field">
-            <div class="cred-label-row"><span class="cred-dot" id="dot-elevenlabs_api_key"></span><label>ElevenLabs API Key</label></div>
-            <input type="password" data-sensitive="true" id="cred-elevenlabs_api_key" placeholder="elevenlabs.io → Profile → API Key" autocomplete="off">
-          </div>
-          <div class="cred-field">
-            <div class="cred-label-row"><span class="cred-dot" id="dot-google_tts_api_key"></span><label>Google TTS API Key</label><span class="cred-tag">optional</span></div>
-            <input type="password" data-sensitive="true" id="cred-google_tts_api_key" placeholder="AIza… (console.cloud.google.com)" autocomplete="off">
-          </div>
-        </div>
-      </div>
-    </div>
-    <div style="margin-top:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-      <button class="btn btn-primary" onclick="saveCredentials()">Save Credentials</button>
-    </div>
-  </div>
-  {% endif %}
-
-  <!-- DANGER ZONE -->
+  <!-- Danger Zone -->
   <div class="card" style="border:1px solid rgba(255,59,48,.35);">
     <div class="card-header">
       <span class="card-title" style="color:#ff3b30;">Danger Zone</span>
@@ -855,21 +930,23 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
   </div>
 
 </main>
-</div><!-- end tab-dashboard -->
+</div>
+<!-- end tab-system -->
 
-<!-- USERS TAB -->
-{% if user_role == 'admin' %}
-<div id="tab-users" style="display:none;max-width:1000px;margin:0 auto;padding:28px 16px;">
+<!-- ═══════════════════ TAB: Users ═══════════════════ -->
+<div id="tab-users" class="tab-wrap" style="display:none;">
+<main>
+
   <div class="card">
     <div class="card-header">
       <span class="card-title">Users</span>
       <button class="btn btn-primary" style="font-size:12px;padding:6px 14px;" onclick="showUserModal()">+ New User</button>
     </div>
-    <p style="font-size:12px;color:var(--muted);margin-bottom:16px;">
-      <strong>Admin</strong> — full access including credentials and user management.<br>
-      <strong>Manager</strong> — access to the admin panel for their assigned use cases; must have at least one use case assigned.<br>
-      <strong>Standard</strong> — same panel access as Manager, for general staff.<br>
-      New users receive a verification email. Their account activates only after both email and phone are verified.
+    <p class="section-desc">
+      <strong>Admin</strong> — full access to all tabs including credentials and user management.<br>
+      <strong>Manager</strong> — access to the Use Cases tab and Dashboard for their assigned profiles.<br>
+      <strong>Standard</strong> — Dashboard access only (view call reports and active use case).<br>
+      New users receive a verification email. Their account activates after both email and phone are verified.
     </p>
     <div style="overflow-x:auto;">
       <table class="users-table" id="users-table">
@@ -889,6 +966,26 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
           <tr><td colspan="8" style="padding:20px;color:var(--muted);text-align:center;">Loading…</td></tr>
         </tbody>
       </table>
+    </div>
+  </div>
+
+</main>
+</div>
+<!-- end tab-users -->
+
+<!-- ═══════════════════ MODALS ═══════════════════ -->
+
+<!-- New Use Case Modal -->
+<div id="new-uc-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:12px;padding:28px;width:380px;max-width:90vw;">
+    <div style="font-weight:700;font-size:15px;margin-bottom:16px;">New Use Case</div>
+    <div class="editor-field"><label>ID (slug, e.g. my_company)</label><input type="text" id="new-uc-id" placeholder="my_company"></div>
+    <div class="editor-field"><label>Name</label><input type="text" id="new-uc-name" placeholder="My Company"></div>
+    <div class="editor-field"><label>Industry</label><input type="text" id="new-uc-industry" placeholder="Technology"></div>
+    <div class="editor-field"><label>Website URL</label><input type="text" id="new-uc-url" placeholder="mycompany.com"></div>
+    <div style="display:flex;gap:10px;margin-top:18px;">
+      <button class="btn btn-primary" onclick="createUseCase()">Create</button>
+      <button class="btn" style="background:#f3f4f6;color:var(--text);" onclick="hideNewUCModal()">Cancel</button>
     </div>
   </div>
 </div>
@@ -938,7 +1035,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
   </div>
 </div>
 
-<!-- Phone Verify Modal -->
+<!-- Phone Verify Modal (admin verifying another user) -->
 <div class="modal-overlay" id="phone-modal" style="display:none;">
   <div class="modal-box" style="max-width:360px;">
     <div class="modal-title">Verify Phone Number</div>
@@ -985,7 +1082,7 @@ let currentUCId = {{ current_use_case | tojson }};
 const ELEVENLABS_KEY = {{ elevenlabs_api_key | tojson }};
 const CURRENT_USER_ID = {{ current_user_id | tojson }};
 const IS_ADMIN = {{ (user_role == 'admin') | tojson }};
-let editorOpen = false;
+const IS_EDIT  = {{ (user_role in ['admin', 'manager']) | tojson }};
 
 const VOICE_DATA = {
   'en-US': [
@@ -1009,19 +1106,101 @@ const VOICE_DATA = {
   ],
 };
 
+// ── Tab switching ─────────────────────────────────────────────────────────────
+
+const _ALL_TABS = ['dashboard','use-cases','credentials','system','users'];
+let _currentTab = 'dashboard';
+
+function switchTab(name) {
+  _currentTab = name;
+  _ALL_TABS.forEach(t => {
+    const el  = document.getElementById(`tab-${t}`);
+    const btn = document.getElementById(`tab-btn-${t}`);
+    if (el)  el.style.display = 'none';
+    if (btn) btn.classList.remove('active');
+  });
+  const el  = document.getElementById(`tab-${name}`);
+  const btn = document.getElementById(`tab-btn-${name}`);
+  if (el)  el.style.display = 'block';
+  if (btn) btn.classList.add('active');
+  if (name === 'users')       loadUsers();
+  if (name === 'dashboard')   { _reportsOffset = 0; loadReports(0); }
+  if (name === 'credentials') loadCredentialStatus();
+  if (name === 'use-cases')   buildEditor(currentUCId);
+}
+
+// ── Utilities ─────────────────────────────────────────────────────────────────
+
 function escHtml(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+function toast(msg, type='success') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast ${type} show`;
+  setTimeout(() => el.className = 'toast', 2500);
+}
+
+async function apiFetch(url, options) {
+  const res = await fetch(url, options);
+  if (res.status === 401) {
+    window.location.href = '/admin/login';
+    return null;
+  }
+  return res;
+}
+
+// ── Use Case selection ────────────────────────────────────────────────────────
+
+async function selectUseCase(id, name) {
+  currentUCId = id;
+  const res = await apiFetch('/admin/api/config', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ use_case_id: id })
+  });
+  if (!res) return;
+  if (!res.ok) { toast('Error updating use case', 'error'); return; }
+
+  // Update all UC grids (dashboard + use-cases tab share the same class)
+  document.querySelectorAll('.uc-card').forEach(c => {
+    c.classList.remove('active');
+    const dot = c.querySelector('.uc-active-tag');
+    if (dot) dot.remove();
+  });
+  document.querySelectorAll(`.uc-card[data-id="${id}"]`).forEach(card => {
+    card.classList.add('active');
+    const dot = document.createElement('span');
+    dot.className = 'uc-active-tag';
+    card.prepend(dot);
+  });
+
+  document.getElementById('nav-active-name').textContent = name;
+  const statUc  = document.getElementById('stat-uc');
+  const statInd = document.getElementById('stat-industry');
+  if (statUc)  statUc.textContent  = name;
+  if (statInd) statInd.textContent = USE_CASES[id]?.industry || '—';
+
+  if (_currentTab === 'use-cases') buildEditor(id);
+  toast(`Switched to ${name}`);
+}
+
+async function selectAndEditUC(id, name) {
+  await selectUseCase(id, name);
+  buildEditor(id);
+}
+
+// ── Use Case Editor ───────────────────────────────────────────────────────────
+
 function parseVoice(v) {
-  // "Google.en-US-Neural2-D" → { region:"en-US", voice:"Neural2-D" }
   const s = (v||'').replace('Google.','');
   return { region: s.slice(0,5), voice: s.slice(6) };
 }
 
 function updateVoiceOptions(lang, selectedVoice) {
   const region = document.getElementById(`ed-voice-${lang}-region`).value;
-  const sel = document.getElementById(`ed-voice-${lang}-voice`);
+  const sel    = document.getElementById(`ed-voice-${lang}-voice`);
   sel.innerHTML = (VOICE_DATA[region]||[]).map(o =>
     `<option value="${o.v}" ${o.v===(selectedVoice||'') ? 'selected':''}>${o.l}</option>`
   ).join('');
@@ -1106,20 +1285,31 @@ function buildEditor(ucId) {
   const topicItems = Object.entries(uc.topics)
     .sort(([,a],[,b]) => (a.digit||'9').localeCompare(b.digit||'9'))
     .map(([tid,t]) => buildTopicItem(tid,t)).join('');
-  document.getElementById('uc-editor').innerHTML = `
+  const editorEl = document.getElementById('uc-editor');
+  if (!editorEl) return;
+  editorEl.innerHTML = `
 <div class="editor-section">
   <div style="font-size:11px;color:var(--muted);margin-bottom:14px;">Editing: <strong>${escHtml(uc.name)}</strong></div>
   <div class="two-col">
-    <div class="editor-field"><label>Name</label><input type="text" id="ed-name" value="${escHtml(uc.name)}"></div>
-    <div class="editor-field"><label>Website URL</label><input type="text" id="ed-url" value="${escHtml(uc.url||'')}"></div>
+    <div class="editor-field">
+      <label>Name</label>
+      <input type="text" id="ed-name" value="${escHtml(uc.name)}">
+    </div>
+    <div class="editor-field">
+      <label>Website URL</label>
+      <input type="text" id="ed-url" value="${escHtml(uc.url||'')}">
+      <div class="field-hint">Referenced by the AI when callers ask about your website.</div>
+    </div>
   </div>
   <div class="editor-field" style="max-width:320px;">
     <label>Operator Number (overrides global)</label>
     <input type="tel" id="ed-forward-to" value="${escHtml(uc.forward_to||'')}" placeholder="+1 555 000 0000 (leave blank to use global)">
+    <div class="field-hint">Overrides the global operator number from System → Phone Numbers for this profile only.</div>
   </div>
   <div class="two-col" style="margin-top:4px;">
     <div class="editor-field">
       <label>Voice (English)</label>
+      <div class="field-hint" style="margin-bottom:6px;">Google TTS voice for English AI responses. Click ▶ to preview.</div>
       <div class="voice-preview-row">
         <div class="voice-row">
           ${voiceRegionSelect('en', ['en-US','en-GB'])}
@@ -1130,6 +1320,7 @@ function buildEditor(ucId) {
     </div>
     <div class="editor-field">
       <label>Voice (Español)</label>
+      <div class="field-hint" style="margin-bottom:6px;">Google TTS voice for Spanish AI responses. Click ▶ to preview.</div>
       <div class="voice-preview-row">
         <div class="voice-row">
           ${voiceRegionSelect('es', ['es-US','es-ES'])}
@@ -1140,13 +1331,21 @@ function buildEditor(ucId) {
     </div>
   </div>
   <div class="two-col" style="margin-top:4px;">
-    <div class="editor-field"><label>Slogan (English)</label><input type="text" id="ed-slogan-en" value="${escHtml(uc.slogan?.en||'')}"></div>
-    <div class="editor-field"><label>Slogan (Español)</label><input type="text" id="ed-slogan-es" value="${escHtml(uc.slogan?.es||'')}"></div>
+    <div class="editor-field">
+      <label>Slogan (English)</label>
+      <input type="text" id="ed-slogan-en" value="${escHtml(uc.slogan?.en||'')}">
+      <div class="field-hint">Short tagline the AI may use in greetings, e.g. "Your trusted legal partner."</div>
+    </div>
+    <div class="editor-field">
+      <label>Slogan (Español)</label>
+      <input type="text" id="ed-slogan-es" value="${escHtml(uc.slogan?.es||'')}">
+    </div>
   </div>
 </div>
 <hr>
 <div class="editor-section">
-  <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:12px;">Topics</div>
+  <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:6px;">Topics</div>
+  <div class="field-hint" style="margin-bottom:12px;">Each topic is a menu option callers can choose (e.g. Press 1 for appointments). Click a topic to expand and edit its details.</div>
   ${topicItems}
 </div>
 <div style="padding:0 4px 8px;display:flex;gap:10px;">
@@ -1163,15 +1362,6 @@ function toggleTopic(tid) {
   const open = body.style.display !== 'none';
   body.style.display = open ? 'none' : 'block';
   ch.textContent = open ? '▼' : '▲';
-}
-
-function toggleEditor() {
-  editorOpen = !editorOpen;
-  const ed  = document.getElementById('uc-editor');
-  const btn = document.getElementById('editor-toggle-btn');
-  ed.style.display  = editorOpen ? 'block' : 'none';
-  btn.textContent   = editorOpen ? '▲ Collapse' : '▼ Expand';
-  if (editorOpen) buildEditor(currentUCId);
 }
 
 function collectEditorData() {
@@ -1224,7 +1414,6 @@ async function deleteUseCase() {
   if (remaining.length) {
     selectUseCase(remaining[0], USE_CASES[remaining[0]].name);
   }
-  toggleEditor();
   toast('Use case deleted');
   location.reload();
 }
@@ -1282,52 +1471,7 @@ async function createUseCase() {
   location.reload();
 }
 
-function toast(msg, type='success') {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.className = `toast ${type} show`;
-  setTimeout(() => el.className = 'toast', 2500);
-}
-
-async function apiFetch(url, options) {
-  const res = await fetch(url, options);
-  if (res.status === 401) {
-    window.location.href = '/admin/login';
-    return null;
-  }
-  return res;
-}
-
-async function selectUseCase(id, name) {
-  currentUCId = id;
-  const res = await apiFetch('/admin/api/config', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ use_case_id: id })
-  });
-  if (!res) return;
-  if (!res.ok) { toast('Error updating use case', 'error'); return; }
-
-  // Update UI
-  document.querySelectorAll('.uc-card').forEach(c => {
-    c.classList.remove('active');
-    const dot = c.querySelector('.uc-active-tag');
-    if (dot) dot.remove();
-  });
-  const card = document.querySelector(`.uc-card[data-id="${id}"]`);
-  card.classList.add('active');
-  const dot = document.createElement('span');
-  dot.className = 'uc-active-tag';
-  card.prepend(dot);
-
-  // Update nav + status
-  document.getElementById('nav-active-name').textContent = name;
-  document.getElementById('stat-uc').textContent = name;
-  document.getElementById('stat-industry').textContent = USE_CASES[id]?.industry || '—';
-
-  if (editorOpen) buildEditor(id);
-  toast(`Switched to ${name}`);
-}
+// ── System: Phone Numbers & Webhook ──────────────────────────────────────────
 
 async function saveOperator() {
   const from = document.getElementById('twilio-from').value.trim();
@@ -1339,7 +1483,8 @@ async function saveOperator() {
   });
   if (!res) return;
   if (!res.ok) { toast('Error saving phone numbers', 'error'); return; }
-  document.getElementById('stat-fwd').textContent = fwd || '—';
+  const statFwd = document.getElementById('stat-fwd');
+  if (statFwd) statFwd.textContent = fwd || '—';
   toast('Phone numbers saved');
 }
 
@@ -1348,22 +1493,7 @@ function copyWebhook() {
   navigator.clipboard.writeText(url).then(() => toast('Webhook URL copied'));
 }
 
-async function saveNotifications() {
-  const res = await apiFetch('/admin/api/config', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      report_email:     document.getElementById('report-email').value.trim(),
-      whatsapp_to:      document.getElementById('whatsapp-to').value.trim(),
-      notify_email:          document.getElementById('toggle-email').checked    ? '1' : '0',
-      notify_whatsapp:       document.getElementById('toggle-whatsapp').checked ? '1' : '0',
-      elevenlabs_voice_id:   document.getElementById('elevenlabs-voice-id').value.trim(),
-    })
-  });
-  if (!res) return;
-  if (!res.ok) { toast('Error saving notifications', 'error'); return; }
-  toast('Notifications saved');
-}
+// ── System: Whitelist ─────────────────────────────────────────────────────────
 
 async function addWhitelist() {
   const input = document.getElementById('wl-input');
@@ -1392,8 +1522,50 @@ async function removeWhitelist(phone) {
   toast(`${phone} removed`);
 }
 
+function renderWhitelist(list) {
+  const container = document.getElementById('wl-list');
+  const countEl   = document.getElementById('wl-count');
+  const statEl    = document.getElementById('stat-wl');
+  if (countEl) countEl.textContent = `${list.length} numbers`;
+  if (statEl)  statEl.textContent  = list.length;
+  if (!container) return;
+  if (list.length === 0) {
+    container.innerHTML = '<div class="empty-msg">No numbers added yet.</div>';
+    return;
+  }
+  container.innerHTML = list.map(n => `
+    <div class="wl-item" data-number="${n}">
+      <div>
+        <span class="wl-number">${n}</span>
+        <span class="wl-label">Direct transfer</span>
+      </div>
+      <button class="btn-remove" onclick="removeWhitelist('${n}')" title="Remove">×</button>
+    </div>
+  `).join('');
+}
+
+// ── System: Notifications ─────────────────────────────────────────────────────
+
+async function saveNotifications() {
+  const res = await apiFetch('/admin/api/config', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      report_email:        document.getElementById('report-email').value.trim(),
+      whatsapp_to:         document.getElementById('whatsapp-to').value.trim(),
+      notify_email:        document.getElementById('toggle-email').checked    ? '1' : '0',
+      notify_whatsapp:     document.getElementById('toggle-whatsapp').checked ? '1' : '0',
+      elevenlabs_voice_id: document.getElementById('elevenlabs-voice-id').value.trim(),
+    })
+  });
+  if (!res) return;
+  if (!res.ok) { toast('Error saving notifications', 'error'); return; }
+  toast('Notifications saved');
+}
+
 async function loadElevenLabsVoices() {
   const sel = document.getElementById('elevenlabs-voice-id');
+  if (!sel) return;
   const savedId = sel.dataset.saved;
   try {
     const res = await fetch('/admin/api/elevenlabs-voices');
@@ -1411,10 +1583,10 @@ async function loadElevenLabsVoices() {
 }
 
 async function previewElevenLabsVoice(btn) {
-  const sel = document.getElementById('elevenlabs-voice-id');
+  const sel     = document.getElementById('elevenlabs-voice-id');
   const voice_id = sel.value;
-  const name = sel.options[sel.selectedIndex]?.text.split(' · ')[0] || 'voice';
-  const text = `Hello, this is a preview of the ${name} voice for report audio.`;
+  const name     = sel.options[sel.selectedIndex]?.text.split(' · ')[0] || 'voice';
+  const text     = `Hello, this is a preview of the ${name} voice for report audio.`;
   btn.disabled = true; btn.textContent = '⏳';
   try {
     const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice_id}`, {
@@ -1432,7 +1604,7 @@ async function previewElevenLabsVoice(btn) {
       return;
     }
     const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
+    const url  = URL.createObjectURL(blob);
     const audio = new Audio(url);
     audio.onended = () => URL.revokeObjectURL(url);
     audio.play();
@@ -1443,33 +1615,71 @@ async function previewElevenLabsVoice(btn) {
   }
 }
 
-function renderWhitelist(list) {
-  const container = document.getElementById('wl-list');
-  const countEl = document.getElementById('wl-count');
-  const statEl = document.getElementById('stat-wl');
-  countEl.textContent = `${list.length} numbers`;
-  statEl.textContent = list.length;
+// ── Credentials ───────────────────────────────────────────────────────────────
 
-  if (list.length === 0) {
-    container.innerHTML = '<div class="empty-msg">No numbers added yet.</div>';
-    return;
-  }
-  container.innerHTML = list.map(n => `
-    <div class="wl-item" data-number="${n}">
-      <div>
-        <span class="wl-number">${n}</span>
-        <span class="wl-label">Direct transfer</span>
-      </div>
-      <button class="btn-remove" onclick="removeWhitelist('${n}')" title="Remove">×</button>
-    </div>
-  `).join('');
+const _CRED_KEYS = [
+  'twilio_account_sid','twilio_auth_token','twilio_api_key_sid','twilio_api_key_secret',
+  'twilio_twiml_app_sid','twilio_verify_sid','openai_api_key',
+  'resend_api_key','resend_from','elevenlabs_api_key','google_tts_api_key'
+];
+
+let _credVisible = false;
+
+function toggleCredVisibility() {
+  _credVisible = !_credVisible;
+  document.querySelectorAll('.cred-field input[data-sensitive="true"]').forEach(inp => {
+    inp.type = _credVisible ? 'text' : 'password';
+  });
+  const btn = document.getElementById('btn-cred-reveal');
+  if (btn) btn.textContent = _credVisible ? '🙈 Hide values' : '👁 Show values';
 }
 
-let _reportsOffset = 0;
+async function loadCredentialStatus() {
+  const el = document.getElementById('creds-status');
+  if (!el) return;
+  try {
+    const res = await fetch('/admin/api/credentials');
+    if (!res.ok) {
+      el.innerHTML = `<span style="color:var(--danger)">● Error ${res.status} loading credentials</span>`;
+      return;
+    }
+    const values = await res.json();
+    const set   = Object.values(values).filter(Boolean).length;
+    const total = Object.keys(values).length;
+    el.innerHTML = `<span style="color:${set===total?'var(--success)':'var(--warning)'}">●</span> <strong>${set} of ${total}</strong> credentials configured`;
+    _CRED_KEYS.forEach(k => {
+      const dot = document.getElementById(`dot-${k}`);
+      const inp = document.getElementById(`cred-${k}`);
+      const isSet = Boolean(values[k]);
+      if (dot) dot.className = `cred-dot ${isSet ? 'dot-set' : 'dot-empty'}`;
+      if (inp) {
+        inp.value = values[k] || '';
+        inp.style.borderColor = isSet ? '#10b981' : '#e5e7eb';
+      }
+    });
+  } catch(e) {
+    el.innerHTML = `<span style="color:var(--danger)">● Could not reach credentials API</span>`;
+  }
+}
 
-loadElevenLabsVoices();
-loadReports(0);
-loadCredentialStatus();
+async function saveCredentials() {
+  const payload = {};
+  _CRED_KEYS.forEach(k => {
+    const el = document.getElementById(`cred-${k}`);
+    if (el && el.value.trim()) payload[k] = el.value.trim();
+  });
+  if (!Object.keys(payload).length) { toast('Nothing to save', 'error'); return; }
+  const res = await apiFetch('/admin/api/credentials', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res || !res.ok) { toast('Error saving credentials', 'error'); return; }
+  loadCredentialStatus();
+  toast('Credentials saved');
+}
+
+// ── Danger Zone ───────────────────────────────────────────────────────────────
 
 async function resetAllData() {
   if (!confirm('This will permanently delete all reports and reset the database to its initial state.\n\nAre you sure?')) return;
@@ -1518,88 +1728,9 @@ async function spVerifyCode() {
   }
   hideSelfPhoneModal();
   toast('Phone verified!');
-  // Hide the banner and reload to reflect updated state
   const banner = document.getElementById('phone-banner');
   if (banner) banner.style.display = 'none';
   setTimeout(() => location.reload(), 800);
-}
-
-// ── Credentials ───────────────────────────────────────────────────────────────
-
-const _CRED_KEYS = [
-  'twilio_account_sid','twilio_auth_token','twilio_api_key_sid','twilio_api_key_secret',
-  'twilio_twiml_app_sid','twilio_verify_sid','openai_api_key',
-  'resend_api_key','resend_from','elevenlabs_api_key','google_tts_api_key'
-];
-
-let _credVisible = false;
-
-function toggleCredVisibility() {
-  _credVisible = !_credVisible;
-  document.querySelectorAll('.cred-field input[data-sensitive="true"]').forEach(inp => {
-    inp.type = _credVisible ? 'text' : 'password';
-  });
-  const btn = document.getElementById('btn-cred-reveal');
-  if (btn) btn.textContent = _credVisible ? '🙈 Hide values' : '👁 Show values';
-}
-
-async function loadCredentialStatus() {
-  // Section only rendered for admins — if element missing, nothing to do
-  const el = document.getElementById('creds-status');
-  if (!el) return;
-  try {
-    const res = await fetch('/admin/api/credentials');
-    if (!res.ok) {
-      el.innerHTML = `<span style="color:var(--danger)">● Error ${res.status} loading credentials</span>`;
-      return;
-    }
-    const values = await res.json();
-    const set = Object.values(values).filter(Boolean).length;
-    const total = Object.keys(values).length;
-    el.innerHTML = `<span style="color:${set===total?'var(--success)':'var(--warning)'}">●</span> <strong>${set} of ${total}</strong> credentials configured`;
-    _CRED_KEYS.forEach(k => {
-      const dot = document.getElementById(`dot-${k}`);
-      const inp = document.getElementById(`cred-${k}`);
-      const isSet = Boolean(values[k]);
-      if (dot) dot.className = `cred-dot ${isSet ? 'dot-set' : 'dot-empty'}`;
-      if (inp) {
-        inp.value = values[k] || '';
-        inp.style.borderColor = isSet ? '#10b981' : '#e5e7eb';
-      }
-    });
-  } catch(e) {
-    el.innerHTML = `<span style="color:var(--danger)">● Could not reach credentials API</span>`;
-  }
-}
-
-async function saveCredentials() {
-  const payload = {};
-  _CRED_KEYS.forEach(k => {
-    const el = document.getElementById(`cred-${k}`);
-    if (el && el.value.trim()) payload[k] = el.value.trim();
-  });
-  if (!Object.keys(payload).length) { toast('Nothing to save', 'error'); return; }
-  const res = await apiFetch('/admin/api/credentials', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-  if (!res || !res.ok) { toast('Error saving credentials', 'error'); return; }
-  loadCredentialStatus();
-  toast('Credentials saved');
-}
-
-// ── Tab switching ─────────────────────────────────────────────────────────────
-
-function switchTab(name) {
-  ['dashboard','users'].forEach(t => {
-    const el = document.getElementById(`tab-${t}`);
-    const btn = document.getElementById(`tab-btn-${t}`);
-    if (!el) return;
-    el.style.display = t === name ? (t === 'dashboard' ? 'block' : 'block') : 'none';
-    if (btn) btn.classList.toggle('active', t === name);
-  });
-  if (name === 'users') loadUsers();
 }
 
 // ── User management ───────────────────────────────────────────────────────────
@@ -1614,16 +1745,15 @@ function umRoleChanged() {
 function showUserModal(user) {
   _editingUserId = user ? user.id : null;
   document.getElementById('user-modal-title').textContent = user ? 'Edit User' : 'New User';
-  document.getElementById('um-id').value = user ? user.id : '';
-  document.getElementById('um-first-name').value = user ? user.first_name : '';
-  document.getElementById('um-last-name').value = user ? user.last_name : '';
-  document.getElementById('um-email').value = user ? user.email : '';
-  document.getElementById('um-phone').value = user ? user.phone : '';
-  document.getElementById('um-role').value = user ? user.role : 'standard';
-  document.getElementById('um-password').value = '';
+  document.getElementById('um-id').value          = user ? user.id : '';
+  document.getElementById('um-first-name').value  = user ? user.first_name : '';
+  document.getElementById('um-last-name').value   = user ? user.last_name  : '';
+  document.getElementById('um-email').value       = user ? user.email : '';
+  document.getElementById('um-phone').value       = user ? user.phone : '';
+  document.getElementById('um-role').value        = user ? user.role  : 'standard';
+  document.getElementById('um-password').value    = '';
   document.getElementById('um-pw-label').textContent = user ? 'New Password (leave blank to keep)' : 'Password';
   document.getElementById('um-delete-btn').style.display = user ? 'inline-block' : 'none';
-  // Reset checkboxes
   document.querySelectorAll('input[name="um-uc"]').forEach(cb => {
     cb.checked = user && user.use_cases ? user.use_cases.includes(cb.value) : false;
   });
@@ -1699,13 +1829,13 @@ async function resendVerification(userId) {
 }
 
 function showPhoneModal(userId, phone) {
-  document.getElementById('pm-user-id').value = userId;
-  document.getElementById('pm-phone').textContent = phone;
+  document.getElementById('pm-user-id').value      = userId;
+  document.getElementById('pm-phone').textContent  = phone;
   document.getElementById('pm-code-field').style.display = 'none';
-  document.getElementById('pm-code').value = '';
-  document.getElementById('pm-send-btn').style.display = 'inline-block';
+  document.getElementById('pm-code').value         = '';
+  document.getElementById('pm-send-btn').style.display   = 'inline-block';
   document.getElementById('pm-verify-btn').style.display = 'none';
-  document.getElementById('phone-modal').style.display = 'flex';
+  document.getElementById('phone-modal').style.display   = 'flex';
 }
 
 function hidePhoneModal() {
@@ -1719,9 +1849,9 @@ async function pmSendCode() {
     const d = await res?.json().catch(() => ({})) || {};
     toast(d.error || 'Error sending code', 'error'); return;
   }
-  document.getElementById('pm-code-field').style.display = 'block';
-  document.getElementById('pm-send-btn').style.display = 'none';
-  document.getElementById('pm-verify-btn').style.display = 'inline-block';
+  document.getElementById('pm-code-field').style.display  = 'block';
+  document.getElementById('pm-send-btn').style.display    = 'none';
+  document.getElementById('pm-verify-btn').style.display  = 'inline-block';
   toast('Code sent via SMS');
 }
 
@@ -1745,10 +1875,11 @@ async function pmVerifyCode() {
 }
 
 async function loadUsers() {
+  const tbody = document.getElementById('users-body');
+  if (!tbody) return;
   const res = await apiFetch('/admin/api/users');
   if (!res || !res.ok) return;
   const users = await res.json();
-  const tbody = document.getElementById('users-body');
   if (!users.length) {
     tbody.innerHTML = '<tr><td colspan="8" style="padding:20px;color:var(--muted);text-align:center;">No users yet</td></tr>';
     return;
@@ -1763,7 +1894,6 @@ async function loadUsers() {
         ? `<a href="#" onclick="showPhoneModal(${u.id},'${u.phone}')" style="color:var(--primary);font-size:11px;">Verify</a>`
         : '<span style="color:var(--muted);font-size:11px;">—</span>';
     const statusDot = u.is_active ? '<span class="status-dot dot-active"></span>Active' : '<span class="status-dot dot-pending"></span>Pending';
-    const ucNames   = (u.use_cases || []).join(', ') || '—';
     return `<tr>
       <td style="font-weight:500;">${escHtml(fullName)}</td>
       <td style="font-size:12px;color:var(--muted);">${escHtml(u.email)}</td>
@@ -1777,15 +1907,23 @@ async function loadUsers() {
   }).join('');
 }
 
+// ── Reports ───────────────────────────────────────────────────────────────────
+
+let _reportsOffset = 0;
+
 async function loadReports(delta) {
   _reportsOffset = Math.max(0, _reportsOffset + delta);
   const res = await apiFetch(`/admin/api/reports?offset=${_reportsOffset}`);
   if (!res || !res.ok) return;
   const { reports, total, offset } = await res.json();
-  document.getElementById('reports-count').textContent = `${total} total`;
-  document.getElementById('reports-prev').disabled = offset === 0;
-  document.getElementById('reports-next').disabled = offset + reports.length >= total;
+  const countEl = document.getElementById('reports-count');
+  if (countEl) countEl.textContent = `${total} total`;
+  const prevBtn = document.getElementById('reports-prev');
+  const nextBtn = document.getElementById('reports-next');
+  if (prevBtn) prevBtn.disabled = offset === 0;
+  if (nextBtn) nextBtn.disabled = offset + reports.length >= total;
   const tbody = document.getElementById('reports-body');
+  if (!tbody) return;
   if (!reports.length) {
     tbody.innerHTML = '<tr><td colspan="6" style="padding:20px 16px;color:var(--muted);text-align:center;">No reports yet</td></tr>';
     return;
@@ -1801,6 +1939,12 @@ async function loadReports(delta) {
     </tr>
   `).join('');
 }
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+
+loadElevenLabsVoices();
+loadReports(0);
+loadCredentialStatus();
 </script>
 </body>
 </html>
