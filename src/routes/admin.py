@@ -138,7 +138,10 @@ def login():
             error = "Please verify your email first — check your inbox."
         else:
             error = "Invalid email or password."
-    return render_template("login.html", error=error)
+    use_cases = _load_use_cases()
+    current_use_case_id = runtime_config.get("use_case_id")
+    active_uc_name = use_cases.get(current_use_case_id, {}).get("name", "") if current_use_case_id else ""
+    return render_template("login.html", error=error, active_uc_name=active_uc_name)
 
 
 @admin_bp.route("/admin/logout")
@@ -347,13 +350,11 @@ def api_whitelist_remove(phone):
 # ── Test Call ─────────────────────────────────────────────────────────────────
 
 @admin_bp.route("/admin/test-call")
-@require_login
 def test_call_page():
     return render_template("test_call.html")
 
 
 @admin_bp.route("/admin/api/test-call-token", methods=["GET"])
-@require_login
 def api_test_call_token():
     from twilio.jwt.access_token import AccessToken
     from twilio.jwt.access_token.grants import VoiceGrant

@@ -12,8 +12,11 @@ body {
   background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 16px;
+  padding: 20px;
 }
 .card {
   background: white;
@@ -45,7 +48,7 @@ input[type=email], input[type=password] {
   transition: border-color 0.15s;
 }
 input[type=email]:focus, input[type=password]:focus { border-color: #4f46e5; }
-button {
+button[type=submit] {
   width: 100%;
   margin-top: 4px;
   padding: 12px;
@@ -58,8 +61,53 @@ button {
   cursor: pointer;
   transition: background 0.15s;
 }
-button:hover { background: #4338ca; }
+button[type=submit]:hover { background: #4338ca; }
 .error { color: #ef4444; font-size: 13px; margin-top: 12px; text-align: center; }
+.bottom-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 360px;
+  gap: 12px;
+}
+.active-pill {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.3);
+  padding: 7px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  color: white;
+  flex: 1;
+  min-width: 0;
+}
+.active-dot {
+  width: 7px; height: 7px;
+  background: #4ade80;
+  border-radius: 50%;
+  flex-shrink: 0;
+  animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+.active-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.btn-test {
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.3);
+  color: white;
+  padding: 7px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+.btn-test:hover { background: rgba(255,255,255,0.28); }
 </style>
 </head>
 <body>
@@ -76,5 +124,14 @@ button:hover { background: #4338ca; }
     {% if error %}<div class="error">{{ error }}</div>{% endif %}
   </form>
 </div>
+{% if active_uc_name %}
+<div class="bottom-bar">
+  <div class="active-pill">
+    <span class="active-dot"></span>
+    <span class="active-name">{{ active_uc_name }}</span>
+  </div>
+  <button class="btn-test" onclick="window.open('/admin/test-call','test_call','width=340,height=640,resizable=no,scrollbars=no')">📞 Test Call</button>
+</div>
+{% endif %}
 </body>
 </html>
