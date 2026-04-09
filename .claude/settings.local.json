@@ -23,7 +23,13 @@
       "Bash(ffmpeg -i '/Users/antoniorobles/Library/Mobile Documents/com~apple~CloudDocs/Dev/twilio/assets/wait-music-robles_ai.wav' -ar 8000 -ac 1 -af volume=0.8 '/Users/antoniorobles/Library/Mobile Documents/com~apple~CloudDocs/Dev/twilio/assets/wait-music-robles_ai.wav.tmp' -y)",
       "Bash(ffmpeg -i \"wait-music-robles_ai.wav\" -ar 8000 -ac 1 -af \"volume=0.8\" -f wav \"wait-music-robles_ai-new.wav\" -y)",
       "Bash(mv \"wait-music-robles_ai.wav\" \"wait-music-robles_ai.wav.bak\")",
-      "Bash(mv \"wait-music-robles_ai-new.wav\" \"wait-music-robles_ai.wav\")"
+      "Bash(mv \"wait-music-robles_ai-new.wav\" \"wait-music-robles_ai.wav\")",
+      "Bash(python3:*)",
+      "Bash(awk NR>=427 && NR<=470:*)",
+      "Bash(awk NR>=460 && NR<=860:*)",
+      "Bash(awk NR>=862 && NR<=985:*)",
+      "Bash(awk NR>=1590 && NR<=1620:*)",
+      "WebFetch(domain:robles.ai)"
     ]
   }
 }
