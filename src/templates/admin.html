@@ -1023,8 +1023,8 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
       <label>Assigned Use Cases <span style="color:#ef4444;">*</span></label>
       <div id="um-uc-checkboxes" style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px 20px;padding:8px 0;">
         {% for uc_id, uc in use_cases.items() %}
-        <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:400;cursor:pointer;min-width:0;">
-          <input type="checkbox" name="um-uc" value="{{ uc_id }}" style="flex-shrink:0;"> <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ uc.name }}</span>
+        <label style="display:flex;align-items:flex-start;gap:6px;font-size:13px;font-weight:400;cursor:pointer;">
+          <input type="checkbox" name="um-uc" value="{{ uc_id }}" style="flex-shrink:0;margin-top:2px;"> {{ uc.name }}
         </label>
         {% endfor %}
       </div>
