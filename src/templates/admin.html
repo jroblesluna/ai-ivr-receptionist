@@ -183,6 +183,7 @@ nav {
   box-shadow: 0 0 0 3px rgba(79,70,229,0.1);
 }
 .uc-card.view-only { cursor: default; }
+.uc-card.view-only:not(.active) { opacity: 0.4; filter: grayscale(1); }
 .uc-card.view-only:hover { border-color: var(--border); background: none; transform: none; }
 .uc-icon { font-size: 22px; margin-bottom: 8px; }
 .uc-name { font-weight: 600; font-size: 13px; color: var(--text); line-height: 1.3; }
