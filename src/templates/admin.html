@@ -182,9 +182,9 @@ nav {
   background: var(--primary-light);
   box-shadow: 0 0 0 3px rgba(79,70,229,0.1);
 }
-.uc-card.view-only { cursor: default; }
-.uc-card.view-only:not(.active) { opacity: 0.4; filter: grayscale(1); }
-.uc-card.view-only:hover { border-color: var(--border); background: none; transform: none; }
+.uc-card.no-access { cursor: default; opacity: 0.35; filter: grayscale(1); }
+.uc-card.no-access:hover { border-color: var(--border); background: none; transform: none; }
+.uc-card.no-access.active { border-color: var(--border); background: none; box-shadow: none; }
 .uc-icon { font-size: 22px; margin-bottom: 8px; }
 .uc-name { font-weight: 600; font-size: 13px; color: var(--text); line-height: 1.3; }
 .uc-industry { font-size: 11px; color: var(--muted); margin-top: 3px; }
@@ -517,12 +517,12 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
     </p>
     <div class="uc-grid">
       {% for uc_id, uc in use_cases.items() %}
-      <div class="uc-card {% if uc_id == current_use_case %}active{% endif %} {% if user_role != 'admin' and user_role != 'manager' %}view-only{% endif %}"
+      {% set can_access = user_role == 'admin' or user_use_cases is none or uc_id in (user_use_cases or []) %}
+      {% set can_click  = (user_role == 'admin' or user_role == 'manager') and can_access %}
+      <div class="uc-card {% if uc_id == current_use_case %}active{% endif %} {% if not can_access %}no-access{% endif %}"
            data-id="{{ uc_id }}"
-           {% if user_role == 'admin' or user_role == 'manager' %}
-           onclick="selectUseCase('{{ uc_id }}', '{{ uc.name }}')"
-           {% endif %}>
-        {% if uc_id == current_use_case %}<span class="uc-active-tag"></span>{% endif %}
+           {% if can_click %}onclick="selectUseCase('{{ uc_id }}', '{{ uc.name }}')"{% else %}style="cursor:default;"{% endif %}>
+        {% if uc_id == current_use_case and can_access %}<span class="uc-active-tag"></span>{% endif %}
         <div class="uc-icon">{{ icons.get(uc_id, '🏢') }}</div>
         <div class="uc-name">{{ uc.name }}</div>
         <div class="uc-industry">{{ uc.industry }}</div>
@@ -1021,10 +1021,10 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
     </div>
     <div class="editor-field" id="um-uc-field" style="display:none;">
       <label>Assigned Use Cases <span style="color:#ef4444;">*</span></label>
-      <div id="um-uc-checkboxes" style="display:flex;flex-wrap:wrap;gap:8px;padding:8px 0;">
+      <div id="um-uc-checkboxes" style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px 20px;padding:8px 0;">
         {% for uc_id, uc in use_cases.items() %}
-        <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:400;cursor:pointer;">
-          <input type="checkbox" name="um-uc" value="{{ uc_id }}"> {{ uc.name }}
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:400;cursor:pointer;min-width:0;">
+          <input type="checkbox" name="um-uc" value="{{ uc_id }}" style="flex-shrink:0;"> <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ uc.name }}</span>
         </label>
         {% endfor %}
       </div>
@@ -1741,7 +1741,7 @@ let _editingUserId = null;
 
 function umRoleChanged() {
   const role = document.getElementById('um-role').value;
-  document.getElementById('um-uc-field').style.display = role === 'manager' ? 'block' : 'none';
+  document.getElementById('um-uc-field').style.display = role !== 'admin' ? 'block' : 'none';
 }
 
 function showUserModal(user) {
@@ -1779,7 +1779,7 @@ async function saveUser() {
 
   if (!first_name || !last_name || !email) { toast('Name and email are required', 'error'); return; }
   if (!id && !password) { toast('Password is required for new users', 'error'); return; }
-  if (role === 'manager' && !use_cases.length) { toast('Managers must have at least one use case assigned', 'error'); return; }
+  if (role !== 'admin' && !use_cases.length) { toast('Please assign at least one use case', 'error'); return; }
 
   const payload = { first_name, last_name, email, phone, role, use_cases };
   if (password) payload.password = password;

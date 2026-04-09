@@ -93,6 +93,8 @@ def admin():
         current_use_case = next(iter(use_cases), None)
         if current_use_case:
             runtime_config.set("use_case_id", current_use_case)
+    # For non-admins, fetch the user's assigned use cases (None = all access)
+    user_use_cases = db.user_get_use_cases(user["id"]) if user and user["role"] != "admin" else None
     return render_template(
         "admin.html",
         use_cases=use_cases,
@@ -113,6 +115,7 @@ def admin():
         phone_verified=user["phone_verified"] if user else False,
         current_user_id=user["id"] if user else None,
         current_user_phone=user["phone"] if user else "",
+        user_use_cases=user_use_cases,
     )
 
 
