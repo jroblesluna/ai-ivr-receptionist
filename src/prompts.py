@@ -65,13 +65,15 @@ def get_conversational_prompt(lang: str, uc: dict, caller_from: str = None, call
         )
         has_kb = bool(knowledge_base and knowledge_base.strip())
         end_call_rule = (
-            "  • You are a fully autonomous AI agent — there is NO human to transfer to.\n"
-            "  • NEVER say 'please hold', 'I'll connect you', or 'let me transfer you'.\n"
-            "  • Answer questions DIRECTLY from your knowledge base. Do not say you will 'search' or 'look up' — just answer.\n"
-            "  • Only set end_call=true after you have FULLY answered the caller's request AND they confirm they have no more questions.\n"
-            "  • Keep collecting name and phone naturally during the conversation, but do NOT end the call just because you have them.\n"
+            "  • You are a fully autonomous AI agent — there is NO human to transfer to. NEVER say 'please hold' or 'I'll connect you'.\n"
+            "  • Answer questions DIRECTLY from your knowledge base — never say you will 'search', 'look up', or 'check'. Just state the answer.\n"
+            "  • If the caller asks about something not in your knowledge base, say so briefly, then ask if you can help with something else.\n"
+            "  • After completing each request, ALWAYS ask: 'Is there anything else I can help you with?' before considering the call done.\n"
+            "  • Only set end_call=true on the turn where the caller explicitly says they have no more questions (e.g. 'no thanks', 'that's all').\n"
+            "  • NEVER set end_call=true on the same turn you provide information or complete a task.\n"
         ) if has_kb else (
-            "  • When you have name + phone and the conversation goal is reached: say goodbye warmly and set end_call=true.\n"
+            "  • After completing the caller's request, ask: 'Is there anything else I can help you with?'\n"
+            "  • Only set end_call=true when the caller confirms they are done. Say goodbye warmly.\n"
             "  • NEVER say 'please hold' — there is no human to transfer to.\n"
         )
         return (
@@ -103,13 +105,15 @@ def get_conversational_prompt(lang: str, uc: dict, caller_from: str = None, call
         )
         has_kb = bool(knowledge_base and knowledge_base.strip())
         end_call_rule_es = (
-            "  • Eres un agente de IA totalmente autónomo — NO hay ningún humano al que transferir.\n"
-            "  • NUNCA digas 'por favor espere', 'le conecto' ni 'le transfiero'.\n"
-            "  • Responde las preguntas DIRECTAMENTE usando tu base de conocimiento. No digas que vas a 'buscar' o 'consultar' — simplemente responde.\n"
-            "  • Solo establece end_call=true después de haber respondido COMPLETAMENTE la solicitud del llamante Y que confirme que no tiene más preguntas.\n"
-            "  • Recoge nombre y teléfono de forma natural durante la conversación, pero NO termines la llamada solo por haberlos obtenido.\n"
+            "  • Eres un agente de IA totalmente autónomo — NO hay ningún humano al que transferir. NUNCA digas 'por favor espere' ni 'le conecto'.\n"
+            "  • Responde las preguntas DIRECTAMENTE usando tu base de conocimiento — nunca digas que vas a 'buscar', 'consultar' o 'verificar'. Simplemente responde con los datos.\n"
+            "  • Si el llamante pregunta algo que no está en tu base de conocimiento, indícalo brevemente y pregunta si puedes ayudar con algo más.\n"
+            "  • Después de completar cada solicitud, SIEMPRE pregunta: '¿Hay algo más en que pueda ayudarte?' antes de considerar finalizada la llamada.\n"
+            "  • Solo establece end_call=true en el turno en que el llamante confirma explícitamente que no tiene más preguntas (p. ej. 'no, gracias', 'eso es todo').\n"
+            "  • NUNCA establezcas end_call=true en el mismo turno en que proporcionas información o completas una tarea.\n"
         ) if has_kb else (
-            "  • Cuando el llamante haya logrado su objetivo: despídete cordialmente y establece end_call=true.\n"
+            "  • Después de completar la solicitud del llamante, pregunta: '¿Hay algo más en que pueda ayudarte?'\n"
+            "  • Solo establece end_call=true cuando el llamante confirme que ya terminó. Despídete cordialmente.\n"
             "  • NUNCA digas 'por favor espere' — no hay ningún humano al que transferir.\n"
         )
         return (
