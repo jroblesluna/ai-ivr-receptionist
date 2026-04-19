@@ -294,25 +294,83 @@ def api_demo_generate():
         file_bytes = uploaded_file.read()
         if len(file_bytes) > 10 * 1024 * 1024:
             return jsonify({"error": "File too large (max 10 MB)"}), 400
-        mime = uploaded_file.content_type or "application/octet-stream"
-        b64  = _b64.b64encode(file_bytes).decode()
-        try:
-            # Upload to OpenAI Files API for LLM to read
-            oai = config.openai_client()
-            oai_file = oai.files.create(
-                file=(uploaded_file.filename or "attachment", file_bytes, mime),
-                purpose="user_data",
-            )
+        filename = (uploaded_file.filename or "").lower()
+        mime     = uploaded_file.content_type or "application/octet-stream"
+
+        extracted_text = None
+
+        if filename.endswith(".docx"):
+            try:
+                import io
+                from docx import Document
+                doc = Document(io.BytesIO(file_bytes))
+                paragraphs = [p.text for p in doc.paragraphs if p.text.strip()]
+                extracted_text = "\n".join(paragraphs)
+            except Exception as e:
+                extracted_text = f"[Could not parse Word document: {e}]"
+
+        elif filename.endswith((".xlsx", ".xls")):
+            try:
+                import io, openpyxl
+                wb = openpyxl.load_workbook(io.BytesIO(file_bytes), read_only=True, data_only=True)
+                parts = []
+                for sheet in wb.sheetnames:
+                    ws = wb[sheet]
+                    rows = []
+                    for row in ws.iter_rows(values_only=True):
+                        cells = [str(c) if c is not None else "" for c in row]
+                        if any(c.strip() for c in cells):
+                            rows.append(", ".join(cells))
+                    if rows:
+                        parts.append(f"[Sheet: {sheet}]\n" + "\n".join(rows))
+                extracted_text = "\n\n".join(parts)
+            except Exception:
+                # xlrd fallback for legacy .xls
+                try:
+                    import io, xlrd
+                    wb = xlrd.open_workbook(file_contents=file_bytes)
+                    parts = []
+                    for sheet in wb.sheets():
+                        rows = []
+                        for rx in range(sheet.nrows):
+                            cells = [str(sheet.cell_value(rx, cx)) for cx in range(sheet.ncols)]
+                            if any(c.strip() for c in cells):
+                                rows.append(", ".join(cells))
+                        if rows:
+                            parts.append(f"[Sheet: {sheet.name}]\n" + "\n".join(rows))
+                    extracted_text = "\n\n".join(parts)
+                except Exception as e:
+                    extracted_text = f"[Could not parse spreadsheet: {e}]"
+
+        elif filename.endswith((".txt", ".csv")):
+            try:
+                extracted_text = file_bytes.decode("utf-8", errors="replace")
+            except Exception as e:
+                extracted_text = f"[Could not decode text file: {e}]"
+
+        if extracted_text is not None:
+            # Send extracted text inline
             content_blocks.append({
                 "type": "text",
-                "text": f"[Attached file uploaded as {oai_file.id} — use its content to inform the demo structure]"
+                "text": f"[Reference file content from '{uploaded_file.filename}']\n\n{extracted_text[:12000]}"
             })
-        except Exception as e:
-            # Fallback: include base64 inline (works for text-heavy PDFs with vision models)
-            content_blocks.append({
-                "type": "text",
-                "text": f"[File content — base64 {mime}]: data:{mime};base64,{b64[:2000]}… (truncated)"
-            })
+        else:
+            # PDF or unknown: upload to OpenAI Files API
+            try:
+                oai = config.openai_client()
+                oai_file = oai.files.create(
+                    file=(uploaded_file.filename or "attachment", file_bytes, mime),
+                    purpose="user_data",
+                )
+                content_blocks.append({
+                    "type": "text",
+                    "text": f"[Attached file '{uploaded_file.filename}' uploaded — use its content to inform the demo structure]"
+                })
+            except Exception as e:
+                content_blocks.append({
+                    "type": "text",
+                    "text": f"[File '{uploaded_file.filename}' could not be processed: {e}]"
+                })
 
     base_lang_label = "Spanish" if base_lang == "es" else "English"
     other_lang_label = "English" if base_lang == "es" else "Spanish"
