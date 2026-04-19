@@ -2,7 +2,7 @@ import db
 
 
 def _load_use_cases() -> dict:
-    return db.uc_list()
+    return db.uc_list(exclude_demos=True)
 
 
 def save_use_case(use_case_id: str, updated_uc: dict):

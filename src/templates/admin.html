@@ -425,6 +425,12 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 .topic-label-text { font-size: 13px; font-weight: 600; flex: 1; }
 .topic-chevron { color: var(--muted); font-size: 11px; }
 .topic-body { padding: 14px 16px; border-top: 1px solid var(--border); }
+.info-btn {
+  background: none; border: none; cursor: pointer;
+  color: var(--primary); font-size: 13px; padding: 0 3px;
+  opacity: .7; vertical-align: middle; line-height: 1;
+}
+.info-btn:hover { opacity: 1; }
 .lang-tag {
   font-size: 10px; font-weight: 700; text-transform: uppercase;
   letter-spacing: .06em; margin-bottom: 8px; padding: 2px 8px;
@@ -508,7 +514,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
   <!-- Active Use Case -->
   <div class="card">
     <div class="card-header">
-      <span class="card-title">Active Use Case</span>
+      <span class="card-title">Active Use Case <button class="info-btn" onclick="showInfo('Active Use Case','The currently running IVR profile. Every incoming call uses this profile\'s greeting, menu options, voice, and AI behavior. Switching here takes effect immediately — no restart needed.')">ℹ</button></span>
       <span class="card-badge badge-green" id="uc-status">Live</span>
     </div>
     <p class="section-desc">
@@ -602,7 +608,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
   {% if user_role == 'admin' or user_role == 'manager' %}
   <div class="card" id="demos-dashboard-card">
     <div class="card-header">
-      <span class="card-title">Active Demos</span>
+      <span class="card-title">Active Demos <button class="info-btn" onclick="showInfo('Active Demos','On-the-fly demos are hidden IVR profiles activated by a secret 6-digit code. They are separate from your main use cases. Callers access a demo by pressing * on the main menu and entering the code. Each demo maintains a memory profile per caller phone number across calls.')">ℹ</button></span>
       <button class="btn btn-primary" style="font-size:12px;padding:6px 14px;" onclick="switchTab('use-cases');setTimeout(()=>showDemoWizard(),200)">+ New Demo</button>
     </div>
     <p class="section-desc">
@@ -626,7 +632,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
   <!-- UC List -->
   <div class="card">
     <div class="card-header">
-      <span class="card-title">Business Profiles</span>
+      <span class="card-title">Business Profiles <button class="info-btn" onclick="showInfo('Business Profiles','Each profile defines a complete IVR persona: company name, voice, slogan, and menu topics. The active profile (blue dot) is used for all incoming calls. Demos are kept separate and activated via the * key.')">ℹ</button></span>
       <div style="display:flex;gap:8px;">
         <button class="btn" style="font-size:12px;padding:6px 14px;background:linear-gradient(135deg,#7c3aed,#4f46e5);color:white;border:none;" onclick="showDemoWizard()">✨ New Demo</button>
         {% if user_role == 'admin' %}
@@ -1104,7 +1110,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
       </p>
       <div class="two-col">
         <div class="editor-field">
-          <label>Base Language</label>
+          <label>Base Language <button class="info-btn" onclick="showInfo('Base Language','The language you will use to describe the demo. The AI will automatically generate the full content in both English and Spanish regardless of which you choose here.')">ℹ</button></label>
           <select id="dw-lang">
             <option value="en">English</option>
             <option value="es">Spanish (auto-translate to EN)</option>
@@ -1162,7 +1168,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 
       <!-- IVR Type selector -->
       <div style="background:#f9fafb;border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:18px;">
-        <div style="font-size:13px;font-weight:600;margin-bottom:12px;">IVR Type to Publish</div>
+        <div style="font-size:13px;font-weight:600;margin-bottom:12px;">IVR Type to Publish <button class="info-btn" onclick="showInfo('IVR Type','Topics: the caller hears a numbered menu and presses a digit to select a topic. Best for structured, predictable flows.\n\nConversational: the AI directly greets the caller and handles the entire conversation naturally — no digit menu. Best for open-ended or complex goals. Returning callers are recognized by phone number from memory.')">ℹ</button></div>
         <div style="display:flex;gap:12px;flex-wrap:wrap;">
           <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;flex:1;min-width:200px;background:white;border:1.5px solid var(--border);border-radius:8px;padding:12px;transition:border-color .15s;" id="dw-type-topics-lbl">
             <input type="radio" name="dw-ivr-type" value="topics" id="dw-type-topics" onchange="demoTypeChanged()" style="margin-top:2px;flex-shrink:0;">
@@ -1233,6 +1239,15 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
     <div class="modal-footer">
       <button class="btn" style="background:#f3f4f6;color:var(--text);" onclick="document.getElementById('demo-profiles-modal').style.display='none'">Close</button>
     </div>
+  </div>
+</div>
+
+<!-- Info Modal -->
+<div id="info-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1100;align-items:center;justify-content:center;" onclick="if(event.target===this)hideInfo()">
+  <div style="background:white;border-radius:14px;padding:28px;max-width:420px;width:90vw;box-shadow:0 20px 60px rgba(0,0,0,.25);">
+    <div style="font-weight:700;font-size:16px;margin-bottom:12px;color:var(--text);" id="info-modal-title"></div>
+    <div style="font-size:14px;color:var(--muted);line-height:1.6;" id="info-modal-body"></div>
+    <button onclick="hideInfo()" style="margin-top:20px;width:100%;padding:10px;background:var(--primary);color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;">Got it</button>
   </div>
 </div>
 
@@ -1408,25 +1423,39 @@ async function previewVoice(lang) {
   }
 }
 
-function buildTopicItem(tid, t) {
+function buildTopicItem(tid, t, allowDelete) {
   const enQ = (t.en.questions||[]).join('\n');
   const esQ = (t.es.questions||[]).join('\n');
+  const delBtn = allowDelete !== false
+    ? `<button onclick="removeTopic('${tid}')" style="margin-left:auto;background:none;border:none;color:var(--danger);font-size:18px;cursor:pointer;padding:0 4px;" title="Remove topic">×</button>`
+    : '';
   return `
 <div class="topic-item" data-tid="${tid}">
   <div class="topic-header" onclick="toggleTopic('${tid}')">
     <span class="topic-digit">${escHtml(t.digit)}</span>
     <span class="topic-label-text">${escHtml(t.en.label)}</span>
     <span class="topic-chevron" id="tchevron-${tid}">▼</span>
+    ${delBtn}
   </div>
   <div class="topic-body" id="tbody-${tid}" style="display:none;">
+    <div class="editor-field" style="max-width:200px;">
+      <label>DTMF Digit (key caller presses)
+        <button class="info-btn" onclick="event.stopPropagation();showInfo('DTMF Digit','The key the caller presses on their phone keypad to select this topic. Use digits 1–9. Digit 2 is reserved for language switching.')">ℹ</button>
+      </label>
+      <input type="text" id="t-${tid}-digit" value="${escHtml(t.digit)}" maxlength="1" placeholder="e.g. 3" style="width:80px;">
+    </div>
     <div class="two-col">
       <div>
         <div class="lang-tag lang-en">English</div>
         <div class="editor-field"><label>Label</label><input type="text" id="t-${tid}-en-label" value="${escHtml(t.en.label)}"></div>
         <div class="editor-field"><label>Menu Text</label><input type="text" id="t-${tid}-en-menu_text" value="${escHtml(t.en.menu_text)}"></div>
         <div class="editor-field"><label>Greeting</label><textarea id="t-${tid}-en-greeting">${escHtml(t.en.greeting)}</textarea></div>
-        <div class="editor-field"><label>System Instructions</label><textarea id="t-${tid}-en-system_extra">${escHtml(t.en.system_extra)}</textarea></div>
-        <div class="editor-field"><label>Questions (one per line)</label><textarea id="t-${tid}-en-questions">${escHtml(enQ)}</textarea></div>
+        <div class="editor-field"><label>System Instructions
+          <button class="info-btn" onclick="event.stopPropagation();showInfo('System Instructions','Instructions given to the AI for this specific topic. Describe what the AI should collect, how to behave, and any business-specific context. The caller never sees this.')">ℹ</button>
+        </label><textarea id="t-${tid}-en-system_extra">${escHtml(t.en.system_extra)}</textarea></div>
+        <div class="editor-field"><label>Questions (one per line)
+          <button class="info-btn" onclick="event.stopPropagation();showInfo('Questions','Follow-up questions the AI will ask after the greeting, one at a time. Leave empty for simple topics that only collect name and phone.')">ℹ</button>
+        </label><textarea id="t-${tid}-en-questions">${escHtml(enQ)}</textarea></div>
       </div>
       <div>
         <div class="lang-tag lang-es">Español</div>
@@ -1507,9 +1536,12 @@ function buildEditor(ucId) {
 </div>
 <hr>
 <div class="editor-section">
-  <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:6px;">Topics</div>
-  <div class="field-hint" style="margin-bottom:12px;">Each topic is a menu option callers can choose (e.g. Press 1 for appointments). Click a topic to expand and edit its details.</div>
-  ${topicItems}
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+    <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);">Topics</div>
+    <button class="btn" style="font-size:11px;padding:4px 10px;background:var(--primary-light);color:var(--primary);" onclick="addTopic()">+ Add Topic</button>
+  </div>
+  <div class="field-hint" style="margin-bottom:12px;">Each topic is a menu option callers can choose (e.g. Press 1 for appointments). Click a topic to expand and edit its details. Digit 2 is reserved for language switching.</div>
+  <div id="topics-container">${topicItems}</div>
 </div>
 <div style="padding:0 4px 8px;display:flex;gap:10px;">
   <button class="btn btn-primary" onclick="saveUseCase()">Save Changes</button>
@@ -1522,13 +1554,48 @@ function buildEditor(ucId) {
 function toggleTopic(tid) {
   const body = document.getElementById(`tbody-${tid}`);
   const ch   = document.getElementById(`tchevron-${tid}`);
+  if (!body) return;
   const open = body.style.display !== 'none';
   body.style.display = open ? 'none' : 'block';
   ch.textContent = open ? '▼' : '▲';
 }
 
+function addTopic() {
+  const key = 'topic_' + Date.now();
+  const blank = {
+    digit: '', meeting_type: false,
+    en: { label: 'New Topic', menu_text: 'Press X for New Topic.', greeting: 'Hello! What is your name?', system_extra: '', questions: [] },
+    es: { label: 'Nuevo Tema', menu_text: 'Presione X para Nuevo Tema.', greeting: '¡Hola! ¿Cuál es su nombre?', system_extra: '', questions: [] },
+  };
+  const html = buildTopicItem(key, blank, true);
+  document.getElementById('topics-container').insertAdjacentHTML('beforeend', html);
+  // Auto-expand the new topic
+  const body = document.getElementById(`tbody-${key}`);
+  const ch   = document.getElementById(`tchevron-${key}`);
+  if (body) body.style.display = 'block';
+  if (ch)   ch.textContent = '▲';
+  body?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function removeTopic(tid) {
+  const item = document.querySelector(`.topic-item[data-tid="${tid}"]`);
+  if (item) item.remove();
+}
+
+// ── Info Tooltip Modal ─────────────────────────────────────────────────────────
+
+function showInfo(title, body) {
+  document.getElementById('info-modal-title').textContent = title;
+  document.getElementById('info-modal-body').textContent  = body;
+  document.getElementById('info-modal').style.display = 'flex';
+}
+
+function hideInfo() {
+  document.getElementById('info-modal').style.display = 'none';
+}
+
 function collectEditorData() {
-  const uc = JSON.parse(JSON.stringify(USE_CASES[currentUCId]));
+  const uc = JSON.parse(JSON.stringify(USE_CASES[currentUCId] || { name:'', url:'', forward_to:'', voice:{}, slogan:{}, topics:{} }));
   uc.name       = document.getElementById('ed-name').value.trim();
   uc.url        = document.getElementById('ed-url').value.trim();
   uc.forward_to = document.getElementById('ed-forward-to').value.trim();
@@ -1537,16 +1604,23 @@ function collectEditorData() {
     en: document.getElementById('ed-slogan-en').value.trim(),
     es: document.getElementById('ed-slogan-es').value.trim(),
   };
-  Object.keys(uc.topics).forEach(tid => {
+  // Collect all topic items currently in the DOM
+  const newTopics = {};
+  document.querySelectorAll('#topics-container .topic-item').forEach(item => {
+    const tid = item.dataset.tid;
+    const digitEl = document.getElementById(`t-${tid}-digit`);
+    const digit = digitEl ? digitEl.value.trim() : (uc.topics[tid]?.digit || '');
+    newTopics[tid] = { digit, meeting_type: uc.topics[tid]?.meeting_type || false, en: {}, es: {} };
     ['en','es'].forEach(lang => {
       ['label','menu_text','greeting','system_extra'].forEach(f => {
         const el = document.getElementById(`t-${tid}-${lang}-${f}`);
-        if (el) uc.topics[tid][lang][f] = el.value.trim();
+        newTopics[tid][lang][f] = el ? el.value.trim() : '';
       });
       const qEl = document.getElementById(`t-${tid}-${lang}-questions`);
-      if (qEl) uc.topics[tid][lang].questions = qEl.value.split('\n').map(q=>q.trim()).filter(q=>q);
+      newTopics[tid][lang].questions = qEl ? qEl.value.split('\n').map(q=>q.trim()).filter(q=>q) : [];
     });
   });
+  uc.topics = newTopics;
   return uc;
 }
 

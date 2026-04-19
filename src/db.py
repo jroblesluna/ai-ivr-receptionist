@@ -191,10 +191,11 @@ def _row_to_topic(row) -> dict:
     }
 
 
-def uc_list() -> dict:
+def uc_list(exclude_demos: bool = False) -> dict:
     """Return all use cases with their topics as {id: uc_dict}."""
+    where = "WHERE (is_demo = 0 OR is_demo IS NULL)" if exclude_demos else ""
     with _conn() as con:
-        uc_rows = con.execute("SELECT * FROM use_cases ORDER BY name").fetchall()
+        uc_rows = con.execute(f"SELECT * FROM use_cases {where} ORDER BY name").fetchall()
         topic_rows = con.execute(
             "SELECT * FROM topics ORDER BY use_case_id, digit"
         ).fetchall()
