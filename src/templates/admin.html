@@ -648,7 +648,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
       {% for uc_id, uc in use_cases.items() %}
       <div class="uc-card {% if uc_id == current_use_case %}active{% endif %}"
            data-id="{{ uc_id }}"
-           onclick="selectAndEditUC('{{ uc_id }}', '{{ uc.name }}')">
+           onclick="editUseCase('{{ uc_id }}')">
         {% if uc_id == current_use_case %}<span class="uc-active-tag"></span>{% endif %}
         <div class="uc-icon">{{ icons.get(uc_id, '🏢') }}</div>
         <div class="uc-name">{{ uc.name }}</div>
@@ -1304,7 +1304,7 @@ function switchTab(name) {
   if (name === 'users')       loadUsers();
   if (name === 'dashboard')   { _reportsOffset = 0; loadReports(0); loadDemos(); }
   if (name === 'credentials') loadCredentialStatus();
-  if (name === 'use-cases')   { buildEditor(currentUCId); loadDemos(); }
+  if (name === 'use-cases')   { if (currentUCId) editUseCase(currentUCId); loadDemos(); }
 }
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
@@ -1362,6 +1362,37 @@ async function selectUseCase(id, name) {
 
   if (_currentTab === 'use-cases') buildEditor(id);
   toast(`Switched to ${name}`);
+}
+
+function editUseCase(id) {
+  currentUCId = id;
+  // Highlight selected card in Use Cases tab without changing the active use case
+  document.querySelectorAll('#uc-grid-edit .uc-card').forEach(c => c.style.outline = '');
+  const card = document.querySelector(`#uc-grid-edit .uc-card[data-id="${id}"]`);
+  if (card) card.style.outline = '2px solid var(--primary)';
+  buildEditor(id);
+  document.getElementById('uc-editor')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+async function setActiveUseCase() {
+  const uc = USE_CASES[currentUCId];
+  if (!uc) return;
+  await selectUseCase(currentUCId, uc.name);
+  // Update "Set as Active" button to reflect current state
+  _updateSetActiveBtn();
+}
+
+function _updateSetActiveBtn() {
+  // Imported from Jinja — currentUCId may have changed; compare against live active
+  const btn = document.getElementById('ed-set-active-btn');
+  if (!btn) return;
+  // We track active via nav pill; re-query it
+  const activeName = document.getElementById('nav-active-name')?.textContent || '';
+  const uc = USE_CASES[currentUCId];
+  const isActive = uc && uc.name === activeName;
+  btn.disabled = isActive;
+  btn.textContent = isActive ? '✓ Currently Active' : 'Set as Active';
+  btn.style.background = isActive ? '#9ca3af' : '#10b981';
 }
 
 async function selectAndEditUC(id, name) {
@@ -1543,12 +1574,14 @@ function buildEditor(ucId) {
   <div class="field-hint" style="margin-bottom:12px;">Each topic is a menu option callers can choose (e.g. Press 1 for appointments). Click a topic to expand and edit its details. Digit 2 is reserved for language switching.</div>
   <div id="topics-container">${topicItems}</div>
 </div>
-<div style="padding:0 4px 8px;display:flex;gap:10px;">
+<div style="padding:0 4px 8px;display:flex;gap:10px;flex-wrap:wrap;">
   <button class="btn btn-primary" onclick="saveUseCase()">Save Changes</button>
-  <button class="btn" style="background:#ff3b30;color:#fff;" onclick="deleteUseCase()">Delete Use Case</button>
+  <button class="btn" id="ed-set-active-btn" onclick="setActiveUseCase()" style="background:#10b981;color:#fff;">Set as Active</button>
+  <button class="btn" style="background:#ff3b30;color:#fff;margin-left:auto;" onclick="deleteUseCase()">Delete Use Case</button>
 </div>`;
   initVoiceSelect('en', uc.voice?.en || 'Google.en-US-Neural2-D');
   initVoiceSelect('es', uc.voice?.es || 'Google.es-US-Neural2-B');
+  _updateSetActiveBtn();
 }
 
 function toggleTopic(tid) {
