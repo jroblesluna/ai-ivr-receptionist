@@ -101,7 +101,8 @@ def ai_gather():
                     if lang == "en" else
                     f"Bienvenido{' de nuevo, ' + known_name if known_name else ''} a {demo_uc['name']}. ¿En qué le puedo ayudar?"
                 )
-            # Trigger + greeting already appended to history above
+            conversation_store[call_sid].append({"role": "user",      "content": trigger})
+            conversation_store[call_sid].append({"role": "assistant", "content": greeting})
         else:
             TOPICS = get_topics() if not demo_uc else _get_demo_topics(demo_uc)
             fallback_topic = list(TOPICS.keys())[0] if TOPICS else topic

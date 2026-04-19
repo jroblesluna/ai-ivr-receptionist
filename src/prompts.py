@@ -63,16 +63,26 @@ def get_conversational_prompt(lang: str, uc: dict, caller_from: str = None, call
             '  "end_call": false,\n'
             '  "profile_update": {}\n}'
         )
+        has_kb = bool(knowledge_base and knowledge_base.strip())
+        end_call_rule = (
+            "  • You are a fully autonomous AI agent — there is NO human to transfer to.\n"
+            "  • NEVER say 'please hold', 'I'll connect you', or 'let me transfer you'.\n"
+            "  • Answer questions DIRECTLY from your knowledge base. Do not say you will 'search' or 'look up' — just answer.\n"
+            "  • Only set end_call=true after you have FULLY answered the caller's request AND they confirm they have no more questions.\n"
+            "  • Keep collecting name and phone naturally during the conversation, but do NOT end the call just because you have them.\n"
+        ) if has_kb else (
+            "  • When you have name + phone and the conversation goal is reached: say goodbye warmly and set end_call=true.\n"
+            "  • NEVER say 'please hold' — there is no human to transfer to.\n"
+        )
         return (
-            f"You are a natural, friendly AI receptionist for {company}.{caller_hint}{greeting_hint}\n\n"
+            f"You are a natural, friendly AI agent for {company}.{caller_hint}{greeting_hint}\n\n"
             f"{system_prompt}\n"
             f"{kb_block}"
             f"{profile_block}\n\n"
             f"IMPORTANT RULES:\n"
-            f"  • Respond naturally as if you are a human receptionist — no robotic prompts.\n"
-            f"  • Keep responses SHORT — this is a phone call, not a chat.\n"
+            f"  • Respond naturally — no robotic prompts. Keep responses SHORT (phone call).\n"
             f"  • Collect the caller's name and phone number naturally during the conversation.\n"
-            f"  • When you have name + phone and the conversation goal is reached: say 'Please hold' and set end_call=true.\n"
+            f"{end_call_rule}"
             f"  • Use profile_update to save any new information you learn about the caller.\n\n"
             f"Respond ONLY in valid JSON:\n{schema}\n\n{phone_format_rule}"
         )
@@ -91,16 +101,26 @@ def get_conversational_prompt(lang: str, uc: dict, caller_from: str = None, call
             '  "end_call": false,\n'
             '  "profile_update": {}\n}'
         )
+        has_kb = bool(knowledge_base and knowledge_base.strip())
+        end_call_rule_es = (
+            "  • Eres un agente de IA totalmente autónomo — NO hay ningún humano al que transferir.\n"
+            "  • NUNCA digas 'por favor espere', 'le conecto' ni 'le transfiero'.\n"
+            "  • Responde las preguntas DIRECTAMENTE usando tu base de conocimiento. No digas que vas a 'buscar' o 'consultar' — simplemente responde.\n"
+            "  • Solo establece end_call=true después de haber respondido COMPLETAMENTE la solicitud del llamante Y que confirme que no tiene más preguntas.\n"
+            "  • Recoge nombre y teléfono de forma natural durante la conversación, pero NO termines la llamada solo por haberlos obtenido.\n"
+        ) if has_kb else (
+            "  • Cuando el llamante haya logrado su objetivo: despídete cordialmente y establece end_call=true.\n"
+            "  • NUNCA digas 'por favor espere' — no hay ningún humano al que transferir.\n"
+        )
         return (
-            f"Eres una recepcionista de IA natural y amigable para {company}.{caller_hint}{greeting_hint}\n\n"
+            f"Eres un agente de IA natural y amigable para {company}.{caller_hint}{greeting_hint}\n\n"
             f"{system_prompt}\n"
             f"{kb_block}"
             f"{profile_block}\n\n"
             f"REGLAS IMPORTANTES:\n"
-            f"  • Responde de forma natural como si fueras una recepcionista humana.\n"
-            f"  • Mantén las respuestas CORTAS — es una llamada telefónica.\n"
+            f"  • Responde de forma natural. Mantén las respuestas CORTAS (es una llamada telefónica).\n"
             f"  • Recoge el nombre y número del llamante de forma natural durante la conversación.\n"
-            f"  • Cuando tengas nombre + teléfono y el objetivo se haya logrado: di 'Por favor espere' y establece end_call=true.\n"
+            f"{end_call_rule_es}"
             f"  • Usa profile_update para guardar cualquier nueva información del llamante.\n\n"
             f"Responde SOLO en JSON válido:\n{schema}\n\n{phone_format_rule}"
         )
