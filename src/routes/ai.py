@@ -238,7 +238,16 @@ def ai_respond():
                 existing_profile["last_notes"] = notes
                 changed = True
             if isinstance(profile_update, dict) and profile_update:
-                existing_profile.update(profile_update)
+                for k, v in profile_update.items():
+                    if isinstance(v, list) and isinstance(existing_profile.get(k), list):
+                        # Append new items to existing list, avoid exact duplicates
+                        seen = [str(x) for x in existing_profile[k]]
+                        for item in v:
+                            if str(item) not in seen:
+                                existing_profile[k].append(item)
+                                seen.append(str(item))
+                    else:
+                        existing_profile[k] = v
                 changed = True
             if changed:
                 db.caller_profile_set(caller_from_for_profile, _current_demo_id, existing_profile)

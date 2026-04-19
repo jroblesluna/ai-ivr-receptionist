@@ -59,9 +59,11 @@ def get_conversational_prompt(lang: str, uc: dict, caller_from: str = None, call
             '{\n  "message": "what to say aloud",\n'
             '  "name": "full name or null",\n'
             '  "phone": "callback number or null",\n'
-            '  "notes": "summary of the conversation purpose or null",\n'
+            '  "notes": "brief summary of the caller\'s main request this call",\n'
             '  "end_call": false,\n'
-            '  "profile_update": {}\n}'
+            '  "profile_update": {\n'
+            '    "activities": [{"type": "visit|meeting|order|task", "client": "...", "date": "...", "details": "..."}]\n'
+            '  }\n}'
         )
         has_kb = bool(knowledge_base and knowledge_base.strip())
         forbidden = (
@@ -92,7 +94,7 @@ def get_conversational_prompt(lang: str, uc: dict, caller_from: str = None, call
             f"  • Respond naturally — no robotic prompts. Keep responses SHORT (phone call).\n"
             f"  • Collect the caller's name and phone number naturally during the conversation.\n"
             f"{end_call_rule}"
-            f"  • Use profile_update to save any new information you learn about the caller.\n\n"
+            f"  • Use profile_update.activities (a list) to record every activity confirmed with the caller (visits, meetings, orders, tasks). Lists in profile_update are APPENDED to existing memory — never erased.\n\n"
             f"{forbidden}"
             f"Respond ONLY in valid JSON:\n{schema}\n\n{phone_format_rule}"
         )
@@ -107,9 +109,11 @@ def get_conversational_prompt(lang: str, uc: dict, caller_from: str = None, call
             '{\n  "message": "lo que debes decir en voz alta (siempre en español)",\n'
             '  "name": "nombre completo o null",\n'
             '  "phone": "número de contacto o null",\n'
-            '  "notes": "resumen del propósito de la conversación o null",\n'
+            '  "notes": "resumen breve de la solicitud principal del llamante en esta llamada",\n'
             '  "end_call": false,\n'
-            '  "profile_update": {}\n}'
+            '  "profile_update": {\n'
+            '    "activities": [{"type": "visita|reunion|pedido|tarea", "cliente": "...", "fecha": "...", "detalle": "..."}]\n'
+            '  }\n}'
         )
         has_kb = bool(knowledge_base and knowledge_base.strip())
         forbidden_es = (
@@ -140,7 +144,7 @@ def get_conversational_prompt(lang: str, uc: dict, caller_from: str = None, call
             f"  • Responde de forma natural. Mantén las respuestas CORTAS (es una llamada telefónica).\n"
             f"  • Recoge el nombre y número del llamante de forma natural durante la conversación.\n"
             f"{end_call_rule_es}"
-            f"  • Usa profile_update para guardar cualquier nueva información del llamante.\n\n"
+            f"  • Usa profile_update.activities (una lista) para registrar cada actividad confirmada con el llamante (visitas, reuniones, pedidos, tareas). Las listas en profile_update se ACUMULAN en la memoria — nunca se borran.\n\n"
             f"{forbidden_es}"
             f"Responde SOLO en JSON válido:\n{schema}\n\n{phone_format_rule}"
         )
