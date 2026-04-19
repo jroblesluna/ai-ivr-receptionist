@@ -1204,7 +1204,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 
       <!-- Conversational prompt editor (shown when type=conversational) -->
       <div id="dw-conv-section" style="display:none;">
-        <div style="font-size:13px;font-weight:600;margin-bottom:10px;">Conversational System Prompt</div>
+        <div style="font-size:13px;font-weight:600;margin-bottom:10px;">Behavioral Instructions <button class="info-btn" onclick="showInfo('Behavioral Instructions','Define how the agent should behave: its role, tone, goals, what to collect, and when to end the call. The extracted content from any uploaded files will be injected separately at call time as a Knowledge Base — you do not need to copy it here.')">ℹ</button></div>
         <div class="two-col">
           <div class="editor-field">
             <label>English</label>
@@ -1215,6 +1215,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
             <textarea id="dw2-prompt-es" rows="8" style="font-size:12px;font-family:monospace;line-height:1.5;"></textarea>
           </div>
         </div>
+        <div id="dw-file-notice" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 14px;font-size:13px;color:#1d4ed8;margin-top:8px;line-height:1.5;"></div>
       </div>
 
       <div id="dw-profile-hint" style="font-size:12px;color:var(--muted);margin-top:8px;"></div>
@@ -2225,9 +2226,11 @@ async function loadReports(delta) {
 
 // ── Demos ──────────────────────────────────────────────────────────────────────
 
-let _dwDraft = null;
-let _dwEditId = null;
-let _dwFiles  = [];   // Array of File objects
+let _dwDraft         = null;
+let _dwEditId        = null;
+let _dwFiles         = [];   // Array of File objects
+let _dwKnowledgeBase = '';   // Extracted text from uploaded files (stored server-side)
+let _dwFileNames     = [];   // Original file names for the UI notice
 
 // ── File drop zone ─────────────────────────────────────────────────────────────
 
@@ -2300,8 +2303,10 @@ function dwFileIcon(name) {
 
 function showDemoWizard(demoId) {
   _dwEditId = demoId || null;
-  _dwDraft  = null;
-  _dwFiles  = [];
+  _dwDraft         = null;
+  _dwFiles         = [];
+  _dwKnowledgeBase = '';
+  _dwFileNames     = [];
   document.getElementById('demo-step-1').style.display = '';
   document.getElementById('demo-step-2').style.display = 'none';
   document.getElementById('demo-step-3').style.display = 'none';
@@ -2326,6 +2331,17 @@ function demoBack() {
   document.getElementById('demo-step-1').style.display = '';
 }
 
+function _dwUpdateFileNotice() {
+  const notice = document.getElementById('dw-file-notice');
+  if (!notice) return;
+  if (_dwFileNames && _dwFileNames.length) {
+    notice.style.display = '';
+    notice.innerHTML = `<span style="font-size:18px;margin-right:6px;">📎</span><strong>Knowledge base:</strong> The agent's context will also include the content from: ${_dwFileNames.map(n=>`<em>${escHtml(n)}</em>`).join(', ')}`;
+  } else {
+    notice.style.display = 'none';
+  }
+}
+
 function demoTypeChanged() {
   const val = document.querySelector('input[name="dw-ivr-type"]:checked')?.value;
   document.getElementById('dw-topics-section').style.display  = val === 'topics' ? '' : 'none';
@@ -2334,6 +2350,7 @@ function demoTypeChanged() {
   const convLbl   = document.getElementById('dw-type-conv-lbl');
   if (topicsLbl) topicsLbl.style.borderColor = val === 'topics' ? 'var(--primary)' : 'var(--border)';
   if (convLbl)   convLbl.style.borderColor   = val === 'conversational' ? 'var(--primary)' : 'var(--border)';
+  _dwUpdateFileNotice();
 }
 
 function buildDemoTopicsEditor(topics) {
@@ -2405,7 +2422,9 @@ async function demoGenerate() {
     const d   = await res.json();
     if (!res.ok || !d.ok) { toast(d.error || 'Generation failed', 'error'); btn.disabled = false; btn.textContent = '✨ Generate'; return; }
 
-    _dwDraft = d.draft;
+    _dwDraft         = d.draft;
+    _dwKnowledgeBase = d.knowledge_base || '';
+    _dwFileNames     = d.file_names || [];
     // Populate step 2
     document.getElementById('dw2-company').value    = _dwDraft.company_name || company;
     document.getElementById('dw2-industry').value   = _dwDraft.industry || '';
@@ -2414,6 +2433,8 @@ async function demoGenerate() {
     document.getElementById('dw2-prompt-en').value  = _dwDraft.conversational_prompt_en || '';
     document.getElementById('dw2-prompt-es').value  = _dwDraft.conversational_prompt_es || '';
     document.getElementById('dw2-forward-to').value = '';
+    // Show/update file notice
+    _dwUpdateFileNotice();
 
     // IVR type
     const rec = _dwDraft.recommended_ivr_type || 'topics';
@@ -2447,15 +2468,16 @@ async function demoSave() {
   const demoId = _dwEditId || ('demo_' + company.toLowerCase().replace(/[^a-z0-9]+/g,'_').slice(0,20).replace(/_+$/,''));
 
   const payload = {
-    id:            demoId,
-    name:          company,
-    industry:      document.getElementById('dw2-industry').value.trim(),
-    forward_to:    document.getElementById('dw2-forward-to').value.trim(),
-    slogan:        { en: document.getElementById('dw2-slogan-en').value.trim(), es: document.getElementById('dw2-slogan-es').value.trim() },
-    voice:         { en: '', es: '' },
-    topics:        topics,
-    ivr_type:      ivr_type,
-    system_prompt: ivr_type === 'conversational' ? promptEn : '',
+    id:             demoId,
+    name:           company,
+    industry:       document.getElementById('dw2-industry').value.trim(),
+    forward_to:     document.getElementById('dw2-forward-to').value.trim(),
+    slogan:         { en: document.getElementById('dw2-slogan-en').value.trim(), es: document.getElementById('dw2-slogan-es').value.trim() },
+    voice:          { en: '', es: '' },
+    topics:         topics,
+    ivr_type:       ivr_type,
+    system_prompt:  ivr_type === 'conversational' ? promptEn : '',
+    knowledge_base: ivr_type === 'conversational' ? _dwKnowledgeBase : '',
   };
 
   const res = await apiFetch('/admin/api/demo', {

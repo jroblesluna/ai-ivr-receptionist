@@ -25,12 +25,23 @@ def _profile_block(lang: str, profile: dict) -> str:
         )
 
 
+def _knowledge_block(lang: str, knowledge_base: str) -> str:
+    if not knowledge_base or not knowledge_base.strip():
+        return ""
+    if lang == "en":
+        return f"\n\nKNOWLEDGE BASE (use this as your reference data — prices, rules, catalog, etc.):\n{knowledge_base}\n"
+    else:
+        return f"\n\nBASE DE CONOCIMIENTO (usa esto como datos de referencia — precios, reglas, catálogo, etc.):\n{knowledge_base}\n"
+
+
 def get_conversational_prompt(lang: str, uc: dict, caller_from: str = None, caller_profile: dict = None) -> str:
     """System prompt for conversational-type demos (no digit menu, natural AI conversation)."""
-    company       = uc.get("name", "")
-    system_prompt = uc.get("system_prompt") or ""
-    caller_fmt    = format_phone_spoken(caller_from) if caller_from else ""
-    profile_block = _profile_block(lang, caller_profile or {})
+    company        = uc.get("name", "")
+    system_prompt  = uc.get("system_prompt") or ""
+    knowledge_base = uc.get("knowledge_base") or ""
+    caller_fmt     = format_phone_spoken(caller_from) if caller_from else ""
+    profile_block  = _profile_block(lang, caller_profile or {})
+    kb_block       = _knowledge_block(lang, knowledge_base)
 
     phone_format_rule = (
         "When saying any phone number aloud in the message field, always write it digit-group style "
@@ -55,6 +66,7 @@ def get_conversational_prompt(lang: str, uc: dict, caller_from: str = None, call
         return (
             f"You are a natural, friendly AI receptionist for {company}.{caller_hint}{greeting_hint}\n\n"
             f"{system_prompt}\n"
+            f"{kb_block}"
             f"{profile_block}\n\n"
             f"IMPORTANT RULES:\n"
             f"  • Respond naturally as if you are a human receptionist — no robotic prompts.\n"
@@ -82,6 +94,7 @@ def get_conversational_prompt(lang: str, uc: dict, caller_from: str = None, call
         return (
             f"Eres una recepcionista de IA natural y amigable para {company}.{caller_hint}{greeting_hint}\n\n"
             f"{system_prompt}\n"
+            f"{kb_block}"
             f"{profile_block}\n\n"
             f"REGLAS IMPORTANTES:\n"
             f"  • Responde de forma natural como si fueras una recepcionista humana.\n"

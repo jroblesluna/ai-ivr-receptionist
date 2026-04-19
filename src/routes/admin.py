@@ -289,6 +289,7 @@ def api_demo_generate():
 
     # Build file content blocks (supports multiple files)
     content_blocks = []
+    extracted_knowledge_parts = []   # (filename, text) for knowledge_base storage
     uploaded_files = request.files.getlist("files") or ([request.files["file"]] if "file" in request.files else [])
     for uploaded_file in uploaded_files:
       if uploaded_file and uploaded_file.filename:
@@ -350,7 +351,7 @@ def api_demo_generate():
                 extracted_text = f"[Could not decode text file: {e}]"
 
         if extracted_text is not None:
-            # Send extracted text inline
+            extracted_knowledge_parts.append((uploaded_file.filename, extracted_text[:20000]))
             content_blocks.append({
                 "type": "text",
                 "text": f"[Reference file content from '{uploaded_file.filename}']\n\n{extracted_text[:12000]}"
@@ -439,7 +440,12 @@ Rules:
         result = completion.choices[0].message.content
         import json as _json
         data = _json.loads(result)
-        return jsonify({"ok": True, "draft": data})
+        # Attach extracted file knowledge so the frontend can pass it back on save
+        knowledge_base = "\n\n".join(
+            f"[FILE: {fname}]\n{text}" for fname, text in extracted_knowledge_parts
+        ) if extracted_knowledge_parts else ""
+        file_names = [fname for fname, _ in extracted_knowledge_parts]
+        return jsonify({"ok": True, "draft": data, "knowledge_base": knowledge_base, "file_names": file_names})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -467,17 +473,18 @@ def api_demo_save():
             break
 
     demo_data = {
-        "name":          data.get("name", ""),
-        "industry":      data.get("industry", ""),
-        "url":           data.get("url", ""),
-        "forward_to":    data.get("forward_to", ""),
-        "voice":         data.get("voice", {"en": "", "es": ""}),
-        "slogan":        data.get("slogan", {"en": "", "es": ""}),
-        "topics":        data.get("topics", {}),
-        "is_demo":       1,
-        "demo_code":     code,
-        "ivr_type":      ivr_type,
-        "system_prompt": data.get("system_prompt", ""),
+        "name":           data.get("name", ""),
+        "industry":       data.get("industry", ""),
+        "url":            data.get("url", ""),
+        "forward_to":     data.get("forward_to", ""),
+        "voice":          data.get("voice", {"en": "", "es": ""}),
+        "slogan":         data.get("slogan", {"en": "", "es": ""}),
+        "topics":         data.get("topics", {}),
+        "is_demo":        1,
+        "demo_code":      code,
+        "ivr_type":       ivr_type,
+        "system_prompt":  data.get("system_prompt", ""),
+        "knowledge_base": data.get("knowledge_base", ""),
     }
 
     # If updating existing demo, preserve its code

@@ -163,10 +163,11 @@ def _row_to_uc(row) -> dict:
         "voice":         {"en": row["voice_en"] or "", "es": row["voice_es"] or ""},
         "slogan":        {"en": row["slogan_en"] or "", "es": row["slogan_es"] or ""},
         "topics":        {},
-        "is_demo":       bool(row["is_demo"]) if "is_demo" in keys else False,
-        "demo_code":     row["demo_code"] if "demo_code" in keys else None,
-        "ivr_type":      (row["ivr_type"] if "ivr_type" in keys else None) or "topics",
-        "system_prompt": row["system_prompt"] if "system_prompt" in keys else None,
+        "is_demo":        bool(row["is_demo"]) if "is_demo" in keys else False,
+        "demo_code":      row["demo_code"] if "demo_code" in keys else None,
+        "ivr_type":       (row["ivr_type"] if "ivr_type" in keys else None) or "topics",
+        "system_prompt":  row["system_prompt"] if "system_prompt" in keys else None,
+        "knowledge_base": row["knowledge_base"] if "knowledge_base" in keys else None,
     }
 
 
@@ -232,22 +233,23 @@ def uc_upsert(uc_id: str, data: dict):
     with _lock, _conn() as con:
         # Preserve existing demo meta if not explicitly provided
         existing = con.execute(
-            "SELECT is_demo, demo_code, ivr_type, system_prompt FROM use_cases WHERE id = ?",
+            "SELECT is_demo, demo_code, ivr_type, system_prompt, knowledge_base FROM use_cases WHERE id = ?",
             (uc_id,)
         ).fetchone()
-        is_demo       = int(data["is_demo"])       if "is_demo"       in data else (int(existing["is_demo"])       if existing else 0)
-        demo_code     = data["demo_code"]           if "demo_code"     in data else (existing["demo_code"]          if existing else None)
-        ivr_type      = data["ivr_type"]            if "ivr_type"      in data else (existing["ivr_type"]           if existing else "topics")
-        system_prompt = data["system_prompt"]       if "system_prompt" in data else (existing["system_prompt"]      if existing else None)
+        is_demo        = int(data["is_demo"])        if "is_demo"        in data else (int(existing["is_demo"])        if existing else 0)
+        demo_code      = data["demo_code"]            if "demo_code"      in data else (existing["demo_code"]           if existing else None)
+        ivr_type       = data["ivr_type"]             if "ivr_type"       in data else (existing["ivr_type"]            if existing else "topics")
+        system_prompt  = data["system_prompt"]        if "system_prompt"  in data else (existing["system_prompt"]       if existing else None)
+        knowledge_base = data["knowledge_base"]       if "knowledge_base" in data else (existing["knowledge_base"]      if existing else None)
         con.execute(
             "INSERT OR REPLACE INTO use_cases "
             "(id, name, industry, url, forward_to, voice_en, voice_es, slogan_en, slogan_es, "
-            "is_demo, demo_code, ivr_type, system_prompt) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "is_demo, demo_code, ivr_type, system_prompt, knowledge_base) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (uc_id, data.get("name", ""), data.get("industry", ""), data.get("url", ""),
              data.get("forward_to", ""),
              v.get("en", ""), v.get("es", ""), sl.get("en", ""), sl.get("es", ""),
-             is_demo, demo_code, ivr_type or "topics", system_prompt),
+             is_demo, demo_code, ivr_type or "topics", system_prompt, knowledge_base),
         )
         # Replace all topics for this use case
         con.execute("DELETE FROM topics WHERE use_case_id = ?", (uc_id,))
@@ -695,6 +697,7 @@ def init():
             "ALTER TABLE use_cases ADD COLUMN demo_code TEXT",
             "ALTER TABLE use_cases ADD COLUMN ivr_type TEXT DEFAULT 'topics'",
             "ALTER TABLE use_cases ADD COLUMN system_prompt TEXT",
+            "ALTER TABLE use_cases ADD COLUMN knowledge_base TEXT",
         ]:
             try:
                 con.execute(col_def)

@@ -257,8 +257,11 @@ def ai_respond():
         info["conversation"] = [m for m in history_snapshot if m["role"] != "system"]
         info["goodbye"] = message
         collected_info[call_sid] = info
-        if topic != "schedule_callback" and topic != "_conversational" and info.get("name") and info.get("phone"):
-            # Todas las opciones: conectar con operador humano tras recopilar datos
+        _is_conv_demo = demo_uc and demo_uc.get("ivr_type") == "conversational"
+        if _is_conv_demo:
+            # Conversational agents end the call directly — no human operator
+            resp.hangup()
+        elif topic != "schedule_callback" and topic != "_conversational" and info.get("name") and info.get("phone"):
             base_url = request.url_root.rstrip("/")
             resp.redirect(f"{base_url}/connect-operator?lang={lang}&caller_sid={call_sid}{demo_suffix}")
         elif topic == "_conversational" and info.get("name") and info.get("phone"):
