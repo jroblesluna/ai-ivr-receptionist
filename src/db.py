@@ -153,15 +153,20 @@ def migrate_config_from_json():
 # ── Use Cases ─────────────────────────────────────────────────────────────────
 
 def _row_to_uc(row) -> dict:
+    keys = row.keys() if hasattr(row, "keys") else []
     return {
-        "id":         row["id"],
-        "name":       row["name"],
-        "industry":   row["industry"] or "",
-        "url":        row["url"] or "",
-        "forward_to": row["forward_to"] or "",
-        "voice":      {"en": row["voice_en"] or "", "es": row["voice_es"] or ""},
-        "slogan":     {"en": row["slogan_en"] or "", "es": row["slogan_es"] or ""},
-        "topics":     {},
+        "id":            row["id"],
+        "name":          row["name"],
+        "industry":      row["industry"] or "",
+        "url":           row["url"] or "",
+        "forward_to":    row["forward_to"] or "",
+        "voice":         {"en": row["voice_en"] or "", "es": row["voice_es"] or ""},
+        "slogan":        {"en": row["slogan_en"] or "", "es": row["slogan_es"] or ""},
+        "topics":        {},
+        "is_demo":       bool(row["is_demo"]) if "is_demo" in keys else False,
+        "demo_code":     row["demo_code"] if "demo_code" in keys else None,
+        "ivr_type":      (row["ivr_type"] if "ivr_type" in keys else None) or "topics",
+        "system_prompt": row["system_prompt"] if "system_prompt" in keys else None,
     }
 
 
@@ -224,13 +229,24 @@ def uc_upsert(uc_id: str, data: dict):
     v  = data.get("voice", {})
     sl = data.get("slogan", {})
     with _lock, _conn() as con:
+        # Preserve existing demo meta if not explicitly provided
+        existing = con.execute(
+            "SELECT is_demo, demo_code, ivr_type, system_prompt FROM use_cases WHERE id = ?",
+            (uc_id,)
+        ).fetchone()
+        is_demo       = int(data["is_demo"])       if "is_demo"       in data else (int(existing["is_demo"])       if existing else 0)
+        demo_code     = data["demo_code"]           if "demo_code"     in data else (existing["demo_code"]          if existing else None)
+        ivr_type      = data["ivr_type"]            if "ivr_type"      in data else (existing["ivr_type"]           if existing else "topics")
+        system_prompt = data["system_prompt"]       if "system_prompt" in data else (existing["system_prompt"]      if existing else None)
         con.execute(
             "INSERT OR REPLACE INTO use_cases "
-            "(id, name, industry, url, forward_to, voice_en, voice_es, slogan_en, slogan_es) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "(id, name, industry, url, forward_to, voice_en, voice_es, slogan_en, slogan_es, "
+            "is_demo, demo_code, ivr_type, system_prompt) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (uc_id, data.get("name", ""), data.get("industry", ""), data.get("url", ""),
              data.get("forward_to", ""),
-             v.get("en", ""), v.get("es", ""), sl.get("en", ""), sl.get("es", "")),
+             v.get("en", ""), v.get("es", ""), sl.get("en", ""), sl.get("es", ""),
+             is_demo, demo_code, ivr_type or "topics", system_prompt),
         )
         # Replace all topics for this use case
         con.execute("DELETE FROM topics WHERE use_case_id = ?", (uc_id,))
@@ -258,7 +274,93 @@ def uc_upsert(uc_id: str, data: dict):
 def uc_delete(uc_id: str):
     with _lock, _conn() as con:
         con.execute("DELETE FROM topics WHERE use_case_id = ?", (uc_id,))
+        con.execute("DELETE FROM caller_profiles WHERE use_case_id = ?", (uc_id,))
         con.execute("DELETE FROM use_cases WHERE id = ?", (uc_id,))
+        con.commit()
+
+
+def uc_get_by_demo_code(code: str) -> dict | None:
+    """Look up a demo use case by its 6-digit activation code."""
+    with _conn() as con:
+        row = con.execute(
+            "SELECT * FROM use_cases WHERE demo_code = ? AND is_demo = 1", (code,)
+        ).fetchone()
+        if not row:
+            return None
+        uc = _row_to_uc(row)
+        topic_rows = con.execute(
+            "SELECT * FROM topics WHERE use_case_id = ? ORDER BY digit", (uc["id"],)
+        ).fetchall()
+    for r in topic_rows:
+        uc["topics"][r["key"]] = _row_to_topic(r)
+    return uc
+
+
+def uc_list_demos() -> list[dict]:
+    """Return all demo use cases with profile counts."""
+    with _conn() as con:
+        uc_rows = con.execute(
+            "SELECT uc.*, COUNT(cp.phone) AS profile_count "
+            "FROM use_cases uc LEFT JOIN caller_profiles cp ON cp.use_case_id = uc.id "
+            "WHERE uc.is_demo = 1 GROUP BY uc.id ORDER BY uc.name"
+        ).fetchall()
+    result = []
+    for r in uc_rows:
+        d = _row_to_uc(r)
+        d["profile_count"] = r["profile_count"]
+        result.append(d)
+    return result
+
+
+# ── Caller Profiles (demo memory) ─────────────────────────────────────────────
+
+def caller_profile_get(phone: str, use_case_id: str) -> dict:
+    with _conn() as con:
+        row = con.execute(
+            "SELECT profile_json FROM caller_profiles WHERE phone = ? AND use_case_id = ?",
+            (phone, use_case_id)
+        ).fetchone()
+    if not row:
+        return {}
+    try:
+        return json.loads(row["profile_json"] or "{}")
+    except Exception:
+        return {}
+
+
+def caller_profile_set(phone: str, use_case_id: str, data: dict):
+    with _lock, _conn() as con:
+        con.execute(
+            "INSERT OR REPLACE INTO caller_profiles (phone, use_case_id, profile_json, updated_at) "
+            "VALUES (?, ?, ?, datetime('now'))",
+            (phone, use_case_id, json.dumps(data, ensure_ascii=False))
+        )
+        con.commit()
+
+
+def caller_profile_list(use_case_id: str) -> list[dict]:
+    with _conn() as con:
+        rows = con.execute(
+            "SELECT phone, profile_json, updated_at FROM caller_profiles "
+            "WHERE use_case_id = ? ORDER BY updated_at DESC",
+            (use_case_id,)
+        ).fetchall()
+    result = []
+    for r in rows:
+        try:
+            profile = json.loads(r["profile_json"] or "{}")
+        except Exception:
+            profile = {}
+        result.append({"phone": r["phone"], "profile": profile, "updated_at": r["updated_at"]})
+    return result
+
+
+def caller_profile_delete(phone: str, use_case_id: str):
+    with _lock, _conn() as con:
+        con.execute(
+            "DELETE FROM caller_profiles WHERE phone = ? AND use_case_id = ?",
+            (phone, use_case_id)
+        )
         con.commit()
 
 
@@ -576,11 +678,27 @@ def init():
                 PRIMARY KEY (user_id, use_case_id)
             )
         """)
-        # Add forward_to to existing use_cases tables that predate this column
-        try:
-            con.execute("ALTER TABLE use_cases ADD COLUMN forward_to TEXT")
-        except Exception:
-            pass  # column already exists
+        con.execute("""
+            CREATE TABLE IF NOT EXISTS caller_profiles (
+                phone       TEXT NOT NULL,
+                use_case_id TEXT NOT NULL,
+                profile_json TEXT DEFAULT '{}',
+                updated_at   TEXT,
+                PRIMARY KEY (phone, use_case_id)
+            )
+        """)
+        # Migrations for columns added after initial schema
+        for col_def in [
+            "ALTER TABLE use_cases ADD COLUMN forward_to TEXT",
+            "ALTER TABLE use_cases ADD COLUMN is_demo INTEGER DEFAULT 0",
+            "ALTER TABLE use_cases ADD COLUMN demo_code TEXT",
+            "ALTER TABLE use_cases ADD COLUMN ivr_type TEXT DEFAULT 'topics'",
+            "ALTER TABLE use_cases ADD COLUMN system_prompt TEXT",
+        ]:
+            try:
+                con.execute(col_def)
+            except Exception:
+                pass
         con.commit()
 
 

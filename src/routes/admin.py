@@ -260,6 +260,203 @@ def api_delete_use_case(uc_id):
     return jsonify({"ok": True})
 
 
+# ── Demo on the Fly ───────────────────────────────────────────────────────────
+
+@admin_bp.route("/admin/api/demos", methods=["GET"])
+@require_role("admin", "manager")
+def api_demos_list():
+    demos = db.uc_list_demos()
+    return jsonify(demos)
+
+
+@admin_bp.route("/admin/api/demo/generate", methods=["POST"])
+@require_role("admin", "manager")
+def api_demo_generate():
+    """Analyze input and generate a draft demo structure using OpenAI."""
+    import base64 as _b64
+
+    api_key = config.openai_api_key()
+    if not api_key:
+        return jsonify({"error": "openai_api_key not configured"}), 500
+
+    company  = request.form.get("company_name", "").strip()
+    slogan   = request.form.get("slogan", "").strip()
+    idea     = request.form.get("idea", "").strip()
+    base_lang = request.form.get("base_lang", "en").strip()
+
+    if not company or not idea:
+        return jsonify({"error": "company_name and idea are required"}), 400
+
+    # Build file content blocks
+    content_blocks = []
+    uploaded_file  = request.files.get("file")
+    if uploaded_file:
+        file_bytes = uploaded_file.read()
+        if len(file_bytes) > 10 * 1024 * 1024:
+            return jsonify({"error": "File too large (max 10 MB)"}), 400
+        mime = uploaded_file.content_type or "application/octet-stream"
+        b64  = _b64.b64encode(file_bytes).decode()
+        try:
+            # Upload to OpenAI Files API for LLM to read
+            oai = config.openai_client()
+            oai_file = oai.files.create(
+                file=(uploaded_file.filename or "attachment", file_bytes, mime),
+                purpose="user_data",
+            )
+            content_blocks.append({
+                "type": "text",
+                "text": f"[Attached file uploaded as {oai_file.id} — use its content to inform the demo structure]"
+            })
+        except Exception as e:
+            # Fallback: include base64 inline (works for text-heavy PDFs with vision models)
+            content_blocks.append({
+                "type": "text",
+                "text": f"[File content — base64 {mime}]: data:{mime};base64,{b64[:2000]}… (truncated)"
+            })
+
+    base_lang_label = "Spanish" if base_lang == "es" else "English"
+    other_lang_label = "English" if base_lang == "es" else "Spanish"
+
+    prompt_text = f"""You are an expert IVR (Interactive Voice Response) system designer.
+
+Design a complete demo IVR use case for this business:
+- Company: {company}
+- Slogan: {slogan or "(none provided)"}
+- Goal / Idea: {idea}
+- Primary language: {base_lang_label} (also generate full {other_lang_label} translations for all text fields)
+{"- Reference file(s) attached above for catalog/menu/pricing details" if content_blocks else ""}
+
+Generate a JSON response with this exact structure:
+{{
+  "company_name": "...",
+  "industry": "...",
+  "slogan_en": "...",
+  "slogan_es": "...",
+  "topics_structure": {{
+    "topic_key_1": {{
+      "digit": "1",
+      "meeting_type": false,
+      "en": {{
+        "label": "...",
+        "menu_text": "Press 1 to ...",
+        "greeting": "Friendly AI greeting for this topic",
+        "system_extra": "Instructions for the AI about what to collect/do for this topic",
+        "questions": ["Question 1?", "Question 2?"]
+      }},
+      "es": {{
+        "label": "...",
+        "menu_text": "Presione 1 para ...",
+        "greeting": "...",
+        "system_extra": "...",
+        "questions": ["¿Pregunta 1?"]
+      }}
+    }}
+  }},
+  "conversational_prompt_en": "Full system prompt for a natural AI receptionist in English. Include the company's purpose, how to greet (using caller memory if available), what to collect (name, phone, and relevant context), how to handle the main goal, and when to say 'please hold'. Be detailed — 3-5 paragraphs.",
+  "conversational_prompt_es": "Igual pero en español.",
+  "suggested_profile_fields": ["name", "phone", "field1", "field2"],
+  "recommended_ivr_type": "topics or conversational"
+}}
+
+Rules:
+- Create 2-4 meaningful topics appropriate to the business goal
+- The conversational prompt should be detailed enough to handle the full goal naturally
+- suggested_profile_fields: list the caller data worth remembering across calls
+- recommended_ivr_type: suggest "conversational" for complex, open-ended goals; "topics" for structured menus
+- All greeting/system_extra texts must be natural, friendly, and appropriate for voice calls
+- Keep menu_text short (under 10 words)
+"""
+
+    content_blocks.insert(0, {"type": "text", "text": prompt_text})
+
+    try:
+        oai = config.openai_client()
+        completion = oai.chat.completions.create(
+            model="gpt-4o",
+            messages=[{"role": "user", "content": content_blocks}],
+            response_format={"type": "json_object"},
+            max_tokens=4000,
+        )
+        result = completion.choices[0].message.content
+        import json as _json
+        data = _json.loads(result)
+        return jsonify({"ok": True, "draft": data})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@admin_bp.route("/admin/api/demo", methods=["POST"])
+@require_role("admin", "manager")
+def api_demo_save():
+    """Save a confirmed demo as a use case with a 6-digit code."""
+    import secrets as _sec
+    import json as _json
+
+    data    = request.json or {}
+    uc_id   = data.get("id", "").strip()
+    ivr_type = data.get("ivr_type", "topics")
+
+    if not uc_id:
+        # Auto-generate ID from company name
+        name  = data.get("name", "demo")
+        uc_id = "demo_" + "".join(c.lower() if c.isalnum() else "_" for c in name)[:20].strip("_")
+
+    # Generate unique 6-digit code
+    for _ in range(20):
+        code = "".join([str(_sec.randbelow(10)) for _ in range(6)])
+        if not db.uc_get_by_demo_code(code):
+            break
+
+    demo_data = {
+        "name":          data.get("name", ""),
+        "industry":      data.get("industry", ""),
+        "url":           data.get("url", ""),
+        "forward_to":    data.get("forward_to", ""),
+        "voice":         data.get("voice", {"en": "", "es": ""}),
+        "slogan":        data.get("slogan", {"en": "", "es": ""}),
+        "topics":        data.get("topics", {}),
+        "is_demo":       1,
+        "demo_code":     code,
+        "ivr_type":      ivr_type,
+        "system_prompt": data.get("system_prompt", ""),
+    }
+
+    # If updating existing demo, preserve its code
+    existing = db.uc_get(uc_id)
+    if existing and existing.get("is_demo") and existing.get("demo_code"):
+        demo_data["demo_code"] = existing["demo_code"]
+        code = existing["demo_code"]
+
+    db.uc_upsert(uc_id, demo_data)
+    return jsonify({"ok": True, "id": uc_id, "demo_code": code}), 201
+
+
+@admin_bp.route("/admin/api/demo/<demo_id>", methods=["DELETE"])
+@require_role("admin", "manager")
+def api_demo_delete(demo_id):
+    uc = db.uc_get(demo_id)
+    if not uc or not uc.get("is_demo"):
+        return jsonify({"error": "Demo not found"}), 404
+    if runtime_config.get("use_case_id") == demo_id:
+        return jsonify({"error": "Cannot delete the currently active use case"}), 400
+    db.uc_delete(demo_id)
+    return jsonify({"ok": True})
+
+
+@admin_bp.route("/admin/api/demo/<demo_id>/profiles", methods=["GET"])
+@require_role("admin", "manager")
+def api_demo_profiles(demo_id):
+    profiles = db.caller_profile_list(demo_id)
+    return jsonify(profiles)
+
+
+@admin_bp.route("/admin/api/demo/<demo_id>/profile/<path:phone>", methods=["DELETE"])
+@require_role("admin", "manager")
+def api_demo_profile_delete(demo_id, phone):
+    db.caller_profile_delete(phone, demo_id)
+    return jsonify({"ok": True})
+
+
 # ── ElevenLabs ────────────────────────────────────────────────────────────────
 
 @admin_bp.route("/admin/api/elevenlabs-voices", methods=["GET"])

@@ -598,6 +598,22 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
     </div>
   </div>
 
+  <!-- Active Demos -->
+  {% if user_role == 'admin' or user_role == 'manager' %}
+  <div class="card" id="demos-dashboard-card">
+    <div class="card-header">
+      <span class="card-title">Active Demos</span>
+      <button class="btn btn-primary" style="font-size:12px;padding:6px 14px;" onclick="switchTab('use-cases');setTimeout(()=>showDemoWizard(),200)">+ New Demo</button>
+    </div>
+    <p class="section-desc">
+      On-the-fly demos activated via the <strong>*</strong> key on the IVR menu. Share the 6-digit code with prospects or testers.
+    </p>
+    <div id="demos-list-dashboard">
+      <div style="color:var(--muted);font-size:13px;padding:8px 0;">Loading…</div>
+    </div>
+  </div>
+  {% endif %}
+
 </main>
 </div>
 <!-- end tab-dashboard -->
@@ -612,6 +628,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
     <div class="card-header">
       <span class="card-title">Business Profiles</span>
       <div style="display:flex;gap:8px;">
+        <button class="btn" style="font-size:12px;padding:6px 14px;background:linear-gradient(135deg,#7c3aed,#4f46e5);color:white;border:none;" onclick="showDemoWizard()">✨ New Demo</button>
         {% if user_role == 'admin' %}
         <button class="btn btn-primary" style="font-size:12px;padding:6px 14px;" onclick="showNewUCModal()">+ New</button>
         {% endif %}
@@ -1021,9 +1038,9 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
     </div>
     <div class="editor-field" id="um-uc-field" style="display:none;">
       <label>Assigned Use Cases <span style="color:#ef4444;">*</span></label>
-      <div id="um-uc-checkboxes" style="display:flex;flex-wrap:wrap;padding:4px 0;">
+      <div id="um-uc-checkboxes" style="columns:2;column-gap:16px;padding:4px 0;">
         {% for uc_id, uc in use_cases.items() %}
-        <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:400;cursor:pointer;width:50%;min-width:0;padding:4px 0;">
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:400;cursor:pointer;break-inside:avoid;padding:4px 0;">
           <input type="checkbox" name="um-uc" value="{{ uc_id }}" style="flex-shrink:0;"> {{ uc.name }}
         </label>
         {% endfor %}
@@ -1071,6 +1088,150 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
       <button class="btn btn-primary" id="sp-send-btn" onclick="spSendCode()">Send Code</button>
       <button class="btn btn-primary" id="sp-verify-btn" style="display:none;" onclick="spVerifyCode()">Verify</button>
       <button class="btn" style="background:#f3f4f6;color:var(--text);" onclick="hideSelfPhoneModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Demo Wizard Modal -->
+<div class="modal-overlay" id="demo-wizard-modal" style="display:none;">
+  <div class="modal-box" style="max-width:680px;width:95vw;max-height:90vh;overflow-y:auto;">
+    <div class="modal-title" id="demo-wizard-title">Create Demo on the Fly</div>
+
+    <!-- Step 1: Input -->
+    <div id="demo-step-1">
+      <p style="font-size:13px;color:var(--muted);margin-bottom:18px;">
+        Describe the business and goal. The AI will generate a complete IVR demo structure.
+      </p>
+      <div class="two-col">
+        <div class="editor-field">
+          <label>Base Language</label>
+          <select id="dw-lang">
+            <option value="en">English</option>
+            <option value="es">Spanish (auto-translate to EN)</option>
+          </select>
+        </div>
+        <div class="editor-field">
+          <label>Company Name <span style="color:#ef4444;">*</span></label>
+          <input type="text" id="dw-company" placeholder="Acme Restaurant">
+        </div>
+      </div>
+      <div class="editor-field">
+        <label>Slogan <span style="color:var(--muted);font-weight:400;">(optional)</span></label>
+        <input type="text" id="dw-slogan" placeholder="Fresh food, delivered to your door">
+      </div>
+      <div class="editor-field">
+        <label>Demo Objective / Idea <span style="color:#ef4444;">*</span></label>
+        <textarea id="dw-idea" rows="4" placeholder="Describe what this IVR should do. E.g.: Take food orders, ask for delivery or pickup, collect customer name and address, confirm order with a number, offer the daily special…"></textarea>
+      </div>
+      <div class="editor-field">
+        <label>Reference File <span style="color:var(--muted);font-weight:400;">(PDF, max 10 MB — catalog, menu, price list, etc.)</span></label>
+        <input type="file" id="dw-file" accept=".pdf,.txt,.csv" style="font-size:13px;">
+        <div id="dw-file-error" style="color:#ef4444;font-size:12px;margin-top:4px;display:none;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="dw-generate-btn" onclick="demoGenerate()">✨ Generate</button>
+        <button class="btn" style="background:#f3f4f6;color:var(--text);" onclick="hideDemoWizard()">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Step 2: Review & Edit -->
+    <div id="demo-step-2" style="display:none;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+        <button class="btn" style="font-size:12px;padding:5px 12px;background:#f3f4f6;color:var(--text);" onclick="demoBack()">← Back</button>
+        <span style="font-size:13px;color:var(--muted);">Review and edit the generated structure, then choose the IVR type.</span>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center;flex-wrap:wrap;">
+        <div class="editor-field" style="flex:1;min-width:160px;margin-bottom:0;">
+          <label>Company Name</label>
+          <input type="text" id="dw2-company">
+        </div>
+        <div class="editor-field" style="flex:1;min-width:120px;margin-bottom:0;">
+          <label>Industry</label>
+          <input type="text" id="dw2-industry">
+        </div>
+        <div class="editor-field" style="flex:1;min-width:120px;margin-bottom:0;">
+          <label>Operator Number</label>
+          <input type="text" id="dw2-forward-to" placeholder="+1 555 000 0000">
+        </div>
+      </div>
+      <div class="two-col">
+        <div class="editor-field"><label>Slogan EN</label><input type="text" id="dw2-slogan-en"></div>
+        <div class="editor-field"><label>Slogan ES</label><input type="text" id="dw2-slogan-es"></div>
+      </div>
+
+      <!-- IVR Type selector -->
+      <div style="background:#f9fafb;border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:18px;">
+        <div style="font-size:13px;font-weight:600;margin-bottom:12px;">IVR Type to Publish</div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;flex:1;min-width:200px;background:white;border:1.5px solid var(--border);border-radius:8px;padding:12px;transition:border-color .15s;" id="dw-type-topics-lbl">
+            <input type="radio" name="dw-ivr-type" value="topics" id="dw-type-topics" onchange="demoTypeChanged()" style="margin-top:2px;flex-shrink:0;">
+            <div>
+              <div style="font-weight:600;font-size:13px;">Topics (Digit Menu)</div>
+              <div style="font-size:12px;color:var(--muted);margin-top:3px;">Caller presses digits to select a topic, then the AI gathers details. Structured and predictable.</div>
+            </div>
+          </label>
+          <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;flex:1;min-width:200px;background:white;border:1.5px solid var(--border);border-radius:8px;padding:12px;transition:border-color .15s;" id="dw-type-conv-lbl">
+            <input type="radio" name="dw-ivr-type" value="conversational" id="dw-type-conv" onchange="demoTypeChanged()" style="margin-top:2px;flex-shrink:0;">
+            <div>
+              <div style="font-weight:600;font-size:13px;">Conversational (Natural AI)</div>
+              <div style="font-size:12px;color:var(--muted);margin-top:3px;">The AI directly greets the caller and handles the full conversation. Recognizes returning callers from memory.</div>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Topics editor (shown when type=topics) -->
+      <div id="dw-topics-section">
+        <div style="font-size:13px;font-weight:600;margin-bottom:10px;">Topics</div>
+        <div id="dw-topics-list"></div>
+      </div>
+
+      <!-- Conversational prompt editor (shown when type=conversational) -->
+      <div id="dw-conv-section" style="display:none;">
+        <div style="font-size:13px;font-weight:600;margin-bottom:10px;">Conversational System Prompt</div>
+        <div class="two-col">
+          <div class="editor-field">
+            <label>English</label>
+            <textarea id="dw2-prompt-en" rows="8" style="font-size:12px;font-family:monospace;line-height:1.5;"></textarea>
+          </div>
+          <div class="editor-field">
+            <label>Spanish</label>
+            <textarea id="dw2-prompt-es" rows="8" style="font-size:12px;font-family:monospace;line-height:1.5;"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div id="dw-profile-hint" style="font-size:12px;color:var(--muted);margin-top:8px;"></div>
+
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="demoSave()">💾 Save Demo</button>
+        <button class="btn" style="background:#f3f4f6;color:var(--text);" onclick="hideDemoWizard()">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Success -->
+    <div id="demo-step-3" style="display:none;text-align:center;padding:24px 0;">
+      <div style="font-size:48px;margin-bottom:16px;">✅</div>
+      <div style="font-size:18px;font-weight:700;margin-bottom:8px;" id="dw3-title">Demo Created!</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:24px;">Share this activation code with testers. Callers dial the IVR number, press <strong>*</strong>, then enter:</div>
+      <div id="dw3-code" style="font-size:48px;font-weight:800;letter-spacing:12px;color:var(--primary);font-family:monospace;cursor:pointer;user-select:all;" title="Click to copy"></div>
+      <div style="font-size:12px;color:var(--muted);margin-top:8px;">Click the code to copy</div>
+      <div class="modal-footer" style="justify-content:center;margin-top:24px;">
+        <button class="btn btn-primary" onclick="hideDemoWizard();loadDemos();">Done</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Demo Profiles Modal -->
+<div class="modal-overlay" id="demo-profiles-modal" style="display:none;">
+  <div class="modal-box" style="max-width:620px;">
+    <div class="modal-title" id="dpm-title">Caller Profiles</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Memory stored per caller for this demo. Data persists across calls.</p>
+    <div id="dpm-body"></div>
+    <div class="modal-footer">
+      <button class="btn" style="background:#f3f4f6;color:var(--text);" onclick="document.getElementById('demo-profiles-modal').style.display='none'">Close</button>
     </div>
   </div>
 </div>
@@ -1126,9 +1287,9 @@ function switchTab(name) {
   if (el)  el.style.display = 'block';
   if (btn) btn.classList.add('active');
   if (name === 'users')       loadUsers();
-  if (name === 'dashboard')   { _reportsOffset = 0; loadReports(0); }
+  if (name === 'dashboard')   { _reportsOffset = 0; loadReports(0); loadDemos(); }
   if (name === 'credentials') loadCredentialStatus();
-  if (name === 'use-cases')   buildEditor(currentUCId);
+  if (name === 'use-cases')   { buildEditor(currentUCId); loadDemos(); }
 }
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
@@ -1942,11 +2103,298 @@ async function loadReports(delta) {
   `).join('');
 }
 
+// ── Demos ──────────────────────────────────────────────────────────────────────
+
+let _dwDraft = null;
+let _dwEditId = null;
+
+function showDemoWizard(demoId) {
+  _dwEditId = demoId || null;
+  _dwDraft  = null;
+  document.getElementById('demo-step-1').style.display = '';
+  document.getElementById('demo-step-2').style.display = 'none';
+  document.getElementById('demo-step-3').style.display = 'none';
+  document.getElementById('dw-generate-btn').disabled = false;
+  document.getElementById('dw-generate-btn').textContent = '✨ Generate';
+  document.getElementById('dw-company').value = '';
+  document.getElementById('dw-slogan').value  = '';
+  document.getElementById('dw-idea').value    = '';
+  document.getElementById('dw-file').value    = '';
+  document.getElementById('dw-file-error').style.display = 'none';
+  document.getElementById('demo-wizard-title').textContent = demoId ? 'Edit Demo' : 'Create Demo on the Fly';
+  document.getElementById('demo-wizard-modal').style.display = 'flex';
+}
+
+function hideDemoWizard() {
+  document.getElementById('demo-wizard-modal').style.display = 'none';
+}
+
+function demoBack() {
+  document.getElementById('demo-step-2').style.display = 'none';
+  document.getElementById('demo-step-1').style.display = '';
+}
+
+function demoTypeChanged() {
+  const val = document.querySelector('input[name="dw-ivr-type"]:checked')?.value;
+  document.getElementById('dw-topics-section').style.display  = val === 'topics' ? '' : 'none';
+  document.getElementById('dw-conv-section').style.display    = val === 'conversational' ? '' : 'none';
+  const topicsLbl = document.getElementById('dw-type-topics-lbl');
+  const convLbl   = document.getElementById('dw-type-conv-lbl');
+  if (topicsLbl) topicsLbl.style.borderColor = val === 'topics' ? 'var(--primary)' : 'var(--border)';
+  if (convLbl)   convLbl.style.borderColor   = val === 'conversational' ? 'var(--primary)' : 'var(--border)';
+}
+
+function buildDemoTopicsEditor(topics) {
+  const container = document.getElementById('dw-topics-list');
+  if (!topics || !Object.keys(topics).length) {
+    container.innerHTML = '<div style="color:var(--muted);font-size:13px;">No topics generated.</div>';
+    return;
+  }
+  container.innerHTML = Object.entries(topics).map(([key, t]) => `
+    <div style="border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:12px;">
+      <div style="font-weight:600;font-size:13px;margin-bottom:10px;">Topic: <code>${key}</code></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div><label style="font-size:12px;color:var(--muted);">Label EN</label>
+          <input type="text" value="${escHtml(t.en?.label||'')}" data-topic="${key}" data-lang="en" data-field="label" style="width:100%;padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;">
+        </div>
+        <div><label style="font-size:12px;color:var(--muted);">Label ES</label>
+          <input type="text" value="${escHtml(t.es?.label||'')}" data-topic="${key}" data-lang="es" data-field="label" style="width:100%;padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;">
+        </div>
+        <div><label style="font-size:12px;color:var(--muted);">Greeting EN</label>
+          <textarea rows="2" data-topic="${key}" data-lang="en" data-field="greeting" style="width:100%;padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;resize:vertical;">${escHtml(t.en?.greeting||'')}</textarea>
+        </div>
+        <div><label style="font-size:12px;color:var(--muted);">Greeting ES</label>
+          <textarea rows="2" data-topic="${key}" data-lang="es" data-field="greeting" style="width:100%;padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;resize:vertical;">${escHtml(t.es?.greeting||'')}</textarea>
+        </div>
+        <div><label style="font-size:12px;color:var(--muted);">AI Instructions EN</label>
+          <textarea rows="3" data-topic="${key}" data-lang="en" data-field="system_extra" style="width:100%;padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;resize:vertical;">${escHtml(t.en?.system_extra||'')}</textarea>
+        </div>
+        <div><label style="font-size:12px;color:var(--muted);">AI Instructions ES</label>
+          <textarea rows="3" data-topic="${key}" data-lang="es" data-field="system_extra" style="width:100%;padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;resize:vertical;">${escHtml(t.es?.system_extra||'')}</textarea>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function collectDemoTopicsFromEditor() {
+  const topics = JSON.parse(JSON.stringify(_dwDraft?.topics_structure || {}));
+  document.querySelectorAll('#dw-topics-list [data-topic]').forEach(el => {
+    const key   = el.dataset.topic;
+    const lang  = el.dataset.lang;
+    const field = el.dataset.field;
+    if (!topics[key]) topics[key] = { digit: '', meeting_type: false, en: {}, es: {} };
+    if (!topics[key][lang]) topics[key][lang] = {};
+    topics[key][lang][field] = el.value;
+  });
+  return topics;
+}
+
+async function demoGenerate() {
+  const company = document.getElementById('dw-company').value.trim();
+  const idea    = document.getElementById('dw-idea').value.trim();
+  if (!company || !idea) { toast('Company name and idea are required', 'error'); return; }
+
+  const fileInput = document.getElementById('dw-file');
+  const file = fileInput.files[0];
+  if (file && file.size > 10 * 1024 * 1024) {
+    document.getElementById('dw-file-error').style.display = '';
+    document.getElementById('dw-file-error').textContent = 'File too large (max 10 MB)';
+    return;
+  }
+  document.getElementById('dw-file-error').style.display = 'none';
+
+  const btn = document.getElementById('dw-generate-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Analyzing…';
+
+  const fd = new FormData();
+  fd.append('company_name', company);
+  fd.append('slogan', document.getElementById('dw-slogan').value.trim());
+  fd.append('idea', idea);
+  fd.append('base_lang', document.getElementById('dw-lang').value);
+  if (file) fd.append('file', file);
+
+  try {
+    const res = await fetch('/admin/api/demo/generate', { method: 'POST', body: fd, credentials: 'include' });
+    const d   = await res.json();
+    if (!res.ok || !d.ok) { toast(d.error || 'Generation failed', 'error'); btn.disabled = false; btn.textContent = '✨ Generate'; return; }
+
+    _dwDraft = d.draft;
+    // Populate step 2
+    document.getElementById('dw2-company').value    = _dwDraft.company_name || company;
+    document.getElementById('dw2-industry').value   = _dwDraft.industry || '';
+    document.getElementById('dw2-slogan-en').value  = _dwDraft.slogan_en || '';
+    document.getElementById('dw2-slogan-es').value  = _dwDraft.slogan_es || '';
+    document.getElementById('dw2-prompt-en').value  = _dwDraft.conversational_prompt_en || '';
+    document.getElementById('dw2-prompt-es').value  = _dwDraft.conversational_prompt_es || '';
+    document.getElementById('dw2-forward-to').value = '';
+
+    // IVR type
+    const rec = _dwDraft.recommended_ivr_type || 'topics';
+    document.getElementById(rec === 'conversational' ? 'dw-type-conv' : 'dw-type-topics').checked = true;
+    demoTypeChanged();
+
+    // Profile hint
+    const fields = (_dwDraft.suggested_profile_fields || []).join(', ');
+    const hintEl = document.getElementById('dw-profile-hint');
+    if (hintEl && fields) hintEl.textContent = `Suggested caller memory fields: ${fields}`;
+
+    buildDemoTopicsEditor(_dwDraft.topics_structure || {});
+    document.getElementById('demo-step-1').style.display = 'none';
+    document.getElementById('demo-step-2').style.display = '';
+  } catch(e) {
+    toast('Network error: ' + e.message, 'error');
+    btn.disabled = false;
+    btn.textContent = '✨ Generate';
+  }
+}
+
+async function demoSave() {
+  if (!_dwDraft) return;
+  const company   = document.getElementById('dw2-company').value.trim();
+  const ivr_type  = document.querySelector('input[name="dw-ivr-type"]:checked')?.value || 'topics';
+  const topics    = ivr_type === 'topics' ? collectDemoTopicsFromEditor() : (_dwDraft.topics_structure || {});
+  const promptEn  = document.getElementById('dw2-prompt-en').value.trim();
+  const promptEs  = document.getElementById('dw2-prompt-es').value.trim();
+
+  // Build demo_id from company name
+  const demoId = _dwEditId || ('demo_' + company.toLowerCase().replace(/[^a-z0-9]+/g,'_').slice(0,20).replace(/_+$/,''));
+
+  const payload = {
+    id:            demoId,
+    name:          company,
+    industry:      document.getElementById('dw2-industry').value.trim(),
+    forward_to:    document.getElementById('dw2-forward-to').value.trim(),
+    slogan:        { en: document.getElementById('dw2-slogan-en').value.trim(), es: document.getElementById('dw2-slogan-es').value.trim() },
+    voice:         { en: '', es: '' },
+    topics:        topics,
+    ivr_type:      ivr_type,
+    system_prompt: ivr_type === 'conversational' ? promptEn : '',
+  };
+
+  const res = await apiFetch('/admin/api/demo', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res) return;
+  if (!res.ok) { const d = await res.json().catch(()=>({})); toast(d.error || 'Save failed', 'error'); return; }
+  const result = await res.json();
+
+  // Show step 3
+  document.getElementById('demo-step-2').style.display = 'none';
+  document.getElementById('demo-step-3').style.display = '';
+  document.getElementById('dw3-title').textContent = _dwEditId ? 'Demo Updated!' : 'Demo Created!';
+  const codeEl = document.getElementById('dw3-code');
+  codeEl.textContent = result.demo_code;
+  codeEl.onclick = () => { navigator.clipboard.writeText(result.demo_code); toast('Code copied!'); };
+}
+
+async function loadDemos() {
+  const res = await apiFetch('/admin/api/demos');
+  if (!res || !res.ok) return;
+  const demos = await res.json();
+  renderDemosDashboard(demos);
+}
+
+function renderDemosDashboard(demos) {
+  const container = document.getElementById('demos-list-dashboard');
+  if (!container) return;
+  if (!demos || !demos.length) {
+    container.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px 0;">No demos yet. Click <strong>+ New Demo</strong> to create one.</div>';
+    return;
+  }
+  container.innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <thead>
+        <tr style="border-bottom:1px solid var(--border);text-align:left;">
+          <th style="padding:8px 12px;color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;">Company</th>
+          <th style="padding:8px 12px;color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;">Code</th>
+          <th style="padding:8px 12px;color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;">Type</th>
+          <th style="padding:8px 12px;color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;">Profiles</th>
+          <th style="padding:8px 12px;"></th>
+        </tr>
+      </thead>
+      <tbody>
+        ${demos.map(d => `
+          <tr style="border-bottom:1px solid var(--border);" id="demo-row-${d.id}">
+            <td style="padding:10px 12px;font-weight:500;">${escHtml(d.name)}</td>
+            <td style="padding:10px 12px;">
+              <span style="font-family:monospace;font-size:15px;font-weight:700;letter-spacing:4px;color:var(--primary);cursor:pointer;"
+                    onclick="navigator.clipboard.writeText('${d.demo_code}');toast('Code copied!')" title="Click to copy">${d.demo_code}</span>
+            </td>
+            <td style="padding:10px 12px;">
+              <span style="background:${d.ivr_type==='conversational'?'#f3e8ff':'#eff6ff'};color:${d.ivr_type==='conversational'?'#7c3aed':'#1d4ed8'};padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;">
+                ${d.ivr_type === 'conversational' ? 'Conversational' : 'Topics'}
+              </span>
+            </td>
+            <td style="padding:10px 12px;">
+              <button onclick="showDemoProfiles('${d.id}','${escHtml(d.name)}')"
+                      style="background:none;border:none;color:var(--primary);font-size:13px;cursor:pointer;padding:0;">
+                ${d.profile_count} caller${d.profile_count !== 1 ? 's' : ''} →
+              </button>
+            </td>
+            <td style="padding:10px 12px;text-align:right;">
+              <button onclick="showDemoWizard('${d.id}')" style="background:none;border:none;color:var(--primary);font-size:12px;cursor:pointer;margin-right:12px;">Edit</button>
+              <button onclick="confirmDeleteDemo('${d.id}','${escHtml(d.name)}')" style="background:none;border:none;color:var(--danger);font-size:12px;cursor:pointer;">Delete</button>
+            </td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+async function showDemoProfiles(demoId, demoName) {
+  document.getElementById('dpm-title').textContent = `Caller Profiles — ${demoName}`;
+  document.getElementById('dpm-body').innerHTML = '<div style="color:var(--muted);font-size:13px;">Loading…</div>';
+  document.getElementById('demo-profiles-modal').style.display = 'flex';
+
+  const res = await apiFetch(`/admin/api/demo/${demoId}/profiles`);
+  if (!res || !res.ok) { document.getElementById('dpm-body').innerHTML = '<div style="color:#ef4444;">Error loading profiles.</div>'; return; }
+  const profiles = await res.json();
+
+  if (!profiles.length) {
+    document.getElementById('dpm-body').innerHTML = '<div style="color:var(--muted);font-size:13px;">No caller profiles yet for this demo.</div>';
+    return;
+  }
+
+  document.getElementById('dpm-body').innerHTML = profiles.map(p => `
+    <div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div>
+          <span style="font-family:monospace;font-weight:600;">${escHtml(p.phone)}</span>
+          ${p.profile.name ? ` — <span style="color:var(--muted);">${escHtml(p.profile.name)}</span>` : ''}
+          <span style="font-size:11px;color:var(--muted);margin-left:8px;">${p.updated_at || ''}</span>
+        </div>
+        <button onclick="deleteDemoProfile('${demoId}','${escHtml(p.phone)}')"
+                style="background:none;border:none;color:var(--danger);font-size:12px;cursor:pointer;">Delete</button>
+      </div>
+      <pre style="background:#f9fafb;border-radius:6px;padding:8px;font-size:11px;overflow-x:auto;white-space:pre-wrap;margin:0;">${JSON.stringify(p.profile, null, 2)}</pre>
+    </div>
+  `).join('');
+}
+
+async function deleteDemoProfile(demoId, phone) {
+  const res = await apiFetch(`/admin/api/demo/${demoId}/profile/${encodeURIComponent(phone)}`, { method: 'DELETE' });
+  if (res && res.ok) { toast('Profile deleted'); showDemoProfiles(demoId, ''); loadDemos(); }
+  else toast('Error deleting profile', 'error');
+}
+
+async function confirmDeleteDemo(demoId, demoName) {
+  if (!confirm(`Delete demo "${demoName}"?\nThis will also delete all caller profiles for this demo.`)) return;
+  const res = await apiFetch(`/admin/api/demo/${demoId}`, { method: 'DELETE' });
+  if (res && res.ok) { toast('Demo deleted'); loadDemos(); }
+  else { const d = await res?.json().catch(()=>({})); toast(d?.error || 'Error deleting demo', 'error'); }
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 loadElevenLabsVoices();
 loadReports(0);
 loadCredentialStatus();
+loadDemos();
 </script>
 </body>
 </html>

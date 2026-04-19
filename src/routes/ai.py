@@ -3,34 +3,62 @@ from datetime import datetime
 from flask import Blueprint, request
 from twilio.twiml.voice_response import VoiceResponse, Gather
 import config
+import db
 from config import twilio_client
 import runtime_config
 import reports
 from state import conversation_store, collected_info
 from use_case_loader import get_topics, get_active_use_case
 from helpers import get_voice, get_gather_language
-from prompts import get_system_prompt
+from prompts import get_system_prompt, get_conversational_prompt
 from email_helper import send_report_email
 
 ai_bp = Blueprint("ai", __name__)
+
+
+def _get_demo_uc(demo_id: str) -> dict | None:
+    """Return UC dict for a demo, or None if not found/not a demo."""
+    if not demo_id:
+        return None
+    uc = db.uc_get(demo_id)
+    return uc if uc and uc.get("is_demo") else None
+
+
+def _get_voice_for_uc(lang: str, uc: dict | None) -> str:
+    if uc:
+        v = uc.get("voice", {}).get(lang, "")
+        if v:
+            return v
+    return get_voice(lang)
 
 
 @ai_bp.route("/ai-gather", methods=['GET', 'POST'])
 def ai_gather():
     lang     = request.args.get("lang", "en")
     topic    = request.args.get("topic", "customer_service")
+    demo_id  = request.args.get("demo_id", "")
     call_sid = request.form.get("CallSid", request.args.get("CallSid", ""))
-    voice    = get_voice(lang)
-    gl       = get_gather_language(lang)
+
+    demo_uc = _get_demo_uc(demo_id)
+    voice   = _get_voice_for_uc(lang, demo_uc)
+    gl      = get_gather_language(lang)
 
     resp = VoiceResponse()
 
     # Primera visita: inicializar historial y saludar
     if call_sid and call_sid not in conversation_store:
-        caller_from = request.values.get("From", "")
-        system_prompt = get_system_prompt(lang, topic, caller_from=caller_from)
+        caller_from  = request.values.get("From", "")
+        caller_profile = db.caller_profile_get(caller_from, demo_id) if demo_id and caller_from else {}
+
+        is_conversational = demo_uc and demo_uc.get("ivr_type") == "conversational"
+
+        if is_conversational:
+            system_prompt = get_conversational_prompt(lang, demo_uc, caller_from=caller_from, caller_profile=caller_profile)
+        else:
+            system_prompt = get_system_prompt(lang, topic, caller_from=caller_from,
+                                              caller_profile=caller_profile if demo_id else None)
+
         conversation_store[call_sid] = [{"role": "system", "content": system_prompt}]
-        # Preserve pre-screening info when redirected (e.g. from main flow to schedule_callback)
         prior = collected_info.get(call_sid, {})
         collected_info[call_sid] = {
             "name":                prior.get("name"),
@@ -43,16 +71,35 @@ def ai_gather():
             "conversation":        prior.get("conversation"),
             "operator_briefing":   prior.get("operator_briefing"),
             "goodbye":             prior.get("goodbye"),
+            "demo_id":             demo_id or None,
         }
 
-        TOPICS = get_topics()
-        greeting = TOPICS.get(topic, TOPICS["customer_service"]).get(lang, TOPICS[topic]["en"])["greeting"]
+        if is_conversational:
+            # For conversational demos, generate the opening greeting via LLM
+            known_name = caller_profile.get("name", "")
+            if lang == "es":
+                greeting = (
+                    f"Bienvenido{' de nuevo, ' + known_name if known_name else ''} a {demo_uc['name']}."
+                )
+            else:
+                greeting = (
+                    f"{'Welcome back, ' + known_name + '!' if known_name else 'Hello!'} "
+                    f"Thank you for calling {demo_uc['name']}."
+                )
+        else:
+            TOPICS = get_topics() if not demo_uc else _get_demo_topics(demo_uc)
+            fallback_topic = list(TOPICS.keys())[0] if TOPICS else topic
+            topic_data = TOPICS.get(topic) or TOPICS.get(fallback_topic, {})
+            lang_data  = topic_data.get(lang) or topic_data.get("en", {})
+            greeting   = lang_data.get("greeting", "Hello, how can I help you?")
+
         conversation_store[call_sid].append({"role": "assistant", "content": greeting})
         resp.say(greeting, voice=voice)
 
+    demo_suffix = f"&demo_id={demo_id}" if demo_id else ""
     gather = Gather(
         input="speech",
-        action=f"/ai-respond?lang={lang}&topic={topic}",
+        action=f"/ai-respond?lang={lang}&topic={topic}{demo_suffix}",
         method="POST",
         speech_timeout="auto",
         timeout=5,
@@ -62,34 +109,60 @@ def ai_gather():
 
     silence = "I'm sorry, I didn't catch that. Please try again." if lang == "en" else "Lo siento, no le escuché. Por favor intente de nuevo."
     resp.say(silence, voice=voice)
-    resp.redirect(f"/ai-gather?lang={lang}&topic={topic}")
+    resp.redirect(f"/ai-gather?lang={lang}&topic={topic}{demo_suffix}")
     return str(resp)
+
+
+def _get_demo_topics(demo_uc: dict) -> dict:
+    """Build a TOPICS-compatible dict from a demo use case for greeting lookups."""
+    company = demo_uc["name"]
+    topics  = {}
+    for topic_id, topic_data in demo_uc.get("topics", {}).items():
+        topics[topic_id] = {
+            "en": {**topic_data.get("en", {}), "meeting_type": topic_data.get("meeting_type", False), "digit": topic_data.get("digit", "")},
+            "es": {**topic_data.get("es", {}), "meeting_type": topic_data.get("meeting_type", False), "digit": topic_data.get("digit", "")},
+        }
+    topics["schedule_callback"] = {
+        "en": {"greeting": f"I'm sorry, the team at {company} is not available right now. Let me schedule a callback.", "system_extra": "", "questions": [], "meeting_type": False, "digit": ""},
+        "es": {"greeting": f"Lo siento, el equipo de {company} no está disponible. Le agendaremos una rellamada.", "system_extra": "", "questions": [], "meeting_type": False, "digit": ""},
+    }
+    return topics
 
 
 @ai_bp.route("/ai-respond", methods=['GET', 'POST'])
 def ai_respond():
     lang     = request.args.get("lang", "en")
     topic    = request.args.get("topic", "customer_service")
+    demo_id  = request.args.get("demo_id", "")
     call_sid = request.form.get("CallSid", "")
     speech   = request.form.get("SpeechResult", "").strip()
-    voice    = get_voice(lang)
-    gl       = get_gather_language(lang)
+
+    demo_uc     = _get_demo_uc(demo_id)
+    voice       = _get_voice_for_uc(lang, demo_uc)
+    gl          = get_gather_language(lang)
+    demo_suffix = f"&demo_id={demo_id}" if demo_id else ""
 
     resp = VoiceResponse()
 
     if not speech:
         silence = "I'm sorry, I didn't catch that. Please try again." if lang == "en" else "Lo siento, no le escuché. Por favor intente de nuevo."
         resp.say(silence, voice=voice)
-        resp.redirect(f"/ai-gather?lang={lang}&topic={topic}")
+        resp.redirect(f"/ai-gather?lang={lang}&topic={topic}{demo_suffix}")
         return str(resp)
 
     # Inicializar si no existe (edge case)
     if call_sid not in conversation_store:
-        caller_from = request.values.get("From", "")
-        conversation_store[call_sid] = [{"role": "system", "content": get_system_prompt(lang, topic, caller_from=caller_from)}]
+        caller_from    = request.values.get("From", "")
+        caller_profile = db.caller_profile_get(caller_from, demo_id) if demo_id and caller_from else {}
+        is_conv        = demo_uc and demo_uc.get("ivr_type") == "conversational"
+        if is_conv:
+            sp = get_conversational_prompt(lang, demo_uc, caller_from=caller_from, caller_profile=caller_profile)
+        else:
+            sp = get_system_prompt(lang, topic, caller_from=caller_from, caller_profile=caller_profile if demo_id else None)
+        conversation_store[call_sid] = [{"role": "system", "content": sp}]
         collected_info[call_sid] = {
             "name": None, "phone": None, "notes": None,
-            "topic": topic, "lang": lang, "caller_from": caller_from,
+            "topic": topic, "lang": lang, "caller_from": caller_from, "demo_id": demo_id or None,
         }
 
     history = conversation_store[call_sid]
@@ -102,12 +175,13 @@ def ai_respond():
             messages=history,
             response_format={"type": "json_object"}
         )
-        ai_json  = json.loads(completion.choices[0].message.content)
-        message  = ai_json.get("message") or ("One moment please." if lang == "en" else "Un momento por favor.")
-        name     = ai_json.get("name") or None
-        phone    = ai_json.get("phone") or None
-        notes    = ai_json.get("notes") or None
-        end_call = ai_json.get("end_call", False)
+        ai_json        = json.loads(completion.choices[0].message.content)
+        message        = ai_json.get("message") or ("One moment please." if lang == "en" else "Un momento por favor.")
+        name           = ai_json.get("name") or None
+        phone          = ai_json.get("phone") or None
+        notes          = ai_json.get("notes") or None
+        end_call       = ai_json.get("end_call", False)
+        profile_update = ai_json.get("profile_update") or {}
         print(f"[AI] message={message!r} name={name!r} phone={phone!r} end_call={end_call!r}")
     except Exception as e:
         print(f"[AI ERROR] {e}")
@@ -130,12 +204,28 @@ def ai_respond():
         info["notes"] = notes
     collected_info[call_sid] = info
 
+    # Actualizar perfil de llamante si es un demo y hay updates
+    _current_demo_id = info.get("demo_id") or demo_id
+    if _current_demo_id and isinstance(profile_update, dict) and profile_update:
+        caller_from_for_profile = info.get("caller_from", "")
+        if caller_from_for_profile:
+            existing_profile = db.caller_profile_get(caller_from_for_profile, _current_demo_id)
+            existing_profile.update(profile_update)
+            if name and not existing_profile.get("name"):
+                existing_profile["name"] = name
+            db.caller_profile_set(caller_from_for_profile, _current_demo_id, existing_profile)
+
     # Enviar WhatsApp cuando tengamos nombre y teléfono (solo una vez)
     if info["name"] and info["phone"] and not info.get("notified"):
         info["notified"] = True
         collected_info[call_sid] = info
-        TOPICS = get_topics()
-        topic_label = TOPICS.get(topic, TOPICS["customer_service"]).get(lang, TOPICS[topic]["en"])["label"]
+        if _current_demo_id:
+            demo_uc_for_label = db.uc_get(_current_demo_id)
+            all_topics = _get_demo_topics(demo_uc_for_label) if demo_uc_for_label else get_topics()
+        else:
+            all_topics = get_topics()
+        TOPICS = all_topics
+        topic_label = TOPICS.get(topic, {}).get(lang, TOPICS.get(topic, {}).get("en", {})).get("label", topic)
         lines = [
             f"📋 *Nueva consulta* — {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
             f"📌 Tema: {topic_label}",
@@ -167,16 +257,22 @@ def ai_respond():
         info["conversation"] = [m for m in history_snapshot if m["role"] != "system"]
         info["goodbye"] = message
         collected_info[call_sid] = info
-        if topic != "schedule_callback" and info.get("name") and info.get("phone"):
+        if topic != "schedule_callback" and topic != "_conversational" and info.get("name") and info.get("phone"):
             # Todas las opciones: conectar con operador humano tras recopilar datos
             base_url = request.url_root.rstrip("/")
-            resp.redirect(f"{base_url}/connect-operator?lang={lang}&caller_sid={call_sid}")
+            resp.redirect(f"{base_url}/connect-operator?lang={lang}&caller_sid={call_sid}{demo_suffix}")
+        elif topic == "_conversational" and info.get("name") and info.get("phone"):
+            base_url = request.url_root.rstrip("/")
+            resp.redirect(f"{base_url}/connect-operator?lang={lang}&caller_sid={call_sid}{demo_suffix}")
         elif topic == "schedule_callback":
             preferred  = info.get("notes") or "(no times provided)"
             base_url   = request.url_root.rstrip("/")
-            uc         = get_active_use_case()
+            if _current_demo_id:
+                uc = db.uc_get(_current_demo_id) or get_active_use_case()
+            else:
+                uc = get_active_use_case()
             company    = uc.get("name", "")
-            TOPICS     = get_topics()
+            TOPICS     = _get_demo_topics(uc) if _current_demo_id else get_topics()
             orig_topic = info.get("topic") or topic
             topic_label = TOPICS.get(orig_topic, {}).get(lang, {}).get("label") or \
                           TOPICS.get(orig_topic, {}).get("en", {}).get("label") or \
@@ -244,7 +340,7 @@ def ai_respond():
     else:
         gather = Gather(
             input="speech",
-            action=f"/ai-respond?lang={lang}&topic={topic}",
+            action=f"/ai-respond?lang={lang}&topic={topic}{demo_suffix}",
             method="POST",
             speech_timeout="auto",
             timeout=5,
@@ -255,6 +351,6 @@ def ai_respond():
 
         silence = "I'm sorry, I didn't catch that." if lang == "en" else "Lo siento, no le escuché."
         resp.say(silence, voice=voice)
-        resp.redirect(f"/ai-gather?lang={lang}&topic={topic}")
+        resp.redirect(f"/ai-gather?lang={lang}&topic={topic}{demo_suffix}")
 
     return str(resp)
