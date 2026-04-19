@@ -350,6 +350,20 @@ def api_demo_generate():
             except Exception as e:
                 extracted_text = f"[Could not decode text file: {e}]"
 
+        elif filename.endswith(".pdf"):
+            try:
+                import io
+                from pypdf import PdfReader
+                reader = PdfReader(io.BytesIO(file_bytes))
+                pages = []
+                for page in reader.pages:
+                    text = page.extract_text()
+                    if text and text.strip():
+                        pages.append(text.strip())
+                extracted_text = "\n\n".join(pages) if pages else "[PDF had no extractable text]"
+            except Exception as e:
+                extracted_text = f"[Could not parse PDF: {e}]"
+
         if extracted_text is not None:
             extracted_knowledge_parts.append((uploaded_file.filename, extracted_text[:20000]))
             content_blocks.append({
@@ -357,22 +371,10 @@ def api_demo_generate():
                 "text": f"[Reference file content from '{uploaded_file.filename}']\n\n{extracted_text[:12000]}"
             })
         else:
-            # PDF or unknown: upload to OpenAI Files API
-            try:
-                oai = config.openai_client()
-                oai_file = oai.files.create(
-                    file=(uploaded_file.filename or "attachment", file_bytes, mime),
-                    purpose="user_data",
-                )
-                content_blocks.append({
-                    "type": "text",
-                    "text": f"[Attached file '{uploaded_file.filename}' uploaded — use its content to inform the demo structure]"
-                })
-            except Exception as e:
-                content_blocks.append({
-                    "type": "text",
-                    "text": f"[File '{uploaded_file.filename}' could not be processed: {e}]"
-                })
+            content_blocks.append({
+                "type": "text",
+                "text": f"[File '{uploaded_file.filename}' — format not supported for text extraction]"
+            })
 
     base_lang_label = "Spanish" if base_lang == "es" else "English"
     other_lang_label = "English" if base_lang == "es" else "Spanish"

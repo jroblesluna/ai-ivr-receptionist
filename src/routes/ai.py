@@ -221,16 +221,27 @@ def ai_respond():
         info["notes"] = notes
     collected_info[call_sid] = info
 
-    # Actualizar perfil de llamante si es un demo y hay updates
+    # Actualizar perfil de llamante si es un demo
     _current_demo_id = info.get("demo_id") or demo_id
-    if _current_demo_id and isinstance(profile_update, dict) and profile_update:
+    if _current_demo_id:
         caller_from_for_profile = info.get("caller_from", "")
         if caller_from_for_profile:
             existing_profile = db.caller_profile_get(caller_from_for_profile, _current_demo_id)
-            existing_profile.update(profile_update)
-            if name and not existing_profile.get("name"):
+            changed = False
+            if name and existing_profile.get("name") != name:
                 existing_profile["name"] = name
-            db.caller_profile_set(caller_from_for_profile, _current_demo_id, existing_profile)
+                changed = True
+            if phone and existing_profile.get("phone") != phone:
+                existing_profile["phone"] = phone
+                changed = True
+            if notes and existing_profile.get("last_notes") != notes:
+                existing_profile["last_notes"] = notes
+                changed = True
+            if isinstance(profile_update, dict) and profile_update:
+                existing_profile.update(profile_update)
+                changed = True
+            if changed:
+                db.caller_profile_set(caller_from_for_profile, _current_demo_id, existing_profile)
 
     # Enviar WhatsApp cuando tengamos nombre y teléfono (solo una vez)
     if info["name"] and info["phone"] and not info.get("notified"):
@@ -276,7 +287,25 @@ def ai_respond():
         collected_info[call_sid] = info
         _is_conv_demo = demo_uc and demo_uc.get("ivr_type") == "conversational"
         if _is_conv_demo:
-            # Conversational agents end the call directly — no human operator
+            # Save report and hang up — no human operator for conversational agents
+            base_url = request.url_root.rstrip("/")
+            conv_history = info.get("conversation") or []
+            report_data = {
+                "timestamp":              datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "use_case":               demo_uc.get("name", "") if demo_uc else "",
+                "caller_name":            info.get("name") or info.get("caller_from", ""),
+                "caller_phone":           info.get("phone") or info.get("caller_from", ""),
+                "topic":                  "Conversational Agent",
+                "language":               "English" if lang == "en" else "Español",
+                "conversation":           conv_history,
+                "operator_briefing":      "",
+                "transcription":          "",
+                "transcription_segments": [],
+                "summary":                info.get("notes") or "",
+                "goodbye":                info.get("goodbye", ""),
+            }
+            report_id = reports.save(report_data)
+            print(f"[CONV REPORT] {report_id}")
             resp.hangup()
         elif topic != "schedule_callback" and topic != "_conversational" and info.get("name") and info.get("phone"):
             base_url = request.url_root.rstrip("/")
