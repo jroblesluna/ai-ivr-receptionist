@@ -1,4 +1,5 @@
 import json as _json
+from datetime import datetime as _dt
 from use_case_loader import get_topics, get_company_name
 from helpers import format_phone_spoken
 
@@ -42,6 +43,9 @@ def get_conversational_prompt(lang: str, uc: dict, caller_from: str = None, call
     caller_fmt     = format_phone_spoken(caller_from) if caller_from else ""
     profile_block  = _profile_block(lang, caller_profile or {})
     kb_block       = _knowledge_block(lang, knowledge_base)
+    now            = _dt.now()
+    today_str      = now.strftime("%A, %B %d, %Y") if lang == "en" else now.strftime("%A %d de %B de %Y")
+    today_iso      = now.strftime("%Y-%m-%d")
 
     phone_format_rule = (
         "When saying any phone number aloud in the message field, always write it digit-group style "
@@ -94,7 +98,8 @@ def get_conversational_prompt(lang: str, uc: dict, caller_from: str = None, call
             f"  • Respond naturally — no robotic prompts. Keep responses SHORT (phone call).\n"
             f"  • Collect the caller's name and phone number naturally during the conversation.\n"
             f"{end_call_rule}"
-            f"  • Use profile_update.activities (a list) to record every activity confirmed with the caller (visits, meetings, orders, tasks). Lists in profile_update are APPENDED to existing memory — never erased.\n\n"
+            f"  • Use profile_update.activities (a list) to record every activity confirmed with the caller (visits, meetings, orders, tasks). Lists in profile_update are APPENDED to existing memory — never erased.\n"
+            f"  • TODAY is {today_str} (ISO: {today_iso}). Always resolve relative dates ('next Friday', 'last Wednesday', 'this Monday') to exact ISO dates (YYYY-MM-DD) before storing them in activities.\n\n"
             f"{forbidden}"
             f"Respond ONLY in valid JSON:\n{schema}\n\n{phone_format_rule}"
         )
@@ -144,7 +149,8 @@ def get_conversational_prompt(lang: str, uc: dict, caller_from: str = None, call
             f"  • Responde de forma natural. Mantén las respuestas CORTAS (es una llamada telefónica).\n"
             f"  • Recoge el nombre y número del llamante de forma natural durante la conversación.\n"
             f"{end_call_rule_es}"
-            f"  • Usa profile_update.activities (una lista) para registrar cada actividad confirmada con el llamante (visitas, reuniones, pedidos, tareas). Las listas en profile_update se ACUMULAN en la memoria — nunca se borran.\n\n"
+            f"  • Usa profile_update.activities (una lista) para registrar cada actividad confirmada con el llamante (visitas, reuniones, pedidos, tareas). Las listas en profile_update se ACUMULAN en la memoria — nunca se borran.\n"
+            f"  • HOY es {today_str} (ISO: {today_iso}). Siempre convierte fechas relativas ('el viernes', 'el miércoles pasado', 'el lunes próximo') a fechas exactas en formato ISO (YYYY-MM-DD) antes de grabarlas en activities.\n\n"
             f"{forbidden_es}"
             f"Responde SOLO en JSON válido:\n{schema}\n\n{phone_format_rule}"
         )
