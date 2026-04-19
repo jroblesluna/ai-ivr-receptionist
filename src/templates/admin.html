@@ -2301,8 +2301,8 @@ function dwFileIcon(name) {
 
 // ── Wizard ─────────────────────────────────────────────────────────────────────
 
-function showDemoWizard(demoId) {
-  _dwEditId = demoId || null;
+async function showDemoWizard(demoId) {
+  _dwEditId        = demoId || null;
   _dwDraft         = null;
   _dwFiles         = [];
   _dwKnowledgeBase = '';
@@ -2320,6 +2320,47 @@ function showDemoWizard(demoId) {
   dwRenderFileList();
   document.getElementById('demo-wizard-title').textContent = demoId ? 'Edit Demo' : 'Create Demo on the Fly';
   document.getElementById('demo-wizard-modal').style.display = 'flex';
+
+  if (demoId) {
+    // Edit mode: fetch existing demo and jump straight to Step 2
+    try {
+      const res = await apiFetch(`/admin/api/demo/${demoId}`);
+      if (!res || !res.ok) { toast('Could not load demo data', 'error'); return; }
+      const uc = await res.json();
+      _dwDraft = {
+        company_name:              uc.name,
+        industry:                  uc.industry || '',
+        slogan_en:                 uc.slogan?.en || '',
+        slogan_es:                 uc.slogan?.es || '',
+        conversational_prompt_en:  uc.system_prompt || '',
+        conversational_prompt_es:  '',
+        recommended_ivr_type:      uc.ivr_type || 'topics',
+        topics_structure:          uc.topics || {},
+        suggested_profile_fields:  [],
+      };
+      _dwKnowledgeBase = uc.knowledge_base || '';
+      // Show file notice if knowledge_base present
+      if (_dwKnowledgeBase) {
+        _dwFileNames = ['(stored knowledge base)'];
+      }
+      document.getElementById('dw2-company').value    = uc.name || '';
+      document.getElementById('dw2-industry').value   = uc.industry || '';
+      document.getElementById('dw2-slogan-en').value  = uc.slogan?.en || '';
+      document.getElementById('dw2-slogan-es').value  = uc.slogan?.es || '';
+      document.getElementById('dw2-prompt-en').value  = uc.system_prompt || '';
+      document.getElementById('dw2-prompt-es').value  = '';
+      document.getElementById('dw2-forward-to').value = uc.forward_to || '';
+      document.getElementById(uc.ivr_type === 'conversational' ? 'dw-type-conv' : 'dw-type-topics').checked = true;
+      demoTypeChanged();
+      buildDemoTopicsEditor(uc.topics || {});
+      const hintEl = document.getElementById('dw-profile-hint');
+      if (hintEl) hintEl.textContent = '';
+      document.getElementById('demo-step-1').style.display = 'none';
+      document.getElementById('demo-step-2').style.display = '';
+    } catch(e) {
+      toast('Error loading demo: ' + e.message, 'error');
+    }
+  }
 }
 
 function hideDemoWizard() {

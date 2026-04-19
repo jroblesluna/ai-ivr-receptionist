@@ -497,6 +497,15 @@ def api_demo_save():
     return jsonify({"ok": True, "id": uc_id, "demo_code": code}), 201
 
 
+@admin_bp.route("/admin/api/demo/<demo_id>", methods=["GET"])
+@require_role("admin", "manager")
+def api_demo_get(demo_id):
+    uc = db.uc_get(demo_id)
+    if not uc or not uc.get("is_demo"):
+        return jsonify({"error": "Demo not found"}), 404
+    return jsonify(uc)
+
+
 @admin_bp.route("/admin/api/demo/<demo_id>", methods=["DELETE"])
 @require_role("admin", "manager")
 def api_demo_delete(demo_id):

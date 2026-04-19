@@ -75,25 +75,41 @@ def ai_gather():
         }
 
         if is_conversational:
-            # For conversational demos, generate the opening greeting via LLM
-            known_name = caller_profile.get("name", "")
-            if lang == "es":
-                greeting = (
-                    f"Bienvenido{' de nuevo, ' + known_name if known_name else ''} a {demo_uc['name']}."
+            # Generate the opening greeting via LLM so it uses the full system prompt context
+            trigger = "(start conversation)" if lang == "en" else "(iniciar conversación)"
+            try:
+                _history_for_greeting = [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user",   "content": trigger},
+                ]
+                _gr_completion = config.openai_client().chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=_history_for_greeting,
+                    response_format={"type": "json_object"},
+                    max_tokens=300,
                 )
-            else:
+                _gr_json = json.loads(_gr_completion.choices[0].message.content)
+                greeting = _gr_json.get("message") or ""
+            except Exception as _gr_err:
+                print(f"[AI GREETING ERROR] {_gr_err}")
+                greeting = ""
+            if not greeting:
+                known_name = caller_profile.get("name", "")
                 greeting = (
                     f"{'Welcome back, ' + known_name + '!' if known_name else 'Hello!'} "
-                    f"Thank you for calling {demo_uc['name']}."
+                    f"Thank you for calling {demo_uc['name']}. How can I help you today?"
+                    if lang == "en" else
+                    f"Bienvenido{' de nuevo, ' + known_name if known_name else ''} a {demo_uc['name']}. ¿En qué le puedo ayudar?"
                 )
+            # Trigger + greeting already appended to history above
         else:
             TOPICS = get_topics() if not demo_uc else _get_demo_topics(demo_uc)
             fallback_topic = list(TOPICS.keys())[0] if TOPICS else topic
             topic_data = TOPICS.get(topic) or TOPICS.get(fallback_topic, {})
             lang_data  = topic_data.get(lang) or topic_data.get("en", {})
             greeting   = lang_data.get("greeting", "Hello, how can I help you?")
+            conversation_store[call_sid].append({"role": "assistant", "content": greeting})
 
-        conversation_store[call_sid].append({"role": "assistant", "content": greeting})
         resp.say(greeting, voice=voice)
 
     demo_suffix = f"&demo_id={demo_id}" if demo_id else ""
