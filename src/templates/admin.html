@@ -472,6 +472,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
   <button class="tab-btn active" id="tab-btn-dashboard" onclick="switchTab('dashboard')">Dashboard</button>
   {% if user_role == 'admin' or user_role == 'manager' %}
   <button class="tab-btn" id="tab-btn-use-cases" onclick="switchTab('use-cases')">Use Cases</button>
+  <button class="tab-btn" id="tab-btn-demos" onclick="switchTab('demos')">Demos On The Fly</button>
   {% endif %}
   {% if user_role == 'admin' %}
   <button class="tab-btn" id="tab-btn-credentials" onclick="switchTab('credentials')">Credentials</button>
@@ -609,7 +610,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
   <div class="card" id="demos-dashboard-card">
     <div class="card-header">
       <span class="card-title">Active Demos <button class="info-btn" onclick="showInfo('Active Demos','On-the-fly demos are hidden IVR profiles activated by a secret 6-digit code. They are separate from your main use cases. Callers access a demo by pressing * on the main menu and entering the code. Each demo maintains a memory profile per caller phone number across calls.')">ℹ</button></span>
-      <button class="btn btn-primary" style="font-size:12px;padding:6px 14px;" onclick="switchTab('use-cases');setTimeout(()=>showDemoWizard(),200)">+ New Demo</button>
+      <button class="btn btn-primary" style="font-size:12px;padding:6px 14px;" onclick="switchTab('demos')">Ver demos →</button>
     </div>
     <p class="section-desc">
       On-the-fly demos activated via the <strong>*</strong> key on the IVR menu. Share the 6-digit code with prospects or testers.
@@ -633,12 +634,9 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
   <div class="card">
     <div class="card-header">
       <span class="card-title">Business Profiles <button class="info-btn" onclick="showInfo('Business Profiles','Each profile defines a complete IVR persona: company name, voice, slogan, and menu topics. The active profile (blue dot) is used for all incoming calls. Demos are kept separate and activated via the * key.')">ℹ</button></span>
-      <div style="display:flex;gap:8px;">
-        <button class="btn" style="font-size:12px;padding:6px 14px;background:linear-gradient(135deg,#7c3aed,#4f46e5);color:white;border:none;" onclick="showDemoWizard()">✨ New Demo</button>
-        {% if user_role == 'admin' %}
-        <button class="btn btn-primary" style="font-size:12px;padding:6px 14px;" onclick="showNewUCModal()">+ New</button>
-        {% endif %}
-      </div>
+      {% if user_role == 'admin' %}
+      <button class="btn btn-primary" style="font-size:12px;padding:6px 14px;" onclick="showNewUCModal()">+ New Use Case</button>
+      {% endif %}
     </div>
     <p class="section-desc">
       Each business profile defines the AI's persona, topics, voices, slogans, and conversation instructions.
@@ -676,6 +674,28 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 </main>
 </div>
 <!-- end tab-use-cases -->
+
+{% if user_role == 'admin' or user_role == 'manager' %}
+<!-- ═══════════════════ TAB: Demos On The Fly ═══════════════════ -->
+<div id="tab-demos" class="tab-wrap" style="display:none;">
+<main>
+
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Demos On The Fly <button class="info-btn" onclick="showInfo('Demos On The Fly','Hidden IVR profiles activated by a secret 6-digit code. Callers press * on the main menu and enter the code to access the demo. Each demo can be Topics (digit menu) or Conversational (full AI agent). Caller memory is stored per phone number across calls.')">ℹ</button></span>
+      <button class="btn" style="font-size:12px;padding:6px 14px;background:linear-gradient(135deg,#7c3aed,#4f46e5);color:white;border:none;" onclick="showDemoWizard()">✨ New Demo</button>
+    </div>
+    <p class="section-desc">
+      Share the 6-digit activation code with prospects or testers. Demos are separate from regular use cases and never affect live calls.
+    </p>
+    <div id="demos-list-tab">
+      <div style="color:var(--muted);font-size:13px;padding:8px 0;">Loading…</div>
+    </div>
+  </div>
+
+</main>
+</div>
+<!-- end tab-demos -->
 {% endif %}
 
 {% if user_role == 'admin' %}
@@ -1296,7 +1316,7 @@ const VOICE_DATA = {
 
 // ── Tab switching ─────────────────────────────────────────────────────────────
 
-const _ALL_TABS = ['dashboard','use-cases','credentials','system','users'];
+const _ALL_TABS = ['dashboard','use-cases','demos','credentials','system','users'];
 let _currentTab = 'dashboard';
 
 function switchTab(name) {
@@ -1314,7 +1334,8 @@ function switchTab(name) {
   if (name === 'users')       loadUsers();
   if (name === 'dashboard')   { _reportsOffset = 0; loadReports(0); loadDemos(); }
   if (name === 'credentials') loadCredentialStatus();
-  if (name === 'use-cases')   { if (currentUCId) editUseCase(currentUCId); loadDemos(); }
+  if (name === 'use-cases')   { if (currentUCId) editUseCase(currentUCId); }
+  if (name === 'demos')       loadDemos();
 }
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
@@ -2547,13 +2568,16 @@ async function loadDemos() {
 }
 
 function renderDemosDashboard(demos) {
-  const container = document.getElementById('demos-list-dashboard');
-  if (!container) return;
+  const containers = [
+    document.getElementById('demos-list-dashboard'),
+    document.getElementById('demos-list-tab'),
+  ].filter(Boolean);
+  if (!containers.length) return;
   if (!demos || !demos.length) {
-    container.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px 0;">No demos yet. Click <strong>+ New Demo</strong> to create one.</div>';
+    containers.forEach(c => { c.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px 0;">No demos yet. Click <strong>✨ New Demo</strong> to create one.</div>'; });
     return;
   }
-  container.innerHTML = `
+  const html = `
     <table style="width:100%;border-collapse:collapse;font-size:13px;">
       <thead>
         <tr style="border-bottom:1px solid var(--border);text-align:left;">
@@ -2592,6 +2616,7 @@ function renderDemosDashboard(demos) {
       </tbody>
     </table>
   `;
+  containers.forEach(c => { c.innerHTML = html; });
 }
 
 async function showDemoProfiles(demoId, demoName) {
