@@ -1383,16 +1383,20 @@ async function setActiveUseCase() {
 }
 
 function _updateSetActiveBtn() {
-  // Imported from Jinja — currentUCId may have changed; compare against live active
-  const btn = document.getElementById('ed-set-active-btn');
-  if (!btn) return;
-  // We track active via nav pill; re-query it
+  const setBtn = document.getElementById('ed-set-active-btn');
+  const delBtn = document.getElementById('ed-delete-btn');
+  if (!setBtn) return;
   const activeName = document.getElementById('nav-active-name')?.textContent || '';
   const uc = USE_CASES[currentUCId];
   const isActive = uc && uc.name === activeName;
-  btn.disabled = isActive;
-  btn.textContent = isActive ? '✓ Currently Active' : 'Set as Active';
-  btn.style.background = isActive ? '#9ca3af' : '#10b981';
+  setBtn.disabled = isActive;
+  setBtn.textContent = isActive ? '✓ Currently Active' : 'Set as Active';
+  setBtn.style.background = isActive ? '#9ca3af' : '#10b981';
+  if (delBtn) {
+    delBtn.disabled = isActive;
+    delBtn.style.opacity = isActive ? '0.4' : '1';
+    delBtn.title = isActive ? 'Cannot delete the active use case' : '';
+  }
 }
 
 async function selectAndEditUC(id, name) {
@@ -1577,7 +1581,7 @@ function buildEditor(ucId) {
 <div style="padding:0 4px 8px;display:flex;gap:10px;flex-wrap:wrap;">
   <button class="btn btn-primary" onclick="saveUseCase()">Save Changes</button>
   <button class="btn" id="ed-set-active-btn" onclick="setActiveUseCase()" style="background:#10b981;color:#fff;">Set as Active</button>
-  <button class="btn" style="background:#ff3b30;color:#fff;margin-left:auto;" onclick="deleteUseCase()">Delete Use Case</button>
+  <button class="btn" id="ed-delete-btn" style="background:#ff3b30;color:#fff;margin-left:auto;" onclick="deleteUseCase()">Delete Use Case</button>
 </div>`;
   initVoiceSelect('en', uc.voice?.en || 'Google.en-US-Neural2-D');
   initVoiceSelect('es', uc.voice?.es || 'Google.es-US-Neural2-B');
