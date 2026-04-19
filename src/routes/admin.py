@@ -287,13 +287,14 @@ def api_demo_generate():
     if not company or not idea:
         return jsonify({"error": "company_name and idea are required"}), 400
 
-    # Build file content blocks
+    # Build file content blocks (supports multiple files)
     content_blocks = []
-    uploaded_file  = request.files.get("file")
-    if uploaded_file:
+    uploaded_files = request.files.getlist("files") or ([request.files["file"]] if "file" in request.files else [])
+    for uploaded_file in uploaded_files:
+      if uploaded_file and uploaded_file.filename:
         file_bytes = uploaded_file.read()
         if len(file_bytes) > 10 * 1024 * 1024:
-            return jsonify({"error": "File too large (max 10 MB)"}), 400
+            continue  # already validated client-side; skip silently
         filename = (uploaded_file.filename or "").lower()
         mime     = uploaded_file.content_type or "application/octet-stream"
 

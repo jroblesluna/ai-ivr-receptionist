@@ -1130,8 +1130,17 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
         <textarea id="dw-idea" rows="4" placeholder="Describe what this IVR should do. E.g.: Take food orders, ask for delivery or pickup, collect customer name and address, confirm order with a number, offer the daily special…"></textarea>
       </div>
       <div class="editor-field">
-        <label>Reference File <span style="color:var(--muted);font-weight:400;">(PDF, Word, Excel, TXT/CSV — max 10 MB)</span></label>
-        <input type="file" id="dw-file" accept=".pdf,.txt,.csv,.docx,.xlsx,.xls" style="font-size:13px;">
+        <label>Reference Files <span style="color:var(--muted);font-weight:400;">(PDF, Word, Excel, TXT/CSV — max 10 MB each)</span></label>
+        <div id="dw-dropzone"
+             onclick="document.getElementById('dw-file').click()"
+             ondragover="dwDragOver(event)" ondragleave="dwDragLeave(event)" ondrop="dwDrop(event)"
+             style="border:2px dashed var(--border);border-radius:10px;padding:28px 20px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s;background:#fafafa;">
+          <div style="font-size:28px;margin-bottom:8px;">📎</div>
+          <div style="font-size:13px;font-weight:500;color:var(--text);">Drag files here or <span style="color:var(--primary);text-decoration:underline;">click to browse</span></div>
+          <div style="font-size:12px;color:var(--muted);margin-top:4px;">PDF · Word · Excel · TXT · CSV</div>
+        </div>
+        <input type="file" id="dw-file" accept=".pdf,.txt,.csv,.docx,.xlsx,.xls" multiple style="display:none;" onchange="dwFilesAdded(this.files)">
+        <div id="dw-file-list" style="margin-top:10px;display:flex;flex-direction:column;gap:6px;"></div>
         <div id="dw-file-error" style="color:#ef4444;font-size:12px;margin-top:4px;display:none;"></div>
       </div>
       <div class="modal-footer">
@@ -2218,10 +2227,81 @@ async function loadReports(delta) {
 
 let _dwDraft = null;
 let _dwEditId = null;
+let _dwFiles  = [];   // Array of File objects
+
+// ── File drop zone ─────────────────────────────────────────────────────────────
+
+const DW_MAX_SIZE   = 10 * 1024 * 1024;
+const DW_ACCEPTED   = ['.pdf','.txt','.csv','.docx','.xlsx','.xls'];
+
+function dwDragOver(e) {
+  e.preventDefault();
+  const dz = document.getElementById('dw-dropzone');
+  dz.style.borderColor = 'var(--primary)';
+  dz.style.background  = 'var(--primary-light)';
+}
+function dwDragLeave(e) {
+  const dz = document.getElementById('dw-dropzone');
+  dz.style.borderColor = 'var(--border)';
+  dz.style.background  = '#fafafa';
+}
+function dwDrop(e) {
+  e.preventDefault();
+  dwDragLeave(e);
+  dwFilesAdded(e.dataTransfer.files);
+}
+function dwFilesAdded(fileList) {
+  const errorEl = document.getElementById('dw-file-error');
+  errorEl.style.display = 'none';
+  const errors = [];
+  Array.from(fileList).forEach(f => {
+    const ext = '.' + f.name.split('.').pop().toLowerCase();
+    if (!DW_ACCEPTED.includes(ext)) {
+      errors.push(`"${f.name}" — unsupported format`); return;
+    }
+    if (f.size > DW_MAX_SIZE) {
+      errors.push(`"${f.name}" — exceeds 10 MB (${(f.size/1024/1024).toFixed(1)} MB)`); return;
+    }
+    if (_dwFiles.some(x => x.name === f.name)) {
+      errors.push(`"${f.name}" — already added`); return;
+    }
+    _dwFiles.push(f);
+  });
+  if (errors.length) {
+    errorEl.textContent = errors.join(' · ');
+    errorEl.style.display = '';
+  }
+  dwRenderFileList();
+  // Reset input so same file can be re-added after removal
+  document.getElementById('dw-file').value = '';
+}
+function dwRemoveFile(name) {
+  _dwFiles = _dwFiles.filter(f => f.name !== name);
+  dwRenderFileList();
+}
+function dwRenderFileList() {
+  const container = document.getElementById('dw-file-list');
+  if (!_dwFiles.length) { container.innerHTML = ''; return; }
+  container.innerHTML = _dwFiles.map(f => `
+    <div style="display:flex;align-items:center;gap:8px;background:#f3f4f6;border-radius:7px;padding:7px 10px;font-size:13px;">
+      <span style="font-size:16px;">${dwFileIcon(f.name)}</span>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escHtml(f.name)}">${escHtml(f.name)}</span>
+      <span style="color:var(--muted);font-size:11px;white-space:nowrap;">${(f.size/1024).toFixed(0)} KB</span>
+      <button onclick="dwRemoveFile('${escHtml(f.name)}')" style="background:none;border:none;color:var(--danger);font-size:18px;cursor:pointer;line-height:1;padding:0 2px;" title="Remove">×</button>
+    </div>
+  `).join('');
+}
+function dwFileIcon(name) {
+  const ext = name.split('.').pop().toLowerCase();
+  return { pdf:'📄', docx:'📝', doc:'📝', xlsx:'📊', xls:'📊', csv:'📋', txt:'📃' }[ext] || '📎';
+}
+
+// ── Wizard ─────────────────────────────────────────────────────────────────────
 
 function showDemoWizard(demoId) {
   _dwEditId = demoId || null;
   _dwDraft  = null;
+  _dwFiles  = [];
   document.getElementById('demo-step-1').style.display = '';
   document.getElementById('demo-step-2').style.display = 'none';
   document.getElementById('demo-step-3').style.display = 'none';
@@ -2232,6 +2312,7 @@ function showDemoWizard(demoId) {
   document.getElementById('dw-idea').value    = '';
   document.getElementById('dw-file').value    = '';
   document.getElementById('dw-file-error').style.display = 'none';
+  dwRenderFileList();
   document.getElementById('demo-wizard-title').textContent = demoId ? 'Edit Demo' : 'Create Demo on the Fly';
   document.getElementById('demo-wizard-modal').style.display = 'flex';
 }
@@ -2306,13 +2387,6 @@ async function demoGenerate() {
   const idea    = document.getElementById('dw-idea').value.trim();
   if (!company || !idea) { toast('Company name and idea are required', 'error'); return; }
 
-  const fileInput = document.getElementById('dw-file');
-  const file = fileInput.files[0];
-  if (file && file.size > 10 * 1024 * 1024) {
-    document.getElementById('dw-file-error').style.display = '';
-    document.getElementById('dw-file-error').textContent = 'File too large (max 10 MB)';
-    return;
-  }
   document.getElementById('dw-file-error').style.display = 'none';
 
   const btn = document.getElementById('dw-generate-btn');
@@ -2324,7 +2398,7 @@ async function demoGenerate() {
   fd.append('slogan', document.getElementById('dw-slogan').value.trim());
   fd.append('idea', idea);
   fd.append('base_lang', document.getElementById('dw-lang').value);
-  if (file) fd.append('file', file);
+  _dwFiles.forEach(f => fd.append('files', f));
 
   try {
     const res = await fetch('/admin/api/demo/generate', { method: 'POST', body: fd, credentials: 'include' });
