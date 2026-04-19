@@ -64,10 +64,17 @@ def get_conversational_prompt(lang: str, uc: dict, caller_from: str = None, call
             '  "profile_update": {}\n}'
         )
         has_kb = bool(knowledge_base and knowledge_base.strip())
+        forbidden = (
+            "FORBIDDEN PHRASES — do NOT use these or any equivalent in the message field:\n"
+            "  'one moment', 'please wait', 'hold on', 'let me check', 'let me look that up',\n"
+            "  'I'll search', 'searching', 'looking up', 'I'll find', 'I cannot access external',\n"
+            "  'I don't have access to', 'I'm unable to retrieve'. These phrases break the user experience.\n"
+        )
         end_call_rule = (
             "  • You are a fully autonomous AI agent — there is NO human to transfer to. NEVER say 'please hold' or 'I'll connect you'.\n"
-            "  • Answer questions DIRECTLY from your knowledge base — never say you will 'search', 'look up', or 'check'. Just state the answer.\n"
-            "  • If the caller asks about something not in your knowledge base, say so briefly, then ask if you can help with something else.\n"
+            "  • Read the KNOWLEDGE BASE and CALLER MEMORY above carefully before answering — the answer is likely already there.\n"
+            "  • Answer questions DIRECTLY from your knowledge base. State the answer; do not announce that you are searching.\n"
+            "  • If the caller asks about something truly not in your knowledge base, say 'I don't have that in my records' and offer to help with something else.\n"
             "  • After completing each request, ALWAYS ask: 'Is there anything else I can help you with?' before considering the call done.\n"
             "  • Only set end_call=true on the turn where the caller explicitly says they have no more questions (e.g. 'no thanks', 'that's all').\n"
             "  • NEVER set end_call=true on the same turn you provide information or complete a task.\n"
@@ -86,6 +93,7 @@ def get_conversational_prompt(lang: str, uc: dict, caller_from: str = None, call
             f"  • Collect the caller's name and phone number naturally during the conversation.\n"
             f"{end_call_rule}"
             f"  • Use profile_update to save any new information you learn about the caller.\n\n"
+            f"{forbidden}"
             f"Respond ONLY in valid JSON:\n{schema}\n\n{phone_format_rule}"
         )
     else:
@@ -104,10 +112,17 @@ def get_conversational_prompt(lang: str, uc: dict, caller_from: str = None, call
             '  "profile_update": {}\n}'
         )
         has_kb = bool(knowledge_base and knowledge_base.strip())
+        forbidden_es = (
+            "FRASES PROHIBIDAS — NO uses estas ni ningún equivalente en el campo message:\n"
+            "  'un momento', 'por favor espere', 'espera', 'permíteme', 'voy a buscar',\n"
+            "  'buscando', 'consultando', 'déjame verificar', 'no puedo acceder a información externa',\n"
+            "  'no tengo acceso a', 'no puedo recuperar'. Estas frases arruinan la experiencia.\n"
+        )
         end_call_rule_es = (
             "  • Eres un agente de IA totalmente autónomo — NO hay ningún humano al que transferir. NUNCA digas 'por favor espere' ni 'le conecto'.\n"
-            "  • Responde las preguntas DIRECTAMENTE usando tu base de conocimiento — nunca digas que vas a 'buscar', 'consultar' o 'verificar'. Simplemente responde con los datos.\n"
-            "  • Si el llamante pregunta algo que no está en tu base de conocimiento, indícalo brevemente y pregunta si puedes ayudar con algo más.\n"
+            "  • Lee la BASE DE CONOCIMIENTO y la MEMORIA DEL LLAMANTE de arriba con atención antes de responder — la respuesta probablemente ya está ahí.\n"
+            "  • Responde las preguntas DIRECTAMENTE con los datos. No anuncies que estás buscando — simplemente da la respuesta.\n"
+            "  • Si el llamante pregunta algo que genuinamente no está en tu base de conocimiento, di 'No tengo ese dato en mis registros' y ofrece ayuda con otra cosa.\n"
             "  • Después de completar cada solicitud, SIEMPRE pregunta: '¿Hay algo más en que pueda ayudarte?' antes de considerar finalizada la llamada.\n"
             "  • Solo establece end_call=true en el turno en que el llamante confirma explícitamente que no tiene más preguntas (p. ej. 'no, gracias', 'eso es todo').\n"
             "  • NUNCA establezcas end_call=true en el mismo turno en que proporcionas información o completas una tarea.\n"
@@ -126,6 +141,7 @@ def get_conversational_prompt(lang: str, uc: dict, caller_from: str = None, call
             f"  • Recoge el nombre y número del llamante de forma natural durante la conversación.\n"
             f"{end_call_rule_es}"
             f"  • Usa profile_update para guardar cualquier nueva información del llamante.\n\n"
+            f"{forbidden_es}"
             f"Responde SOLO en JSON válido:\n{schema}\n\n{phone_format_rule}"
         )
 
