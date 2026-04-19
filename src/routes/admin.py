@@ -483,8 +483,9 @@ def api_demo_save():
         "is_demo":        1,
         "demo_code":      code,
         "ivr_type":       ivr_type,
-        "system_prompt":  data.get("system_prompt", ""),
-        "knowledge_base": data.get("knowledge_base", ""),
+        "system_prompt":    data.get("system_prompt", ""),
+        "system_prompt_es": data.get("system_prompt_es", ""),
+        "knowledge_base":   data.get("knowledge_base", ""),
     }
 
     # If updating existing demo, preserve its code

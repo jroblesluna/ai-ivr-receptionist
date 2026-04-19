@@ -2355,7 +2355,7 @@ async function showDemoWizard(demoId) {
         slogan_en:                 uc.slogan?.en || '',
         slogan_es:                 uc.slogan?.es || '',
         conversational_prompt_en:  uc.system_prompt || '',
-        conversational_prompt_es:  '',
+        conversational_prompt_es:  uc.system_prompt_es || '',
         recommended_ivr_type:      uc.ivr_type || 'topics',
         topics_structure:          uc.topics || {},
         suggested_profile_fields:  [],
@@ -2369,8 +2369,8 @@ async function showDemoWizard(demoId) {
       document.getElementById('dw2-industry').value   = uc.industry || '';
       document.getElementById('dw2-slogan-en').value  = uc.slogan?.en || '';
       document.getElementById('dw2-slogan-es').value  = uc.slogan?.es || '';
-      document.getElementById('dw2-prompt-en').value  = uc.system_prompt || '';
-      document.getElementById('dw2-prompt-es').value  = '';
+      document.getElementById('dw2-prompt-en').value  = uc.system_prompt    || '';
+      document.getElementById('dw2-prompt-es').value  = uc.system_prompt_es || '';
       document.getElementById('dw2-forward-to').value = uc.forward_to || '';
       document.getElementById(uc.ivr_type === 'conversational' ? 'dw-type-conv' : 'dw-type-topics').checked = true;
       demoTypeChanged();
@@ -2539,8 +2539,9 @@ async function demoSave() {
     voice:          { en: '', es: '' },
     topics:         topics,
     ivr_type:       ivr_type,
-    system_prompt:  ivr_type === 'conversational' ? promptEn : '',
-    knowledge_base: ivr_type === 'conversational' ? _dwKnowledgeBase : '',
+    system_prompt:    ivr_type === 'conversational' ? promptEn : '',
+    system_prompt_es: ivr_type === 'conversational' ? promptEs : '',
+    knowledge_base:   ivr_type === 'conversational' ? _dwKnowledgeBase : '',
   };
 
   const res = await apiFetch('/admin/api/demo', {

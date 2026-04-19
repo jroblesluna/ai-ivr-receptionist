@@ -37,7 +37,7 @@ def _knowledge_block(lang: str, knowledge_base: str) -> str:
 def get_conversational_prompt(lang: str, uc: dict, caller_from: str = None, caller_profile: dict = None) -> str:
     """System prompt for conversational-type demos (no digit menu, natural AI conversation)."""
     company        = uc.get("name", "")
-    system_prompt  = uc.get("system_prompt") or ""
+    system_prompt  = (uc.get("system_prompt_es") if lang == "es" else None) or uc.get("system_prompt") or ""
     knowledge_base = uc.get("knowledge_base") or ""
     caller_fmt     = format_phone_spoken(caller_from) if caller_from else ""
     profile_block  = _profile_block(lang, caller_profile or {})
