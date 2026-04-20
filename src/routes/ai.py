@@ -21,20 +21,49 @@ def _now_local():
         return datetime.utcnow()
 
 
-def _normalize_client(name: str) -> str:
-    """Lowercase, strip accents and non-alphanumeric chars for fuzzy dedup."""
-    nfkd = unicodedata.normalize("NFKD", name)
+# Field names that carry free-text detail — excluded from dedup identity comparison
+_DETAIL_FIELDS = frozenset({
+    "detalle", "details", "description", "descripcion",
+    "notes", "nota", "notas", "comment", "comentario", "summary", "resumen",
+})
+
+
+def _normalize_str(s: str) -> str:
+    """Lowercase, strip accents and non-alphanumeric for fuzzy comparison."""
+    nfkd = unicodedata.normalize("NFKD", s)
     ascii_str = nfkd.encode("ascii", "ignore").decode("ascii")
     return re.sub(r"[^a-z0-9]", "", ascii_str.lower())
 
 
-def _clients_match(a: str, b: str) -> bool:
-    """True if two client name strings refer to the same entity."""
-    na, nb = _normalize_client(a), _normalize_client(b)
+def _values_match(a: str, b: str) -> bool:
+    """Exact or fuzzy substring match for identifying field values."""
+    na, nb = _normalize_str(a), _normalize_str(b)
     if na == nb:
         return True
     shorter, longer = (na, nb) if len(na) <= len(nb) else (nb, na)
     return len(shorter) >= 8 and shorter in longer
+
+
+def _is_duplicate_item(new_item: dict, existing_list: list) -> bool:
+    """
+    Generic deduplication for profile_update list items.
+    Compares all non-detail fields; uses fuzzy matching on string values.
+    Two items are duplicates when every identifying field matches.
+    """
+    new_id = {k: v for k, v in new_item.items() if k.lower() not in _DETAIL_FIELDS}
+    if not any(v for v in new_id.values()):
+        return True  # empty/meaningless item — always skip
+    for existing in existing_list:
+        if not isinstance(existing, dict):
+            continue
+        ex_id = {k: v for k, v in existing.items() if k.lower() not in _DETAIL_FIELDS}
+        if set(new_id.keys()) != set(ex_id.keys()):
+            continue
+        if all(_values_match(str(new_id[k]), str(ex_id[k])) for k in new_id):
+            return True
+    return False
+
+
 from state import conversation_store, collected_info
 from use_case_loader import get_topics, get_active_use_case
 from helpers import get_voice, get_gather_language
@@ -272,20 +301,7 @@ def ai_respond():
                         for item in v:
                             if not isinstance(item, dict):
                                 continue
-                            # Skip incomplete activity entries
-                            item_date   = str(item.get("fecha") or item.get("date", "")).strip()
-                            item_client = str(item.get("cliente") or item.get("client", "")).strip()
-                            item_type   = str(item.get("type", "")).strip()
-                            if not item_date or not item_client:
-                                continue
-                            # Fuzzy dedup: same type + same date + fuzzy-matching client name
-                            is_dup = any(
-                                str(x.get("type", "")) == item_type
-                                and str(x.get("fecha") or x.get("date", "")) == item_date
-                                and _clients_match(item_client, str(x.get("cliente") or x.get("client", "")))
-                                for x in existing_list if isinstance(x, dict)
-                            )
-                            if not is_dup:
+                            if not _is_duplicate_item(item, existing_list):
                                 existing_list.append(item)
                         existing_profile[k] = existing_list
                     else:

@@ -47,7 +47,15 @@ def _knowledge_block(lang: str, knowledge_base: str) -> str:
 
 
 def get_conversational_prompt(lang: str, uc: dict, caller_from: str = None, caller_profile: dict = None) -> str:
-    """System prompt for conversational-type demos (no digit menu, natural AI conversation)."""
+    """
+    Generic system prompt wrapper for conversational AI agents.
+    Domain behavior comes entirely from uc['system_prompt']. This function adds:
+    - Temporal context (today's date + time)
+    - Caller identity context
+    - Generic conversation mechanics (JSON format, end_call, forbidden phrases)
+    - Generic profile_update accumulation rules
+    - TTS speech-formatting rules
+    """
     company        = uc.get("name", "")
     system_prompt  = (uc.get("system_prompt_es") if lang == "es" else None) or uc.get("system_prompt") or ""
     knowledge_base = uc.get("knowledge_base") or ""
@@ -58,133 +66,145 @@ def get_conversational_prompt(lang: str, uc: dict, caller_from: str = None, call
     today_str      = now.strftime("%A, %B %d, %Y") if lang == "en" else now.strftime("%A %d de %B de %Y")
     today_iso      = now.strftime("%Y-%m-%d")
     now_time_str   = now.strftime("%I:%M %p") if lang == "en" else now.strftime("%H:%M")
+    known_name     = (caller_profile or {}).get("name", "")
 
     if lang == "en":
+        caller_ctx = (
+            (f" The caller's number is {caller_fmt}." if caller_fmt else "") +
+            (f" You already know this caller as {known_name} — greet them by name." if known_name else "")
+        )
+        schema = (
+            '{\n'
+            '  "message": "what to say aloud — follow speech rules below",\n'
+            '  "name": "caller\'s full name once known, else null",\n'
+            '  "phone": "caller\'s callback number once known, else null",\n'
+            '  "notes": "brief summary of the caller\'s main request this call, else null",\n'
+            '  "end_call": false,\n'
+            '  "profile_update": {}\n'
+            '}'
+        )
+        mechanics = (
+            "CALL MECHANICS — these rules govern every response:\n"
+            f"  • Context: TODAY is {today_str}, current time is {now_time_str} (ISO date: {today_iso}).\n"
+            "    Resolve any relative date the caller mentions ('last Wednesday', 'next Friday') to an exact\n"
+            "    ISO date (YYYY-MM-DD) before storing it. Verify your arithmetic against today's date.\n"
+            "  • Keep responses SHORT — this is a phone call, not a chat.\n"
+            "  • You are fully autonomous — there is NO human to transfer to. Never say 'please hold'.\n"
+            "  • Collect the caller's name and phone number naturally during the conversation.\n"
+            "  • Answer questions DIRECTLY. Never announce you are searching or checking — just answer.\n"
+            "  • If something is not in your knowledge base or memory, say so plainly and offer to help otherwise.\n"
+            "  • After fulfilling each request, ask: 'Is there anything else I can help you with?'\n"
+            "  • Set end_call=true ONLY on the turn the caller explicitly confirms they are done\n"
+            "    (e.g. 'no thanks', 'that's all'). Never on the same turn you deliver information.\n"
+        )
+        memory_rules = (
+            "CALLER MEMORY — profile_update:\n"
+            "  • Use profile_update to store any structured data your role requires (defined in your system prompt).\n"
+            "  • Lists in profile_update are APPENDED across calls; scalar values OVERWRITE.\n"
+            "  • ONLY write to profile_update when all required fields are complete and confirmed.\n"
+            "  • STORAGE FLOW: once all fields are confirmed, say 'I've recorded…' (past tense) and\n"
+            "    include the data in profile_update IN THAT SAME TURN, then ask 'Is there anything else?'.\n"
+            "    Never announce future intent ('I will record…') and wait — that causes duplicates.\n"
+            "  • Use the EXACT SAME spelling for any named entity once confirmed. Do not vary it across turns.\n"
+            "  • Dates stored in profile_update must be ISO (YYYY-MM-DD); spoken dates in message use natural form.\n"
+        )
+        forbidden = (
+            "NEVER say in the message field: 'one moment', 'please wait', 'hold on', 'let me check',\n"
+            "'I'll search', 'searching', 'looking up', 'I cannot access', 'I don't have access to'.\n"
+        )
         speech_rules = (
             "SPEECH RULES — apply to everything written in the message field:\n"
-            "  • Phone numbers: digit-group with hyphens (e.g. 408-590-0153).\n"
-            "  • Dates in message: always write as natural spoken date, NOT ISO digits. E.g. 'Wednesday, April 23rd' not '2026-04-23'. Dates in activities fields stay ISO.\n"
-            "  • Long numeric IDs (RUC, tax ID, document numbers): group in pairs or triples with hyphens so TTS reads them naturally (e.g. '20-127-765-279' not '20127765279').\n"
-            "  • Abbreviations like S.A., S.R.L., INC.: write with spaces so TTS reads each letter (e.g. 'S A', 'S R L'). Do NOT hyphenate real words.\n"
-            "  • Only spell letter-by-letter (with hyphens) abbreviations that are pure initials with no readable pronunciation on their own, such as 'R-U-C', 'D-N-I'. Regular words and proper names — including company names — are spoken normally.\n"
-            "  • When referencing data from the knowledge base, always confirm the exact full name of the entity (company, product, client) before recording it — do not guess or abbreviate.\n"
+            "  • Dates: natural spoken form only ('Wednesday, April 23rd', not '2026-04-23').\n"
+            "  • Phone numbers: grouped with hyphens ('408-590-0153').\n"
+            "  • Long numeric codes (IDs, tax numbers): grouped in pairs or triples with hyphens\n"
+            "    ('20-127-765-279') so TTS reads them digit by digit.\n"
+            "  • Legal suffixes (S.A., S.R.L., INC., LLC): write with spaces ('S A', 'S R L')\n"
+            "    so TTS reads each letter individually. Do NOT use hyphens between real words.\n"
+            "  • Pure initial abbreviations with no readable pronunciation (RUC, DNI, IMEI):\n"
+            "    hyphenate letters ('R-U-C', 'D-N-I'). Proper names and regular words: spoken naturally.\n"
+            "  • When referencing knowledge-base data, confirm the exact full name of the entity\n"
+            "    before recording it — do not guess or abbreviate.\n"
+        )
+        return (
+            f"You are a natural, friendly AI voice agent for {company}.{caller_ctx}\n\n"
+            f"{system_prompt}\n"
+            f"{kb_block}"
+            f"{profile_block}\n\n"
+            f"{mechanics}\n"
+            f"{memory_rules}\n"
+            f"FORBIDDEN: {forbidden}\n"
+            f"Respond ONLY in valid JSON:\n{schema}\n\n"
+            f"{speech_rules}"
         )
     else:
+        caller_ctx = (
+            (f" El número del llamante es {caller_fmt}." if caller_fmt else "") +
+            (f" Ya conoces a este llamante como {known_name} — salúdale por su nombre." if known_name else "")
+        )
+        schema = (
+            '{\n'
+            '  "message": "lo que debes decir en voz alta — sigue las reglas de pronunciación",\n'
+            '  "name": "nombre completo del llamante una vez conocido, si no null",\n'
+            '  "phone": "número de contacto del llamante una vez conocido, si no null",\n'
+            '  "notes": "resumen breve de la solicitud principal del llamante en esta llamada, si no null",\n'
+            '  "end_call": false,\n'
+            '  "profile_update": {}\n'
+            '}'
+        )
+        mechanics = (
+            "MECÁNICA DE LA LLAMADA — estas reglas rigen cada respuesta:\n"
+            f"  • Contexto: HOY es {today_str}, hora actual: {now_time_str} (fecha ISO: {today_iso}).\n"
+            "    Convierte cualquier fecha relativa que mencione el llamante ('el miércoles pasado',\n"
+            "    'el próximo viernes') a una fecha ISO exacta (YYYY-MM-DD) antes de guardarla.\n"
+            "    Verifica tu aritmética contra la fecha de hoy.\n"
+            "  • Mantén las respuestas CORTAS — es una llamada telefónica, no un chat.\n"
+            "  • Eres completamente autónomo — NO hay ningún humano al que transferir. Nunca digas 'espere'.\n"
+            "  • Recoge el nombre y número del llamante de forma natural durante la conversación.\n"
+            "  • Responde las preguntas DIRECTAMENTE. Nunca anuncies que estás buscando — simplemente responde.\n"
+            "  • Si algo no está en tu base de conocimiento o memoria, dilo con claridad y ofrece ayuda con otra cosa.\n"
+            "  • Tras completar cada solicitud, pregunta: '¿Hay algo más en que pueda ayudarte?'\n"
+            "  • Establece end_call=true SOLO en el turno en que el llamante confirma explícitamente que\n"
+            "    ha terminado (p. ej. 'no, gracias', 'eso es todo'). Nunca en el mismo turno en que\n"
+            "    entregas información o completas una tarea.\n"
+        )
+        memory_rules = (
+            "MEMORIA DEL LLAMANTE — profile_update:\n"
+            "  • Usa profile_update para guardar cualquier dato estructurado que tu rol requiera (definido en tu prompt de sistema).\n"
+            "  • Las listas en profile_update se ACUMULAN entre llamadas; los valores escalares SE SOBREESCRIBEN.\n"
+            "  • SOLO escribe en profile_update cuando todos los campos requeridos estén completos y confirmados.\n"
+            "  • FLUJO DE REGISTRO: cuando todos los campos estén confirmados, di 'He registrado…' (tiempo\n"
+            "    pasado) e incluye el dato en profile_update EN ESE MISMO TURNO, luego pregunta '¿Algo más?'.\n"
+            "    Nunca anuncies intención futura ('Registraré…') y esperes — eso genera duplicados.\n"
+            "  • Usa EXACTAMENTE la misma ortografía para cualquier entidad nombrada una vez confirmada.\n"
+            "  • Las fechas en profile_update deben ser ISO (YYYY-MM-DD); las fechas en message van en forma hablada.\n"
+        )
+        forbidden_es = (
+            "NUNCA uses en el campo message: 'un momento', 'por favor espere', 'voy a buscar',\n"
+            "'buscando', 'consultando', 'déjame verificar', 'no puedo acceder', 'no tengo acceso a'.\n"
+        )
         speech_rules = (
             "REGLAS DE PRONUNCIACIÓN — aplica a todo lo escrito en el campo message:\n"
-            "  • Teléfonos: agrupa con guiones (ej. 669-300-2772).\n"
-            "  • Fechas en message: escribe siempre como fecha hablada natural, NO como dígitos ISO. Ej. 'miércoles 23 de abril' y no '2026-04-23'. En los campos de activities sí usa ISO.\n"
-            "  • IDs numéricos largos (RUC, DNI, códigos): agrupa en pares o tríos con guiones para que TTS los lea bien (ej. '20-127-765-279' y no '20127765279').\n"
-            "  • Abreviaturas como S.A., S.R.L., E.I.R.L.: escríbelas con espacios para que el TTS lea cada letra (ej. 'S A', 'S R L'). NO uses guiones en palabras reales.\n"
-            "  • Solo deletrea letra a letra (con guiones) abreviaturas que son puras iniciales sin pronunciación propia, como 'R-U-C', 'D-N-I'. Palabras comunes y nombres propios — incluidos nombres de empresas — se pronuncian con normalidad.\n"
-            "  • Al referenciar datos de la base de conocimiento, confirma siempre el nombre completo exacto de la entidad (empresa, producto, cliente) antes de registrarla — no asumas ni abrevies.\n"
-        )
-
-    if lang == "en":
-        caller_hint = f" The caller's number appears to be {caller_fmt}." if caller_fmt else ""
-        known_name  = (caller_profile or {}).get("name", "")
-        greeting_hint = (
-            f" You already know this caller as {known_name} — greet them by name."
-            if known_name else ""
-        )
-        schema = (
-            '{\n  "message": "what to say aloud",\n'
-            '  "name": "full name or null",\n'
-            '  "phone": "callback number or null",\n'
-            '  "notes": "brief summary of the caller\'s main request this call",\n'
-            '  "end_call": false,\n'
-            '  "profile_update": {\n'
-            '    "activities": [{"type": "visit|meeting|order|task", "client": "...", "date": "...", "details": "..."}]\n'
-            '  }\n}'
-        )
-        has_kb = bool(knowledge_base and knowledge_base.strip())
-        forbidden = (
-            "FORBIDDEN PHRASES — do NOT use these or any equivalent in the message field:\n"
-            "  'one moment', 'please wait', 'hold on', 'let me check', 'let me look that up',\n"
-            "  'I'll search', 'searching', 'looking up', 'I'll find', 'I cannot access external',\n"
-            "  'I don't have access to', 'I'm unable to retrieve'. These phrases break the user experience.\n"
-        )
-        end_call_rule = (
-            "  • You are a fully autonomous AI agent — there is NO human to transfer to. NEVER say 'please hold' or 'I'll connect you'.\n"
-            "  • Read the KNOWLEDGE BASE and CALLER MEMORY above carefully before answering — the answer is likely already there.\n"
-            "  • Answer questions DIRECTLY from your knowledge base. State the answer; do not announce that you are searching.\n"
-            "  • If the caller asks about something truly not in your knowledge base, say 'I don't have that in my records' and offer to help with something else.\n"
-            "  • After completing each request, ALWAYS ask: 'Is there anything else I can help you with?' before considering the call done.\n"
-            "  • Only set end_call=true on the turn where the caller explicitly says they have no more questions (e.g. 'no thanks', 'that's all').\n"
-            "  • NEVER set end_call=true on the same turn you provide information or complete a task.\n"
-        ) if has_kb else (
-            "  • After completing the caller's request, ask: 'Is there anything else I can help you with?'\n"
-            "  • Only set end_call=true when the caller confirms they are done. Say goodbye warmly.\n"
-            "  • NEVER say 'please hold' — there is no human to transfer to.\n"
+            "  • Fechas: siempre en forma hablada natural ('miércoles 23 de abril', no '2026-04-23').\n"
+            "  • Teléfonos: agrupados con guiones ('669-300-2772').\n"
+            "  • Códigos numéricos largos (IDs, RUC, DNI): agrupa en pares o tríos con guiones\n"
+            "    ('20-127-765-279') para que el TTS los lea dígito a dígito.\n"
+            "  • Sufijos legales (S.A., S.R.L., E.I.R.L.): escríbelos con espacios ('S A', 'S R L')\n"
+            "    para que el TTS lea cada letra. NO uses guiones entre palabras reales.\n"
+            "  • Abreviaturas puras de iniciales sin pronunciación propia (RUC, DNI, IMEI):\n"
+            "    deletrea con guiones ('R-U-C', 'D-N-I'). Nombres propios y palabras normales: se pronuncian con naturalidad.\n"
+            "  • Al referenciar datos de la base de conocimiento, confirma el nombre completo exacto\n"
+            "    de la entidad antes de registrarla — no asumas ni abrevies.\n"
         )
         return (
-            f"You are a natural, friendly AI agent for {company}.{caller_hint}{greeting_hint}\n\n"
+            f"Eres un agente de voz de IA natural y amigable para {company}.{caller_ctx}\n\n"
             f"{system_prompt}\n"
             f"{kb_block}"
             f"{profile_block}\n\n"
-            f"IMPORTANT RULES:\n"
-            f"  • Respond naturally — no robotic prompts. Keep responses SHORT (phone call).\n"
-            f"  • Collect the caller's name and phone number naturally during the conversation.\n"
-            f"{end_call_rule}"
-            f"  • Use profile_update.activities (a list) to record confirmed activities (visits, meetings, orders, tasks). Lists are APPENDED to existing memory — never erased.\n"
-            f"  • REGISTRATION FLOW: once you have all fields confirmed (type, client, date), say 'I have recorded...' in PAST tense and include the activity in profile_update IN THAT SAME TURN. Then immediately ask 'Is there anything else I can help you with?'. Do NOT say 'I will record...' and wait for further acknowledgment — that creates duplicates. Register exactly once.\n"
-            f"  • Always use the EXACT SAME client name spelling once confirmed — do not vary it across turns.\n"
-            f"  • TODAY is {today_str}, current time is {now_time_str} (ISO date: {today_iso}). Always resolve relative dates ('next Friday', 'last Wednesday', 'this Monday') to exact ISO dates (YYYY-MM-DD) before storing them in activities.\n\n"
-            f"{forbidden}"
-            f"Respond ONLY in valid JSON:\n{schema}\n\n{speech_rules}"
-        )
-    else:
-        caller_hint = f" El número del llamante parece ser {caller_fmt}." if caller_fmt else ""
-        known_name  = (caller_profile or {}).get("name", "")
-        greeting_hint = (
-            f" Ya conoces a este llamante como {known_name} — salúdale por su nombre."
-            if known_name else ""
-        )
-        schema = (
-            '{\n  "message": "lo que debes decir en voz alta (siempre en español)",\n'
-            '  "name": "nombre completo o null",\n'
-            '  "phone": "número de contacto o null",\n'
-            '  "notes": "resumen breve de la solicitud principal del llamante en esta llamada",\n'
-            '  "end_call": false,\n'
-            '  "profile_update": {\n'
-            '    "activities": [{"type": "visita|reunion|pedido|tarea", "cliente": "...", "fecha": "...", "detalle": "..."}]\n'
-            '  }\n}'
-        )
-        has_kb = bool(knowledge_base and knowledge_base.strip())
-        forbidden_es = (
-            "FRASES PROHIBIDAS — NO uses estas ni ningún equivalente en el campo message:\n"
-            "  'un momento', 'por favor espere', 'espera', 'permíteme', 'voy a buscar',\n"
-            "  'buscando', 'consultando', 'déjame verificar', 'no puedo acceder a información externa',\n"
-            "  'no tengo acceso a', 'no puedo recuperar'. Estas frases arruinan la experiencia.\n"
-        )
-        end_call_rule_es = (
-            "  • Eres un agente de IA totalmente autónomo — NO hay ningún humano al que transferir. NUNCA digas 'por favor espere' ni 'le conecto'.\n"
-            "  • Lee la BASE DE CONOCIMIENTO y la MEMORIA DEL LLAMANTE de arriba con atención antes de responder — la respuesta probablemente ya está ahí.\n"
-            "  • Responde las preguntas DIRECTAMENTE con los datos. No anuncies que estás buscando — simplemente da la respuesta.\n"
-            "  • Si el llamante pregunta algo que genuinamente no está en tu base de conocimiento, di 'No tengo ese dato en mis registros' y ofrece ayuda con otra cosa.\n"
-            "  • Después de completar cada solicitud, SIEMPRE pregunta: '¿Hay algo más en que pueda ayudarte?' antes de considerar finalizada la llamada.\n"
-            "  • Solo establece end_call=true en el turno en que el llamante confirma explícitamente que no tiene más preguntas (p. ej. 'no, gracias', 'eso es todo').\n"
-            "  • NUNCA establezcas end_call=true en el mismo turno en que proporcionas información o completas una tarea.\n"
-        ) if has_kb else (
-            "  • Después de completar la solicitud del llamante, pregunta: '¿Hay algo más en que pueda ayudarte?'\n"
-            "  • Solo establece end_call=true cuando el llamante confirme que ya terminó. Despídete cordialmente.\n"
-            "  • NUNCA digas 'por favor espere' — no hay ningún humano al que transferir.\n"
-        )
-        return (
-            f"Eres un agente de IA natural y amigable para {company}.{caller_hint}{greeting_hint}\n\n"
-            f"{system_prompt}\n"
-            f"{kb_block}"
-            f"{profile_block}\n\n"
-            f"REGLAS IMPORTANTES:\n"
-            f"  • Responde de forma natural. Mantén las respuestas CORTAS (es una llamada telefónica).\n"
-            f"  • Recoge el nombre y número del llamante de forma natural durante la conversación.\n"
-            f"{end_call_rule_es}"
-            f"  • Usa profile_update.activities (una lista) para registrar actividades confirmadas (visitas, reuniones, pedidos, tareas). Las listas en profile_update se ACUMULAN — nunca se borran.\n"
-            f"  • FLUJO DE REGISTRO: cuando tengas todos los campos confirmados (tipo, cliente, fecha), di 'He registrado...' en tiempo PASADO e incluye la actividad en profile_update EN ESE MISMO TURNO. Luego pregunta de inmediato '¿Hay algo más en que pueda ayudarte?' NO uses tiempo futuro ('Registraré', 'voy a registrar') y esperes más confirmación del llamante — eso crea registros duplicados. Registra una sola vez.\n"
-            f"  • Usa SIEMPRE el mismo nombre exacto del cliente una vez confirmado — no cambies la ortografía en distintos turnos.\n"
-            f"  • HOY es {today_str}, la hora actual es {now_time_str} (fecha ISO: {today_iso}). Siempre convierte fechas relativas ('el viernes', 'el miércoles pasado', 'el lunes próximo') a fechas exactas en formato ISO (YYYY-MM-DD) antes de grabarlas en activities.\n\n"
-            f"{forbidden_es}"
-            f"Responde SOLO en JSON válido:\n{schema}\n\n{speech_rules}"
+            f"{mechanics}\n"
+            f"{memory_rules}\n"
+            f"PROHIBIDO: {forbidden_es}\n"
+            f"Responde SOLO en JSON válido:\n{schema}\n\n"
+            f"{speech_rules}"
         )
 
 
