@@ -1129,18 +1129,12 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
       <p style="font-size:13px;color:var(--muted);margin-bottom:18px;">
         Describe the business and goal. The AI will generate a complete IVR demo structure.
       </p>
-      <div class="two-col">
-        <div class="editor-field">
-          <label>Base Language <button class="info-btn" onclick="showInfo('Base Language','The language you will use to describe the demo. The AI will automatically generate the full content in both English and Spanish regardless of which you choose here.')">ℹ</button></label>
-          <select id="dw-lang">
-            <option value="en">English</option>
-            <option value="es">Spanish (auto-translate to EN)</option>
-          </select>
-        </div>
-        <div class="editor-field">
-          <label>Company Name <span style="color:#ef4444;">*</span></label>
-          <input type="text" id="dw-company" placeholder="Acme Restaurant">
-        </div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px 12px;">
+        You can write in English or Spanish — the AI will detect the language and generate full bilingual content automatically.
+      </p>
+      <div class="editor-field">
+        <label>Company Name <span style="color:#ef4444;">*</span></label>
+        <input type="text" id="dw-company" placeholder="Acme Restaurant">
       </div>
       <div class="editor-field">
         <label>Slogan <span style="color:var(--muted);font-weight:400;">(optional)</span></label>
@@ -1716,10 +1710,6 @@ async function deleteUseCase() {
     return;
   }
   delete USE_CASES[currentUCId];
-  const remaining = Object.keys(USE_CASES);
-  if (remaining.length) {
-    selectUseCase(remaining[0], USE_CASES[remaining[0]].name);
-  }
   toast('Use case deleted');
   location.reload();
 }
@@ -2477,7 +2467,6 @@ async function demoGenerate() {
   fd.append('company_name', company);
   fd.append('slogan', document.getElementById('dw-slogan').value.trim());
   fd.append('idea', idea);
-  fd.append('base_lang', document.getElementById('dw-lang').value);
   _dwFiles.forEach(f => fd.append('files', f));
 
   try {

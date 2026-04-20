@@ -279,10 +279,9 @@ def api_demo_generate():
     if not api_key:
         return jsonify({"error": "openai_api_key not configured"}), 500
 
-    company  = request.form.get("company_name", "").strip()
-    slogan   = request.form.get("slogan", "").strip()
-    idea     = request.form.get("idea", "").strip()
-    base_lang = request.form.get("base_lang", "en").strip()
+    company = request.form.get("company_name", "").strip()
+    slogan  = request.form.get("slogan", "").strip()
+    idea    = request.form.get("idea", "").strip()
 
     if not company or not idea:
         return jsonify({"error": "company_name and idea are required"}), 400
@@ -376,16 +375,13 @@ def api_demo_generate():
                 "text": f"[File '{uploaded_file.filename}' — format not supported for text extraction]"
             })
 
-    base_lang_label = "Spanish" if base_lang == "es" else "English"
-    other_lang_label = "English" if base_lang == "es" else "Spanish"
-
     prompt_text = f"""You are an expert IVR (Interactive Voice Response) system designer.
 
 Design a complete demo IVR use case for this business:
 - Company: {company}
 - Slogan: {slogan or "(none provided)"}
 - Goal / Idea: {idea}
-- Primary language: {base_lang_label} (also generate full {other_lang_label} translations for all text fields)
+- Language: auto-detect from the input above. Generate FULL content in BOTH English AND Spanish for every text field regardless of input language.
 {"- Reference file(s) attached above for catalog/menu/pricing details" if content_blocks else ""}
 
 Generate a JSON response with this exact structure:
