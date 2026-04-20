@@ -1,7 +1,18 @@
 import json as _json
 from datetime import datetime as _dt
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from use_case_loader import get_topics, get_company_name
 from helpers import format_phone_spoken
+import runtime_config as _rc
+
+
+def _local_now() -> _dt:
+    tz_name = _rc.get("timezone", "America/Lima")
+    try:
+        tz = ZoneInfo(tz_name)
+    except (ZoneInfoNotFoundError, Exception):
+        tz = ZoneInfo("America/Lima")
+    return _dt.now(tz)
 
 
 def _profile_block(lang: str, profile: dict) -> str:
@@ -43,7 +54,7 @@ def get_conversational_prompt(lang: str, uc: dict, caller_from: str = None, call
     caller_fmt     = format_phone_spoken(caller_from) if caller_from else ""
     profile_block  = _profile_block(lang, caller_profile or {})
     kb_block       = _knowledge_block(lang, knowledge_base)
-    now            = _dt.now()
+    now            = _local_now()
     today_str      = now.strftime("%A, %B %d, %Y") if lang == "en" else now.strftime("%A %d de %B de %Y")
     today_iso      = now.strftime("%Y-%m-%d")
 
@@ -112,7 +123,8 @@ def get_conversational_prompt(lang: str, uc: dict, caller_from: str = None, call
             f"  • Respond naturally — no robotic prompts. Keep responses SHORT (phone call).\n"
             f"  • Collect the caller's name and phone number naturally during the conversation.\n"
             f"{end_call_rule}"
-            f"  • Use profile_update.activities (a list) to record every activity confirmed with the caller (visits, meetings, orders, tasks). Lists in profile_update are APPENDED to existing memory — never erased.\n"
+            f"  • Use profile_update.activities (a list) to record confirmed activities (visits, meetings, orders, tasks). Lists in profile_update are APPENDED to existing memory — never erased.\n"
+            f"  • ONLY add to profile_update.activities when you have ALL required fields confirmed: type, client name, and exact date. Do NOT add partial or speculative entries while still gathering information mid-conversation.\n"
             f"  • TODAY is {today_str} (ISO: {today_iso}). Always resolve relative dates ('next Friday', 'last Wednesday', 'this Monday') to exact ISO dates (YYYY-MM-DD) before storing them in activities.\n\n"
             f"{forbidden}"
             f"Respond ONLY in valid JSON:\n{schema}\n\n{speech_rules}"
@@ -163,7 +175,8 @@ def get_conversational_prompt(lang: str, uc: dict, caller_from: str = None, call
             f"  • Responde de forma natural. Mantén las respuestas CORTAS (es una llamada telefónica).\n"
             f"  • Recoge el nombre y número del llamante de forma natural durante la conversación.\n"
             f"{end_call_rule_es}"
-            f"  • Usa profile_update.activities (una lista) para registrar cada actividad confirmada con el llamante (visitas, reuniones, pedidos, tareas). Las listas en profile_update se ACUMULAN en la memoria — nunca se borran.\n"
+            f"  • Usa profile_update.activities (una lista) para registrar actividades confirmadas (visitas, reuniones, pedidos, tareas). Las listas en profile_update se ACUMULAN — nunca se borran.\n"
+            f"  • SOLO añade a profile_update.activities cuando tengas TODOS los campos requeridos confirmados: tipo, nombre del cliente y fecha exacta. NO añadas entradas parciales ni especulativas mientras aún estás recopilando información.\n"
             f"  • HOY es {today_str} (ISO: {today_iso}). Siempre convierte fechas relativas ('el viernes', 'el miércoles pasado', 'el lunes próximo') a fechas exactas en formato ISO (YYYY-MM-DD) antes de grabarlas en activities.\n\n"
             f"{forbidden_es}"
             f"Responde SOLO en JSON válido:\n{schema}\n\n{speech_rules}"

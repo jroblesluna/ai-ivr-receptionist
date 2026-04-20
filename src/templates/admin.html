@@ -891,6 +891,23 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
     {% endif %}
   </div>
 
+  <!-- Localization -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Localization</span>
+      <span class="card-badge badge-blue">Date &amp; Time</span>
+    </div>
+    <p class="section-desc">
+      Set the timezone used for all timestamps: call reports, activity dates in AI conversations, and WhatsApp/email notifications.
+      Use IANA timezone names such as <code>America/Lima</code>, <code>America/New_York</code>, or <code>Europe/Madrid</code>.
+    </p>
+    <div class="input-row">
+      <input type="text" id="system-timezone" placeholder="America/Lima"
+             value="{{ timezone or 'America/Lima' }}" style="font-family:monospace;">
+      <button class="btn btn-primary" onclick="saveLocalization()">Save</button>
+    </div>
+  </div>
+
   <!-- Notifications -->
   <div class="card">
     <div class="card-header">
@@ -1838,6 +1855,21 @@ function renderWhitelist(list) {
       <button class="btn-remove" onclick="removeWhitelist('${n}')" title="Remove">×</button>
     </div>
   `).join('');
+}
+
+// ── System: Localization ──────────────────────────────────────────────────────
+
+async function saveLocalization() {
+  const tz = document.getElementById('system-timezone').value.trim();
+  if (!tz) { toast('Enter a valid timezone', 'error'); return; }
+  const res = await apiFetch('/admin/api/config', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ timezone: tz })
+  });
+  if (!res) return;
+  if (!res.ok) { toast('Error saving timezone', 'error'); return; }
+  toast('Timezone saved');
 }
 
 // ── System: Notifications ─────────────────────────────────────────────────────

@@ -108,6 +108,7 @@ def admin():
         notify_whatsapp=runtime_config.get("notify_whatsapp", "1"),
         elevenlabs_voice_id=runtime_config.get("elevenlabs_voice_id"),
         elevenlabs_api_key=config.elevenlabs_api_key(),
+        timezone=runtime_config.get("timezone", "America/Lima"),
         whitelist=load_whitelist(),
         webhook_url=f"{base_url}/menu",
         user_role=user["role"] if user else "",
@@ -162,7 +163,7 @@ def api_config():
             return jsonify({"error": "Unknown use case"}), 400
         runtime_config.set("use_case_id", data["use_case_id"])
     for key in ("twilio_from", "forward_to", "report_email", "whatsapp_from", "whatsapp_to",
-                "notify_email", "notify_whatsapp", "elevenlabs_voice_id"):
+                "notify_email", "notify_whatsapp", "elevenlabs_voice_id", "timezone"):
         if key in data:
             runtime_config.set(key, data[key])
     return jsonify({"ok": True, "config": runtime_config.all_config()})

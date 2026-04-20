@@ -1,5 +1,6 @@
 import json
 from datetime import datetime
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from flask import Blueprint, request
 from twilio.twiml.voice_response import VoiceResponse, Gather
 import config
@@ -7,6 +8,15 @@ import db
 from config import twilio_client
 import runtime_config
 import reports
+
+
+def _now_local():
+    tz_name = runtime_config.get("timezone", "America/Lima")
+    try:
+        tz = ZoneInfo(tz_name)
+    except (ZoneInfoNotFoundError, Exception):
+        tz = ZoneInfo("America/Lima")
+    return datetime.now(tz)
 from state import conversation_store, collected_info
 from use_case_loader import get_topics, get_active_use_case
 from helpers import get_voice, get_gather_language
@@ -240,12 +250,28 @@ def ai_respond():
             if isinstance(profile_update, dict) and profile_update:
                 for k, v in profile_update.items():
                     if isinstance(v, list) and isinstance(existing_profile.get(k), list):
-                        # Append new items to existing list, avoid exact duplicates
-                        seen = [str(x) for x in existing_profile[k]]
+                        existing_list = existing_profile[k]
                         for item in v:
-                            if str(item) not in seen:
-                                existing_profile[k].append(item)
-                                seen.append(str(item))
+                            if not isinstance(item, dict):
+                                continue
+                            # Skip incomplete activity entries (support both ES and EN field names)
+                            if not (item.get("fecha") or item.get("date")) or not (item.get("cliente") or item.get("client")):
+                                continue
+                            # Deduplicate by type+client+date key
+                            item_key = (
+                                str(item.get("type", "")),
+                                str(item.get("cliente") or item.get("client", "")),
+                                str(item.get("fecha") or item.get("date", "")),
+                            )
+                            existing_keys = {
+                                (str(x.get("type", "")),
+                                 str(x.get("cliente") or x.get("client", "")),
+                                 str(x.get("fecha") or x.get("date", "")))
+                                for x in existing_list if isinstance(x, dict)
+                            }
+                            if item_key not in existing_keys:
+                                existing_list.append(item)
+                        existing_profile[k] = existing_list
                     else:
                         existing_profile[k] = v
                 changed = True
@@ -264,7 +290,7 @@ def ai_respond():
         TOPICS = all_topics
         topic_label = TOPICS.get(topic, {}).get(lang, TOPICS.get(topic, {}).get("en", {})).get("label", topic)
         lines = [
-            f"📋 *Nueva consulta* — {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+            f"📋 *Nueva consulta* — {_now_local().strftime('%Y-%m-%d %H:%M:%S')}",
             f"📌 Tema: {topic_label}",
             f"🌐 Idioma: {'English' if lang == 'en' else 'Español'}",
             f"👤 Nombre: {info['name']}",

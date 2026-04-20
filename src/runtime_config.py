@@ -16,6 +16,7 @@ _DEFAULTS = {
     "notify_email":       os.environ.get("NOTIFY_EMAIL",       "0"),
     "notify_whatsapp":    os.environ.get("NOTIFY_WHATSAPP",    "1"),
     "elevenlabs_voice_id": os.environ.get("ELEVENLABS_VOICE_ID", ""),
+    "timezone":           os.environ.get("TIMEZONE",           "America/Lima"),
 }
 
 # Seed env-var defaults for any keys still missing after JSON migration
