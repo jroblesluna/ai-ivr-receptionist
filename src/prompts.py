@@ -7,11 +7,11 @@ import runtime_config as _rc
 
 
 def _local_now() -> _dt:
-    tz_name = _rc.get("timezone", "America/Lima")
+    tz_name = _rc.get("timezone", "America/Lima").replace(" ", "_")
     try:
         tz = ZoneInfo(tz_name)
     except (ZoneInfoNotFoundError, Exception):
-        tz = ZoneInfo("America/Lima")
+        tz = ZoneInfo("UTC")
     return _dt.now(tz)
 
 

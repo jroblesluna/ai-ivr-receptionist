@@ -13,12 +13,12 @@ import reports
 
 
 def _now_local():
-    tz_name = runtime_config.get("timezone", "America/Lima")
+    tz_name = runtime_config.get("timezone", "America/Lima").replace(" ", "_")
     try:
         tz = ZoneInfo(tz_name)
         return datetime.now(tz)
     except Exception:
-        return datetime.utcnow()
+        return datetime.now(ZoneInfo("UTC"))
 
 
 # Field names that carry free-text detail — excluded from dedup identity comparison
