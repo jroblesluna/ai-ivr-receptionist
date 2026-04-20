@@ -47,10 +47,24 @@ def get_conversational_prompt(lang: str, uc: dict, caller_from: str = None, call
     today_str      = now.strftime("%A, %B %d, %Y") if lang == "en" else now.strftime("%A %d de %B de %Y")
     today_iso      = now.strftime("%Y-%m-%d")
 
-    phone_format_rule = (
-        "When saying any phone number aloud in the message field, always write it digit-group style "
-        "with hyphens (e.g. 408-590-0153), never as a continuous string."
-    )
+    if lang == "en":
+        speech_rules = (
+            "SPEECH RULES — apply to everything written in the message field:\n"
+            "  • Phone numbers: digit-group with hyphens (e.g. 408-590-0153).\n"
+            "  • Dates in message: always write as natural spoken date, NOT ISO digits. E.g. 'Wednesday, April 23rd' not '2026-04-23'. Dates in activities fields stay ISO.\n"
+            "  • Long numeric IDs (RUC, tax ID, document numbers): group in pairs or triples with hyphens so TTS reads them naturally (e.g. '20-127-765-279' not '20127765279').\n"
+            "  • Acronyms and abbreviations (company names, siglas): spell letter by letter with hyphens in message (e.g. 'A-B-B S-A', 'C-O-E-S-T-I'). Never read them as a word.\n"
+            "  • When referencing data from the knowledge base, always confirm the exact full name of the entity (company, product, client) before recording it — do not guess or abbreviate.\n"
+        )
+    else:
+        speech_rules = (
+            "REGLAS DE PRONUNCIACIÓN — aplica a todo lo escrito en el campo message:\n"
+            "  • Teléfonos: agrupa con guiones (ej. 669-300-2772).\n"
+            "  • Fechas en message: escribe siempre como fecha hablada natural, NO como dígitos ISO. Ej. 'miércoles 23 de abril' y no '2026-04-23'. En los campos de activities sí usa ISO.\n"
+            "  • IDs numéricos largos (RUC, DNI, códigos): agrupa en pares o tríos con guiones para que TTS los lea bien (ej. '20-127-765-279' y no '20127765279').\n"
+            "  • Siglas y abreviaturas (nombres de empresas, siglas): deletrea letra a letra con guiones en el message (ej. 'A-B-B S-A', 'C-O-E-S-T-I'). Nunca las leas como palabra.\n"
+            "  • Al referenciar datos de la base de conocimiento, confirma siempre el nombre completo exacto de la entidad (empresa, producto, cliente) antes de registrarla — no asumas ni abrevies.\n"
+        )
 
     if lang == "en":
         caller_hint = f" The caller's number appears to be {caller_fmt}." if caller_fmt else ""
@@ -101,7 +115,7 @@ def get_conversational_prompt(lang: str, uc: dict, caller_from: str = None, call
             f"  • Use profile_update.activities (a list) to record every activity confirmed with the caller (visits, meetings, orders, tasks). Lists in profile_update are APPENDED to existing memory — never erased.\n"
             f"  • TODAY is {today_str} (ISO: {today_iso}). Always resolve relative dates ('next Friday', 'last Wednesday', 'this Monday') to exact ISO dates (YYYY-MM-DD) before storing them in activities.\n\n"
             f"{forbidden}"
-            f"Respond ONLY in valid JSON:\n{schema}\n\n{phone_format_rule}"
+            f"Respond ONLY in valid JSON:\n{schema}\n\n{speech_rules}"
         )
     else:
         caller_hint = f" El número del llamante parece ser {caller_fmt}." if caller_fmt else ""
@@ -152,7 +166,7 @@ def get_conversational_prompt(lang: str, uc: dict, caller_from: str = None, call
             f"  • Usa profile_update.activities (una lista) para registrar cada actividad confirmada con el llamante (visitas, reuniones, pedidos, tareas). Las listas en profile_update se ACUMULAN en la memoria — nunca se borran.\n"
             f"  • HOY es {today_str} (ISO: {today_iso}). Siempre convierte fechas relativas ('el viernes', 'el miércoles pasado', 'el lunes próximo') a fechas exactas en formato ISO (YYYY-MM-DD) antes de grabarlas en activities.\n\n"
             f"{forbidden_es}"
-            f"Responde SOLO en JSON válido:\n{schema}\n\n{phone_format_rule}"
+            f"Responde SOLO en JSON válido:\n{schema}\n\n{speech_rules}"
         )
 
 
