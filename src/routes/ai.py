@@ -78,11 +78,17 @@ def _values_match(a: str, b: str) -> bool:
 
 def _is_duplicate_item(new_item: dict, existing_list: list) -> bool:
     """
-    Generic deduplication for profile_update list items.
-    - Normalises bilingual/synonym key names via _KEY_CANON before comparing.
-    - Excludes free-text detail fields from the identity comparison.
-    - Uses fuzzy value matching for entity names.
-    Two items are duplicates when their canonical identifying fields all match.
+    Cross-call deduplication safety net for profile_update list items.
+    Primary prevention of within-call duplicates is the conversation flow (prompt).
+    This handles edge cases: same item stored under different language field names.
+
+    Algorithm:
+    - Canonicalise field names via _KEY_CANON (ES/EN bilingual normalisation).
+    - Exclude free-text detail fields from the identity comparison.
+    - Require the same canonical key set to match (exact, not intersection)
+      so that two legitimately different activities on the same date/client
+      with different types are never mistakenly merged.
+    - Use fuzzy value matching for entity name strings.
     """
     def _canon_id(item: dict) -> dict:
         result = {}
@@ -94,23 +100,14 @@ def _is_duplicate_item(new_item: dict, existing_list: list) -> bool:
 
     new_id = _canon_id(new_item)
     if not any(v for v in new_id.values()):
-        return True  # empty/meaningless item — always skip
+        return True  # empty/meaningless item — skip
     for existing in existing_list:
         if not isinstance(existing, dict):
             continue
         ex_id = _canon_id(existing)
-        # Require at least the keys common to both sides to match
-        common = set(new_id.keys()) & set(ex_id.keys())
-        if not common:
-            continue
-        # Both must cover the same identifying keys (allow one side to have extras)
-        # but the shared keys must all fuzzy-match
-        if not all(_values_match(str(new_id[k]), str(ex_id[k])) for k in common):
-            continue
-        # Guard against over-matching: require meaningful overlap
-        # (at least half the keys of the smaller item are covered)
-        smaller = min(len(new_id), len(ex_id))
-        if len(common) >= max(1, smaller // 2 + smaller % 2):
+        if set(new_id.keys()) != set(ex_id.keys()):
+            continue  # different structure → different record
+        if all(_values_match(str(new_id[k]), str(ex_id[k])) for k in new_id):
             return True
     return False
 
