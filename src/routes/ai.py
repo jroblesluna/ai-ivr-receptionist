@@ -30,6 +30,35 @@ _DETAIL_FIELDS = frozenset({
     "notes", "nota", "notas", "comment", "comentario", "summary", "resumen",
 })
 
+# Canonical key map: normalises bilingual (ES/EN) and common synonym field names
+# so that {"cliente":"X","fecha":"Y"} and {"client":"X","date":"Y"} are the same item.
+_KEY_CANON = {
+    # entity / who
+    "client": "client", "cliente": "client", "customer": "client", "cliente_nombre": "client",
+    # date / when
+    "date": "date", "fecha": "date", "fecha_iso": "date", "day": "date", "dia": "date",
+    # type / category
+    "type": "type", "tipo": "type", "kind": "type", "categoria": "type", "category": "type",
+    # product
+    "product": "product", "producto": "product", "item": "product", "articulo": "product",
+    # quantity
+    "quantity": "qty", "cantidad": "qty", "qty": "qty", "amount": "qty", "monto": "qty",
+    # status
+    "status": "status", "estado": "status", "state": "status",
+    # name (person)
+    "name": "name", "nombre": "name",
+    # detail fields (also in _DETAIL_FIELDS, mapped here for completeness)
+    "detail": "detail", "detalle": "detail", "details": "detail",
+    "description": "detail", "descripcion": "detail",
+    "notes": "detail", "nota": "detail", "notas": "detail",
+    "comment": "detail", "comentario": "detail",
+    "summary": "detail", "resumen": "detail",
+}
+
+
+def _canon_key(k: str) -> str:
+    return _KEY_CANON.get(k.lower(), k.lower())
+
 
 def _normalize_str(s: str) -> str:
     """Lowercase, strip accents and non-alphanumeric for fuzzy comparison."""
@@ -50,19 +79,38 @@ def _values_match(a: str, b: str) -> bool:
 def _is_duplicate_item(new_item: dict, existing_list: list) -> bool:
     """
     Generic deduplication for profile_update list items.
-    Compares all non-detail fields; uses fuzzy matching on string values.
-    Two items are duplicates when every identifying field matches.
+    - Normalises bilingual/synonym key names via _KEY_CANON before comparing.
+    - Excludes free-text detail fields from the identity comparison.
+    - Uses fuzzy value matching for entity names.
+    Two items are duplicates when their canonical identifying fields all match.
     """
-    new_id = {k: v for k, v in new_item.items() if k.lower() not in _DETAIL_FIELDS}
+    def _canon_id(item: dict) -> dict:
+        result = {}
+        for k, v in item.items():
+            ck = _canon_key(k)
+            if ck not in _DETAIL_FIELDS and ck != "detail":
+                result[ck] = v
+        return result
+
+    new_id = _canon_id(new_item)
     if not any(v for v in new_id.values()):
         return True  # empty/meaningless item — always skip
     for existing in existing_list:
         if not isinstance(existing, dict):
             continue
-        ex_id = {k: v for k, v in existing.items() if k.lower() not in _DETAIL_FIELDS}
-        if set(new_id.keys()) != set(ex_id.keys()):
+        ex_id = _canon_id(existing)
+        # Require at least the keys common to both sides to match
+        common = set(new_id.keys()) & set(ex_id.keys())
+        if not common:
             continue
-        if all(_values_match(str(new_id[k]), str(ex_id[k])) for k in new_id):
+        # Both must cover the same identifying keys (allow one side to have extras)
+        # but the shared keys must all fuzzy-match
+        if not all(_values_match(str(new_id[k]), str(ex_id[k])) for k in common):
+            continue
+        # Guard against over-matching: require meaningful overlap
+        # (at least half the keys of the smaller item are covered)
+        smaller = min(len(new_id), len(ex_id))
+        if len(common) >= max(1, smaller // 2 + smaller % 2):
             return True
     return False
 
