@@ -163,9 +163,11 @@ def api_config():
             return jsonify({"error": "Unknown use case"}), 400
         runtime_config.set("use_case_id", data["use_case_id"])
     for key in ("twilio_from", "forward_to", "report_email", "whatsapp_from", "whatsapp_to",
-                "notify_email", "notify_whatsapp", "elevenlabs_voice_id", "timezone"):
+                "notify_email", "notify_whatsapp", "elevenlabs_voice_id"):
         if key in data:
             runtime_config.set(key, data[key])
+    if "timezone" in data:
+        runtime_config.set("timezone", data["timezone"].replace(" ", "_"))
     return jsonify({"ok": True, "config": runtime_config.all_config()})
 
 

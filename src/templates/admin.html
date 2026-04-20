@@ -1959,7 +1959,7 @@ function updateTimezonePreview() {
 }
 
 async function saveLocalization() {
-  const tz = document.getElementById('system-timezone').value;
+  const tz = (document.getElementById('system-timezone').value || '').replace(/ /g, '_');
   if (!tz) { toast('Select a timezone', 'error'); return; }
   const res = await apiFetch('/admin/api/config', {
     method: 'POST',
@@ -1974,11 +1974,18 @@ async function saveLocalization() {
 function initTimezoneSelect() {
   const sel = document.getElementById('system-timezone');
   if (!sel) return;
-  const saved = '{{ timezone | default("America/Lima") }}';
-  // Try to match saved value to an option
-  for (const opt of sel.options) {
-    if (opt.value === saved) { opt.selected = true; break; }
+  // Normalize saved value: IANA names use underscores, user may have typed spaces
+  const saved = ('{{ timezone | default("America/Lima") }}').replace(/ /g, '_');
+  // Use sel.value assignment — most reliable way to set a select's visual state
+  sel.value = saved;
+  if (!sel.value) {
+    // No exact match: try case-insensitive scan
+    const lower = saved.toLowerCase();
+    for (const opt of sel.options) {
+      if (opt.value.toLowerCase() === lower) { sel.value = opt.value; break; }
+    }
   }
+  if (!sel.value) sel.value = 'America/Lima'; // last-resort fallback
   updateTimezonePreview();
 }
 document.addEventListener('DOMContentLoaded', initTimezoneSelect);
