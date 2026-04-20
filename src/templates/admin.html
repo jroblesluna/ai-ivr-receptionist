@@ -899,12 +899,91 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
     </div>
     <p class="section-desc">
       Set the timezone used for all timestamps: call reports, activity dates in AI conversations, and WhatsApp/email notifications.
-      Use IANA timezone names such as <code>America/Lima</code>, <code>America/New_York</code>, or <code>Europe/Madrid</code>.
     </p>
-    <div class="input-row">
-      <input type="text" id="system-timezone" placeholder="America/Lima"
-             value="{{ timezone or 'America/Lima' }}" style="font-family:monospace;">
-      <button class="btn btn-primary" onclick="saveLocalization()">Save</button>
+    <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+      <div style="flex:1;min-width:220px;">
+        <label style="display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:4px;">Timezone</label>
+        <select id="system-timezone" onchange="updateTimezonePreview()"
+                style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:white;">
+          <optgroup label="Americas">
+            <option value="America/Lima">America/Lima (Peru)</option>
+            <option value="America/Bogota">America/Bogota (Colombia)</option>
+            <option value="America/Guayaquil">America/Guayaquil (Ecuador)</option>
+            <option value="America/Caracas">America/Caracas (Venezuela)</option>
+            <option value="America/La_Paz">America/La_Paz (Bolivia)</option>
+            <option value="America/Santiago">America/Santiago (Chile)</option>
+            <option value="America/Argentina/Buenos_Aires">America/Buenos_Aires (Argentina)</option>
+            <option value="America/Sao_Paulo">America/Sao_Paulo (Brazil)</option>
+            <option value="America/Asuncion">America/Asuncion (Paraguay)</option>
+            <option value="America/Montevideo">America/Montevideo (Uruguay)</option>
+            <option value="America/Mexico_City">America/Mexico_City</option>
+            <option value="America/New_York">America/New_York (ET)</option>
+            <option value="America/Chicago">America/Chicago (CT)</option>
+            <option value="America/Denver">America/Denver (MT)</option>
+            <option value="America/Los_Angeles">America/Los_Angeles (PT)</option>
+            <option value="America/Phoenix">America/Phoenix (AZ)</option>
+            <option value="America/Anchorage">America/Anchorage (AK)</option>
+            <option value="Pacific/Honolulu">Pacific/Honolulu (HI)</option>
+            <option value="America/Toronto">America/Toronto (Canada ET)</option>
+            <option value="America/Vancouver">America/Vancouver (Canada PT)</option>
+          </optgroup>
+          <optgroup label="Europe">
+            <option value="Europe/London">Europe/London (UK)</option>
+            <option value="Europe/Lisbon">Europe/Lisbon (Portugal)</option>
+            <option value="Europe/Madrid">Europe/Madrid (Spain)</option>
+            <option value="Europe/Paris">Europe/Paris (France)</option>
+            <option value="Europe/Berlin">Europe/Berlin (Germany)</option>
+            <option value="Europe/Rome">Europe/Rome (Italy)</option>
+            <option value="Europe/Amsterdam">Europe/Amsterdam</option>
+            <option value="Europe/Brussels">Europe/Brussels (Belgium)</option>
+            <option value="Europe/Zurich">Europe/Zurich (Switzerland)</option>
+            <option value="Europe/Warsaw">Europe/Warsaw (Poland)</option>
+            <option value="Europe/Stockholm">Europe/Stockholm (Sweden)</option>
+            <option value="Europe/Helsinki">Europe/Helsinki (Finland)</option>
+            <option value="Europe/Athens">Europe/Athens (Greece)</option>
+            <option value="Europe/Istanbul">Europe/Istanbul (Turkey)</option>
+            <option value="Europe/Moscow">Europe/Moscow (Russia)</option>
+          </optgroup>
+          <optgroup label="Middle East &amp; Africa">
+            <option value="Asia/Dubai">Asia/Dubai (UAE)</option>
+            <option value="Asia/Riyadh">Asia/Riyadh (Saudi Arabia)</option>
+            <option value="Asia/Jerusalem">Asia/Jerusalem (Israel)</option>
+            <option value="Africa/Cairo">Africa/Cairo (Egypt)</option>
+            <option value="Africa/Nairobi">Africa/Nairobi (Kenya)</option>
+            <option value="Africa/Johannesburg">Africa/Johannesburg (South Africa)</option>
+            <option value="Africa/Lagos">Africa/Lagos (Nigeria)</option>
+          </optgroup>
+          <optgroup label="Asia &amp; Pacific">
+            <option value="Asia/Kolkata">Asia/Kolkata (India)</option>
+            <option value="Asia/Dhaka">Asia/Dhaka (Bangladesh)</option>
+            <option value="Asia/Bangkok">Asia/Bangkok (Thailand)</option>
+            <option value="Asia/Singapore">Asia/Singapore</option>
+            <option value="Asia/Kuala_Lumpur">Asia/Kuala_Lumpur (Malaysia)</option>
+            <option value="Asia/Jakarta">Asia/Jakarta (Indonesia)</option>
+            <option value="Asia/Manila">Asia/Manila (Philippines)</option>
+            <option value="Asia/Hong_Kong">Asia/Hong_Kong</option>
+            <option value="Asia/Shanghai">Asia/Shanghai (China)</option>
+            <option value="Asia/Taipei">Asia/Taipei (Taiwan)</option>
+            <option value="Asia/Seoul">Asia/Seoul (South Korea)</option>
+            <option value="Asia/Tokyo">Asia/Tokyo (Japan)</option>
+            <option value="Australia/Sydney">Australia/Sydney</option>
+            <option value="Australia/Melbourne">Australia/Melbourne</option>
+            <option value="Australia/Brisbane">Australia/Brisbane</option>
+            <option value="Australia/Perth">Australia/Perth</option>
+            <option value="Pacific/Auckland">Pacific/Auckland (New Zealand)</option>
+          </optgroup>
+          <optgroup label="UTC">
+            <option value="UTC">UTC</option>
+          </optgroup>
+        </select>
+      </div>
+      <div style="flex:1;min-width:180px;">
+        <label style="display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:4px;">Current time in selected zone</label>
+        <div id="tz-preview" style="padding:8px 12px;background:#f9fafb;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:monospace;color:#374151;min-height:36px;line-height:20px;">—</div>
+      </div>
+      <div>
+        <button class="btn btn-primary" onclick="saveLocalization()" style="white-space:nowrap;">Save Timezone</button>
+      </div>
     </div>
   </div>
 
@@ -1859,9 +1938,29 @@ function renderWhitelist(list) {
 
 // ── System: Localization ──────────────────────────────────────────────────────
 
+let _tzClockTimer = null;
+
+function updateTimezonePreview() {
+  const sel = document.getElementById('system-timezone');
+  const preview = document.getElementById('tz-preview');
+  if (!sel || !preview) return;
+  const tz = sel.value;
+  if (_tzClockTimer) clearInterval(_tzClockTimer);
+  function tick() {
+    try {
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('en-US', { timeZone: tz, weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+      const timeStr = now.toLocaleTimeString('en-US', { timeZone: tz, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      preview.textContent = `${dateStr}  ${timeStr}`;
+    } catch(e) { preview.textContent = 'Invalid timezone'; }
+  }
+  tick();
+  _tzClockTimer = setInterval(tick, 1000);
+}
+
 async function saveLocalization() {
-  const tz = document.getElementById('system-timezone').value.trim();
-  if (!tz) { toast('Enter a valid timezone', 'error'); return; }
+  const tz = document.getElementById('system-timezone').value;
+  if (!tz) { toast('Select a timezone', 'error'); return; }
   const res = await apiFetch('/admin/api/config', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -1871,6 +1970,18 @@ async function saveLocalization() {
   if (!res.ok) { toast('Error saving timezone', 'error'); return; }
   toast('Timezone saved');
 }
+
+function initTimezoneSelect() {
+  const sel = document.getElementById('system-timezone');
+  if (!sel) return;
+  const saved = '{{ timezone | default("America/Lima") }}';
+  // Try to match saved value to an option
+  for (const opt of sel.options) {
+    if (opt.value === saved) { opt.selected = true; break; }
+  }
+  updateTimezonePreview();
+}
+document.addEventListener('DOMContentLoaded', initTimezoneSelect);
 
 // ── System: Notifications ─────────────────────────────────────────────────────
 
