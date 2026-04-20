@@ -16,8 +16,11 @@ def _now_local():
     tz_name = runtime_config.get("timezone", "America/Lima").replace(" ", "_")
     try:
         tz = ZoneInfo(tz_name)
-        return datetime.now(tz)
-    except Exception:
+        now = datetime.now(tz)
+        print(f"[TZ] {tz_name} → {now.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+        return now
+    except Exception as e:
+        print(f"[TZ ERROR] ZoneInfo({tz_name!r}) failed: {e} — falling back to UTC")
         return datetime.now(ZoneInfo("UTC"))
 
 
