@@ -362,7 +362,7 @@ def ai_respond():
             base_url = request.url_root.rstrip("/")
             conv_history = info.get("conversation") or []
             report_data = {
-                "timestamp":              datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "timestamp":              _now_local().strftime("%Y-%m-%d %H:%M:%S"),
                 "use_case":               demo_uc.get("name", "") if demo_uc else "",
                 "caller_name":            info.get("name") or info.get("caller_from", ""),
                 "caller_phone":           info.get("phone") or info.get("caller_from", ""),
@@ -403,7 +403,7 @@ def ai_respond():
             full_conversation = prescreening_conv + callback_conv
 
             report_data = {
-                "timestamp":              datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "timestamp":              _now_local().strftime("%Y-%m-%d %H:%M:%S"),
                 "use_case":               company,
                 "caller_name":            info.get("name") or info.get("caller_from", ""),
                 "caller_phone":           info.get("phone") or info.get("caller_from", ""),
