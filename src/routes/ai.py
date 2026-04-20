@@ -1,4 +1,6 @@
 import json
+import re
+import unicodedata
 from datetime import datetime
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from flask import Blueprint, request
@@ -14,9 +16,25 @@ def _now_local():
     tz_name = runtime_config.get("timezone", "America/Lima")
     try:
         tz = ZoneInfo(tz_name)
-    except (ZoneInfoNotFoundError, Exception):
-        tz = ZoneInfo("America/Lima")
-    return datetime.now(tz)
+        return datetime.now(tz)
+    except Exception:
+        return datetime.utcnow()
+
+
+def _normalize_client(name: str) -> str:
+    """Lowercase, strip accents and non-alphanumeric chars for fuzzy dedup."""
+    nfkd = unicodedata.normalize("NFKD", name)
+    ascii_str = nfkd.encode("ascii", "ignore").decode("ascii")
+    return re.sub(r"[^a-z0-9]", "", ascii_str.lower())
+
+
+def _clients_match(a: str, b: str) -> bool:
+    """True if two client name strings refer to the same entity."""
+    na, nb = _normalize_client(a), _normalize_client(b)
+    if na == nb:
+        return True
+    shorter, longer = (na, nb) if len(na) <= len(nb) else (nb, na)
+    return len(shorter) >= 8 and shorter in longer
 from state import conversation_store, collected_info
 from use_case_loader import get_topics, get_active_use_case
 from helpers import get_voice, get_gather_language
@@ -254,29 +272,28 @@ def ai_respond():
                         for item in v:
                             if not isinstance(item, dict):
                                 continue
-                            # Skip incomplete activity entries (support both ES and EN field names)
-                            if not (item.get("fecha") or item.get("date")) or not (item.get("cliente") or item.get("client")):
+                            # Skip incomplete activity entries
+                            item_date   = str(item.get("fecha") or item.get("date", "")).strip()
+                            item_client = str(item.get("cliente") or item.get("client", "")).strip()
+                            item_type   = str(item.get("type", "")).strip()
+                            if not item_date or not item_client:
                                 continue
-                            # Deduplicate by type+client+date key
-                            item_key = (
-                                str(item.get("type", "")),
-                                str(item.get("cliente") or item.get("client", "")),
-                                str(item.get("fecha") or item.get("date", "")),
-                            )
-                            existing_keys = {
-                                (str(x.get("type", "")),
-                                 str(x.get("cliente") or x.get("client", "")),
-                                 str(x.get("fecha") or x.get("date", "")))
+                            # Fuzzy dedup: same type + same date + fuzzy-matching client name
+                            is_dup = any(
+                                str(x.get("type", "")) == item_type
+                                and str(x.get("fecha") or x.get("date", "")) == item_date
+                                and _clients_match(item_client, str(x.get("cliente") or x.get("client", "")))
                                 for x in existing_list if isinstance(x, dict)
-                            }
-                            if item_key not in existing_keys:
+                            )
+                            if not is_dup:
                                 existing_list.append(item)
                         existing_profile[k] = existing_list
                     else:
                         existing_profile[k] = v
                 changed = True
             if changed:
-                db.caller_profile_set(caller_from_for_profile, _current_demo_id, existing_profile)
+                db.caller_profile_set(caller_from_for_profile, _current_demo_id, existing_profile,
+                                      updated_at=_now_local().strftime("%Y-%m-%d %H:%M:%S"))
 
     # Enviar WhatsApp cuando tengamos nombre y teléfono (solo una vez)
     if info["name"] and info["phone"] and not info.get("notified"):

@@ -333,12 +333,13 @@ def caller_profile_get(phone: str, use_case_id: str) -> dict:
         return {}
 
 
-def caller_profile_set(phone: str, use_case_id: str, data: dict):
+def caller_profile_set(phone: str, use_case_id: str, data: dict, updated_at: str = None):
+    ts = updated_at or __import__('datetime').datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
     with _lock, _conn() as con:
         con.execute(
             "INSERT OR REPLACE INTO caller_profiles (phone, use_case_id, profile_json, updated_at) "
-            "VALUES (?, ?, ?, datetime('now'))",
-            (phone, use_case_id, json.dumps(data, ensure_ascii=False))
+            "VALUES (?, ?, ?, ?)",
+            (phone, use_case_id, json.dumps(data, ensure_ascii=False), ts)
         )
         con.commit()
 
