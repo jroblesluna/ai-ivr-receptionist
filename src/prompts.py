@@ -57,6 +57,7 @@ def get_conversational_prompt(lang: str, uc: dict, caller_from: str = None, call
     now            = _local_now()
     today_str      = now.strftime("%A, %B %d, %Y") if lang == "en" else now.strftime("%A %d de %B de %Y")
     today_iso      = now.strftime("%Y-%m-%d")
+    now_time_str   = now.strftime("%I:%M %p") if lang == "en" else now.strftime("%H:%M")
 
     if lang == "en":
         speech_rules = (
@@ -64,7 +65,8 @@ def get_conversational_prompt(lang: str, uc: dict, caller_from: str = None, call
             "  • Phone numbers: digit-group with hyphens (e.g. 408-590-0153).\n"
             "  • Dates in message: always write as natural spoken date, NOT ISO digits. E.g. 'Wednesday, April 23rd' not '2026-04-23'. Dates in activities fields stay ISO.\n"
             "  • Long numeric IDs (RUC, tax ID, document numbers): group in pairs or triples with hyphens so TTS reads them naturally (e.g. '20-127-765-279' not '20127765279').\n"
-            "  • Acronyms and abbreviations (company names, siglas): spell letter by letter with hyphens in message (e.g. 'A-B-B S-A', 'C-O-E-S-T-I'). Never read them as a word.\n"
+            "  • Abbreviations like S.A., S.R.L., INC.: write with spaces so TTS reads each letter (e.g. 'S A', 'S R L'). Do NOT hyphenate real words.\n"
+            "  • Only spell letter-by-letter (with hyphens) abbreviations that are pure initials with no readable pronunciation on their own, such as 'R-U-C', 'D-N-I'. Regular words and proper names — including company names — are spoken normally.\n"
             "  • When referencing data from the knowledge base, always confirm the exact full name of the entity (company, product, client) before recording it — do not guess or abbreviate.\n"
         )
     else:
@@ -73,7 +75,8 @@ def get_conversational_prompt(lang: str, uc: dict, caller_from: str = None, call
             "  • Teléfonos: agrupa con guiones (ej. 669-300-2772).\n"
             "  • Fechas en message: escribe siempre como fecha hablada natural, NO como dígitos ISO. Ej. 'miércoles 23 de abril' y no '2026-04-23'. En los campos de activities sí usa ISO.\n"
             "  • IDs numéricos largos (RUC, DNI, códigos): agrupa en pares o tríos con guiones para que TTS los lea bien (ej. '20-127-765-279' y no '20127765279').\n"
-            "  • Siglas y abreviaturas (nombres de empresas, siglas): deletrea letra a letra con guiones en el message (ej. 'A-B-B S-A', 'C-O-E-S-T-I'). Nunca las leas como palabra.\n"
+            "  • Abreviaturas como S.A., S.R.L., E.I.R.L.: escríbelas con espacios para que el TTS lea cada letra (ej. 'S A', 'S R L'). NO uses guiones en palabras reales.\n"
+            "  • Solo deletrea letra a letra (con guiones) abreviaturas que son puras iniciales sin pronunciación propia, como 'R-U-C', 'D-N-I'. Palabras comunes y nombres propios — incluidos nombres de empresas — se pronuncian con normalidad.\n"
             "  • Al referenciar datos de la base de conocimiento, confirma siempre el nombre completo exacto de la entidad (empresa, producto, cliente) antes de registrarla — no asumas ni abrevies.\n"
         )
 
@@ -125,7 +128,7 @@ def get_conversational_prompt(lang: str, uc: dict, caller_from: str = None, call
             f"{end_call_rule}"
             f"  • Use profile_update.activities (a list) to record confirmed activities (visits, meetings, orders, tasks). Lists in profile_update are APPENDED to existing memory — never erased.\n"
             f"  • ONLY add to profile_update.activities when you have ALL required fields confirmed: type, client name, and exact date. Do NOT add partial or speculative entries while still gathering information mid-conversation.\n"
-            f"  • TODAY is {today_str} (ISO: {today_iso}). Always resolve relative dates ('next Friday', 'last Wednesday', 'this Monday') to exact ISO dates (YYYY-MM-DD) before storing them in activities.\n\n"
+            f"  • TODAY is {today_str}, current time is {now_time_str} (ISO date: {today_iso}). Always resolve relative dates ('next Friday', 'last Wednesday', 'this Monday') to exact ISO dates (YYYY-MM-DD) before storing them in activities.\n\n"
             f"{forbidden}"
             f"Respond ONLY in valid JSON:\n{schema}\n\n{speech_rules}"
         )
@@ -177,7 +180,7 @@ def get_conversational_prompt(lang: str, uc: dict, caller_from: str = None, call
             f"{end_call_rule_es}"
             f"  • Usa profile_update.activities (una lista) para registrar actividades confirmadas (visitas, reuniones, pedidos, tareas). Las listas en profile_update se ACUMULAN — nunca se borran.\n"
             f"  • SOLO añade a profile_update.activities cuando tengas TODOS los campos requeridos confirmados: tipo, nombre del cliente y fecha exacta. NO añadas entradas parciales ni especulativas mientras aún estás recopilando información.\n"
-            f"  • HOY es {today_str} (ISO: {today_iso}). Siempre convierte fechas relativas ('el viernes', 'el miércoles pasado', 'el lunes próximo') a fechas exactas en formato ISO (YYYY-MM-DD) antes de grabarlas en activities.\n\n"
+            f"  • HOY es {today_str}, la hora actual es {now_time_str} (fecha ISO: {today_iso}). Siempre convierte fechas relativas ('el viernes', 'el miércoles pasado', 'el lunes próximo') a fechas exactas en formato ISO (YYYY-MM-DD) antes de grabarlas en activities.\n\n"
             f"{forbidden_es}"
             f"Responde SOLO en JSON válido:\n{schema}\n\n{speech_rules}"
         )
