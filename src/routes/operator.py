@@ -104,13 +104,18 @@ def operator_hold_music():
     return str(resp)
 
 
-@operator_bp.route("/operator-busy-message", methods=['GET', 'POST'])
-def operator_busy_message():
-    """TwiML de anuncio al caller cuando el intento 2 falla — se inyecta vía announce_url."""
-    lang  = request.values.get("lang", "en")
-    uc    = get_active_use_case()
-    voice = get_voice(lang)
-    url   = uc.get("url", "")
+@operator_bp.route("/operator-busy-retry", methods=['GET', 'POST'])
+def operator_busy_retry():
+    """Caller es redirigido aquí cuando falla el intento 2. Dice el aviso y re-entra a la conferencia."""
+    room       = request.values.get("room", "")
+    lang       = request.values.get("lang", "en")
+    caller_sid = request.values.get("CallSid", "")
+    base_url   = request.url_root.rstrip("/")
+
+    uc          = get_active_use_case()
+    use_case_id = runtime_config.get("use_case_id") or ""
+    voice       = get_voice(lang)
+    url         = uc.get("url", "")
 
     if lang == "en":
         msg = ("Our agents are still busy, but we're trying one more time." +
@@ -123,6 +128,20 @@ def operator_busy_message():
 
     resp = VoiceResponse()
     resp.say(msg, voice=voice)
+
+    dial = Dial(action=f"{base_url}/meeting-ended?lang={lang}", method="POST")
+    dial.conference(
+        room,
+        wait_url=f"{base_url}/operator-hold-music?room={room}&lang={lang}",
+        wait_method="GET",
+        start_conference_on_enter=False,
+        end_conference_on_exit=True,
+        beep=False,
+        record="record-from-start",
+        recording_status_callback=f"{base_url}/recording-ready?caller_sid={caller_sid}&lang={lang}",
+        recording_status_callback_method="POST",
+    )
+    resp.append(dial)
     return str(resp)
 
 
@@ -218,19 +237,15 @@ def operator_status():
         if attempt < 3:
             # Reintentar: el caller sigue esperando en la conferencia
             new_attempt = attempt + 1
-            if attempt == 2 and room and caller_sid:
+            if attempt == 2 and caller_sid:
                 try:
-                    conferences = twilio_client().conferences.list(friendly_name=room, limit=1)
-                    if conferences:
-                        twilio_client().conferences(conferences[0].sid).participants(caller_sid).update(
-                            announce_url=f"{base_url}/operator-busy-message?lang={lang}",
-                            announce_method="GET",
-                        )
-                        print(f"[OPERATOR-STATUS] Busy announcement sent to caller {caller_sid}")
-                    else:
-                        print(f"[OPERATOR-STATUS] Conference {room!r} not found for announcement")
+                    twilio_client().calls(caller_sid).update(
+                        url=f"{base_url}/operator-busy-retry?room={room}&lang={lang}",
+                        method="POST",
+                    )
+                    print(f"[OPERATOR-STATUS] Busy retry redirect sent to caller {caller_sid}")
                 except Exception as e:
-                    print(f"[OPERATOR-STATUS] Announce failed: {e}")
+                    print(f"[OPERATOR-STATUS] Busy retry redirect failed: {e}")
             FORWARD_TO  = runtime_config.get("forward_to")  or ""
             TWILIO_FROM = runtime_config.get("twilio_from") or ""
             print(f"[OPERATOR-STATUS] Retrying attempt {new_attempt}/3 to {FORWARD_TO!r}")
