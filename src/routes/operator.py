@@ -7,7 +7,7 @@ import runtime_config
 import reports
 import config
 from config import twilio_client
-from state import collected_info, outbound_calls, failed_rooms, briefed_rooms, machine_rooms, busy_rooms
+from state import collected_info, outbound_calls, failed_rooms, briefed_rooms, machine_rooms
 from use_case_loader import get_topics
 from helpers import get_voice
 from use_case_loader import get_company_name, get_active_use_case
@@ -93,20 +93,6 @@ def operator_hold_music():
 
     resp = VoiceResponse()
 
-    if room and room in busy_rooms:
-        busy_rooms.discard(room)
-        if lang == "en":
-            msg = ("Our agents are still busy, but we're trying again." +
-                   (f" You can also visit us at {url}." if url else "") +
-                   " Please continue to hold.")
-        else:
-            msg = ("Nuestros operadores siguen ocupados, pero seguimos intentando." +
-                   (f" También puede visitarnos en {url}." if url else "") +
-                   " Por favor, continúe en espera.")
-        resp.say(msg, voice=voice)
-        resp.redirect(f"{base_url}/operator-hold-music?room={room}&lang={lang}")
-        return str(resp)
-
     if lang == "en":
         msg = "All our agents are currently busy." + (f" You can also visit us at {url}." if url else "") + " Please hold on for a moment."
     else:
@@ -115,6 +101,28 @@ def operator_hold_music():
     resp.play(request.url_root + f"wait-music-{use_case_id}.wav", loop=1)
     resp.say(msg, voice=voice)
     resp.redirect(f"{base_url}/operator-hold-music?room={room}&lang={lang}")
+    return str(resp)
+
+
+@operator_bp.route("/operator-busy-message", methods=['GET', 'POST'])
+def operator_busy_message():
+    """TwiML de anuncio al caller cuando el intento 2 falla — se inyecta vía announce_url."""
+    lang  = request.values.get("lang", "en")
+    uc    = get_active_use_case()
+    voice = get_voice(lang)
+    url   = uc.get("url", "")
+
+    if lang == "en":
+        msg = ("Our agents are still busy, but we're trying one more time." +
+               (f" You can also visit us at {url}." if url else "") +
+               " Please continue to hold.")
+    else:
+        msg = ("Nuestros operadores siguen ocupados, pero lo intentaremos una vez más." +
+               (f" También puede visitarnos en {url}." if url else "") +
+               " Por favor, continúe en espera.")
+
+    resp = VoiceResponse()
+    resp.say(msg, voice=voice)
     return str(resp)
 
 
@@ -210,8 +218,19 @@ def operator_status():
         if attempt < 3:
             # Reintentar: el caller sigue esperando en la conferencia
             new_attempt = attempt + 1
-            if attempt == 2 and room:
-                busy_rooms.add(room)  # señal para que hold music reproduzca aviso especial
+            if attempt == 2 and room and caller_sid:
+                try:
+                    conferences = twilio_client().conferences.list(friendly_name=room, limit=1)
+                    if conferences:
+                        twilio_client().conferences(conferences[0].sid).participants(caller_sid).update(
+                            announce_url=f"{base_url}/operator-busy-message?lang={lang}",
+                            announce_method="GET",
+                        )
+                        print(f"[OPERATOR-STATUS] Busy announcement sent to caller {caller_sid}")
+                    else:
+                        print(f"[OPERATOR-STATUS] Conference {room!r} not found for announcement")
+                except Exception as e:
+                    print(f"[OPERATOR-STATUS] Announce failed: {e}")
             FORWARD_TO  = runtime_config.get("forward_to")  or ""
             TWILIO_FROM = runtime_config.get("twilio_from") or ""
             print(f"[OPERATOR-STATUS] Retrying attempt {new_attempt}/3 to {FORWARD_TO!r}")
