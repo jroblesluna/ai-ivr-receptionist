@@ -4,3 +4,4 @@ outbound_calls     = {}  # {room: outbound_call_sid} — para cancelar si el cal
 failed_rooms       = set()  # rooms donde el agente no contestó → waitUrl redirige a IA
 briefed_rooms      = set()  # rooms donde el operador sí contestó (operator-briefing fue llamado)
 machine_rooms      = {}   # {room: count} — veces que se detectó voicemail/máquina
+busy_rooms         = set()  # rooms donde falló el intento 2 → hold music reproduce aviso especial

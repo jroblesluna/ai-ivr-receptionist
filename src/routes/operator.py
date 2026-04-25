@@ -7,7 +7,7 @@ import runtime_config
 import reports
 import config
 from config import twilio_client
-from state import collected_info, outbound_calls, failed_rooms, briefed_rooms, machine_rooms
+from state import collected_info, outbound_calls, failed_rooms, briefed_rooms, machine_rooms, busy_rooms
 from use_case_loader import get_topics
 from helpers import get_voice
 from use_case_loader import get_company_name, get_active_use_case
@@ -91,12 +91,27 @@ def operator_hold_music():
     voice = get_voice(lang)
     url   = uc.get("url", "")
 
+    resp = VoiceResponse()
+
+    if room and room in busy_rooms:
+        busy_rooms.discard(room)
+        if lang == "en":
+            msg = ("Our agents are still busy, but we're trying again." +
+                   (f" You can also visit us at {url}." if url else "") +
+                   " Please continue to hold.")
+        else:
+            msg = ("Nuestros operadores siguen ocupados, pero seguimos intentando." +
+                   (f" También puede visitarnos en {url}." if url else "") +
+                   " Por favor, continúe en espera.")
+        resp.say(msg, voice=voice)
+        resp.redirect(f"{base_url}/operator-hold-music?room={room}&lang={lang}")
+        return str(resp)
+
     if lang == "en":
         msg = "All our agents are currently busy." + (f" You can also visit us at {url}." if url else "") + " Please hold on for a moment."
     else:
         msg = "Todos nuestros agentes están ocupados en este momento." + (f" También puede visitarnos en {url}." if url else "") + " Por favor, espere un momento."
 
-    resp = VoiceResponse()
     resp.play(request.url_root + f"wait-music-{use_case_id}.wav", loop=1)
     resp.say(msg, voice=voice)
     resp.redirect(f"{base_url}/operator-hold-music?room={room}&lang={lang}")
@@ -195,6 +210,8 @@ def operator_status():
         if attempt < 3:
             # Reintentar: el caller sigue esperando en la conferencia
             new_attempt = attempt + 1
+            if attempt == 2 and room:
+                busy_rooms.add(room)  # señal para que hold music reproduzca aviso especial
             FORWARD_TO  = runtime_config.get("forward_to")  or ""
             TWILIO_FROM = runtime_config.get("twilio_from") or ""
             print(f"[OPERATOR-STATUS] Retrying attempt {new_attempt}/3 to {FORWARD_TO!r}")
