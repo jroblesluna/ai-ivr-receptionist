@@ -52,17 +52,20 @@ def get_topics() -> dict:
         }
 
     # Special built-in topics
+    url = uc.get("url", "")
     topics["schedule_callback"] = {
         "en": {
             "label": "Schedule Callback",
             "greeting": (
-                f"I'm sorry, our team at {company} is not available at this moment. "
-                "I'd like to schedule a callback for you. "
+                f"I'm sorry, our team at {company} is not available at this moment."
+                + (f" You can also visit us at {url}." if url else "")
+                + " I'd like to schedule a callback for you. "
                 "Could you tell me at least one preferred date and time for us to call you back?"
             ),
             "system_extra": (
-                f"The caller tried to reach {company} but no one is available. "
-                "Collect at least one preferred date and time for a callback. "
+                f"The caller tried to reach {company} but no one is available."
+                + (f" Mention that they can also visit the website at {url}." if url else "")
+                + " Collect at least one preferred date and time for a callback. "
                 "Allow multiple options. Once collected, confirm and say goodbye."
             ),
             "questions": [],
@@ -73,13 +76,15 @@ def get_topics() -> dict:
         "es": {
             "label": "Agendar Rellamada",
             "greeting": (
-                f"Lo sentimos, nuestro equipo de {company} no está disponible en este momento. "
-                "Me gustaría agendar una rellamada para usted. "
+                f"Lo sentimos, nuestro equipo de {company} no está disponible en este momento."
+                + (f" También puede visitarnos en {url}." if url else "")
+                + " Me gustaría agendar una rellamada para usted. "
                 "¿Podría indicarme al menos una fecha y hora de su preferencia para que le llamemos?"
             ),
             "system_extra": (
-                f"El llamante intentó comunicarse con {company} pero no hay nadie disponible. "
-                "Recopile al menos una fecha y hora preferida para una rellamada. "
+                f"El llamante intentó comunicarse con {company} pero no hay nadie disponible."
+                + (f" Mencione que también puede visitar el sitio web en {url}." if url else "")
+                + " Recopile al menos una fecha y hora preferida para una rellamada. "
                 "Permita varias opciones. Una vez recopiladas, confírmelas y despídase."
             ),
             "questions": [],
