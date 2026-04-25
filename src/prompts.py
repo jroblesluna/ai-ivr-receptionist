@@ -307,7 +307,7 @@ def get_system_prompt(lang, topic, caller_from=None, caller_profile=None):
                 f"Collect the following, one question at a time:\n"
                 f"  1. Full name\n"
                 f"  2. {phone_q}\n\n"
-                f"Once you have both, say 'Please hold while I connect you.' and set end_call=true.\n\n"
+                f"Once you have both, say 'I have the information. Please hold while I connect you.' and set end_call=true.\n\n"
                 f"Keep responses SHORT. This is a phone call.\n\n"
                 f"Respond ONLY in valid JSON:\n{schema}\n\n{phone_format_rule}\n\n{end_call_rule}"
             )
@@ -322,7 +322,7 @@ def get_system_prompt(lang, topic, caller_from=None, caller_profile=None):
                 f"Recoge lo siguiente, una pregunta a la vez:\n"
                 f"  1. Nombre completo\n"
                 f"  2. {phone_q_es}\n\n"
-                f"Una vez que tengas ambos, di 'Por favor espere mientras le conecto.' y establece end_call=true.\n\n"
+                f"Una vez que tengas ambos, di 'Ya tengo la información. Por favor espere mientras le conecto.' y establece end_call=true.\n\n"
                 f"Mantén las respuestas CORTAS. Es una llamada telefónica.\n\n"
                 f"Responde SOLO en JSON válido:\n{schema}\n\n{phone_format_rule}\n\n{end_call_rule}"
             )

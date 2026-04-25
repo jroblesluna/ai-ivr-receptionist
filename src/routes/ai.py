@@ -244,10 +244,9 @@ def _get_demo_topics(demo_uc: dict) -> dict:
             "en": {**topic_data.get("en", {}), "meeting_type": topic_data.get("meeting_type", False), "digit": topic_data.get("digit", "")},
             "es": {**topic_data.get("es", {}), "meeting_type": topic_data.get("meeting_type", False), "digit": topic_data.get("digit", "")},
         }
-    url = demo_uc.get("url", "")
     topics["schedule_callback"] = {
-        "en": {"greeting": f"I'm sorry, the team at {company} is not available right now.{' You can also visit us at ' + url + '.' if url else ''} Let me schedule a callback.", "system_extra": "", "questions": [], "meeting_type": False, "digit": ""},
-        "es": {"greeting": f"Lo siento, el equipo de {company} no está disponible.{' También puede visitarnos en ' + url + '.' if url else ''} Le agendaremos una rellamada.", "system_extra": "", "questions": [], "meeting_type": False, "digit": ""},
+        "en": {"greeting": f"I'm sorry, the team at {company} is not available right now. Let me schedule a callback.", "system_extra": "", "questions": [], "meeting_type": False, "digit": ""},
+        "es": {"greeting": f"Lo siento, el equipo de {company} no está disponible. Le agendaremos una rellamada.", "system_extra": "", "questions": [], "meeting_type": False, "digit": ""},
     }
     return topics
 
