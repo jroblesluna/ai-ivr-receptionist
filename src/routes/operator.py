@@ -1,3 +1,4 @@
+import os
 import uuid
 import io
 from datetime import datetime
@@ -74,10 +75,14 @@ def connect_operator():
     return str(resp)
 
 
+_ASSETS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "assets"))
+
+
 @operator_bp.route("/operator-hold-music", methods=['GET', 'POST'])
 def operator_hold_music():
-    room  = request.values.get("room", "")
-    lang  = request.values.get("lang", "en")
+    room    = request.values.get("room", "")
+    lang    = request.values.get("lang", "en")
+    variant = request.values.get("variant", "")
     base_url = request.url_root.rstrip("/")
 
     if room and room in failed_rooms:
@@ -91,6 +96,12 @@ def operator_hold_music():
     voice = get_voice(lang)
     url   = uc.get("url", "")
 
+    if variant == "2":
+        alt_file = f"wait-music-{use_case_id}-2.wav"
+        wav_file = alt_file if os.path.exists(os.path.join(_ASSETS_DIR, alt_file)) else f"wait-music-{use_case_id}.wav"
+    else:
+        wav_file = f"wait-music-{use_case_id}.wav"
+
     resp = VoiceResponse()
 
     if lang == "en":
@@ -98,9 +109,10 @@ def operator_hold_music():
     else:
         msg = "Todos nuestros agentes están ocupados en este momento." + (f" También puede visitarnos en {url}." if url else "") + " Por favor, espere un momento."
 
-    resp.play(request.url_root + f"wait-music-{use_case_id}.wav", loop=1)
+    resp.play(request.url_root + wav_file, loop=1)
     resp.say(msg, voice=voice)
-    resp.redirect(f"{base_url}/operator-hold-music?room={room}&lang={lang}")
+    variant_param = f"&variant={variant}" if variant else ""
+    resp.redirect(f"{base_url}/operator-hold-music?room={room}&lang={lang}{variant_param}")
     return str(resp)
 
 
@@ -132,7 +144,7 @@ def operator_busy_retry():
     dial = Dial(action=f"{base_url}/meeting-ended?lang={lang}", method="POST")
     dial.conference(
         room,
-        wait_url=f"{base_url}/operator-hold-music?room={room}&lang={lang}",
+        wait_url=f"{base_url}/operator-hold-music?room={room}&lang={lang}&variant=2",
         wait_method="GET",
         start_conference_on_enter=False,
         end_conference_on_exit=True,
