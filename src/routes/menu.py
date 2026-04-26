@@ -2,7 +2,7 @@ from flask import Blueprint, request
 from twilio.twiml.voice_response import VoiceResponse, Gather
 
 import db
-from state import collected_info
+from state import collected_info, intro_played
 from helpers import get_voice, format_phone_spoken
 from whitelist import is_whitelisted
 from use_case_loader import get_active_use_case, get_digit_to_topic, get_company_name
@@ -48,7 +48,9 @@ def main_menu():
     slogan  = uc.get("slogan", {}).get("en", "")
 
     resp = VoiceResponse()
-    resp.play(request.url_root + "intro.wav")
+    if call_sid not in intro_played:
+        intro_played.add(call_sid)
+        resp.play(request.url_root + "intro.wav")
 
     gather = Gather(num_digits=1, action="/handle-en", method="POST")
     greeting = f"Thank you for calling {company}. {slogan} Please listen to the following options." if slogan else f"Thank you for calling {company}. Please listen to the following options."
@@ -85,13 +87,16 @@ def handle_en():
 
 @menu_bp.route("/menu-es", methods=['GET', 'POST'])
 def menu_es():
+    call_sid = request.values.get("CallSid", "")
     uc      = get_active_use_case()
     options = _sorted_options(uc, "es")
     company = get_company_name()
     slogan  = uc.get("slogan", {}).get("es", "")
 
     resp = VoiceResponse()
-    resp.play(request.url_root + "intro.wav")
+    if call_sid not in intro_played:
+        intro_played.add(call_sid)
+        resp.play(request.url_root + "intro.wav")
 
     gather = Gather(num_digits=1, action="/handle-es", method="POST")
     greeting = f"Gracias por llamar a {company}. {slogan} Por favor escuche las siguientes opciones." if slogan else f"Gracias por llamar a {company}. Por favor escuche las siguientes opciones."
