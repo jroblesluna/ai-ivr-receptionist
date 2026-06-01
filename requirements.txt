@@ -23,9 +23,12 @@ uvicorn[standard]
 websockets
 deepgram-sdk
 elevenlabs
+httpx
+
+# PyTorch CPU-only (no CUDA — saves ~4GB in Docker image)
+--extra-index-url https://download.pytorch.org/whl/cpu
 torch
 torchaudio
-httpx
 audioop-lts; python_version >= "3.13"
 
 # Test dependencies
