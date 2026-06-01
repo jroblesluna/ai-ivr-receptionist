@@ -27,10 +27,17 @@ Session = None
 
 
 def get_database_url() -> str:
-    """Resolve the database URL from environment."""
+    """Resolve the database URL from environment or Secrets Manager."""
     url = os.environ.get("DATABASE_URL", "")
     if not url:
-        raise RuntimeError("DATABASE_URL environment variable is not set")
+        # Fall back to Secrets Manager (loaded by config.py at startup)
+        try:
+            from src.config import SecretsConfig
+        except ImportError:
+            from config import SecretsConfig
+        url = SecretsConfig.get("DATABASE_URL", "")
+    if not url:
+        raise RuntimeError("DATABASE_URL not found in environment or Secrets Manager")
     return url
 
 
