@@ -10,9 +10,10 @@
 #   5. Roll back to previous image on failure
 #
 # Usage:
-#   ./scripts/deploy.sh
+#   ./scripts/deploy.sh <full_image_uri>
+#   ./scripts/deploy.sh 123456789.dkr.ecr.us-west-2.amazonaws.com/pickup-dev:abc123
 #
-# Required environment variables:
+# Alternatively, set environment variables:
 #   ECR_REPOSITORY_URL  — Full ECR repository URL (e.g., 123456789.dkr.ecr.us-west-2.amazonaws.com/pickup)
 #   IMAGE_TAG           — Image tag to deploy (e.g., commit SHA)
 #   AWS_REGION          — AWS region (default: us-west-2)
@@ -29,6 +30,13 @@ HEALTH_CHECK_TIMEOUT="${HEALTH_CHECK_TIMEOUT:-60}"
 COMPOSE_FILE="${COMPOSE_FILE:-/app/docker-compose.yml}"
 HEALTH_URL="http://localhost:8000/health"
 SERVICE_NAME="backend"
+
+# --- Parse arguments ---
+# Accept full image URI as $1 (e.g., 123456789.dkr.ecr.us-west-2.amazonaws.com/pickup-dev:abc123)
+if [[ -n "${1:-}" ]]; then
+    ECR_REPOSITORY_URL="${1%:*}"
+    IMAGE_TAG="${1##*:}"
+fi
 
 # --- Validation ---
 if [[ -z "${ECR_REPOSITORY_URL:-}" ]]; then
