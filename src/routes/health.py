@@ -38,15 +38,11 @@ def health_check():
 def _check_database() -> str:
     """Attempt SELECT 1 via SQLAlchemy engine. Returns 'connected' or 'disconnected'."""
     try:
-        from models import engine
-
-        if engine is None:
-            return "disconnected"
-
+        from db import Session
         from sqlalchemy import text
 
-        with engine.connect() as conn:
-            conn.execute(text("SELECT 1"))
+        with Session() as session:
+            session.execute(text("SELECT 1"))
         return "connected"
     except Exception:
         return "disconnected"
