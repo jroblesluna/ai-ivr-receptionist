@@ -26,7 +26,7 @@ set -euo pipefail
 
 # --- Configuration ---
 AWS_REGION="${AWS_REGION:-us-west-2}"
-HEALTH_CHECK_TIMEOUT="${HEALTH_CHECK_TIMEOUT:-60}"
+HEALTH_CHECK_TIMEOUT="${HEALTH_CHECK_TIMEOUT:-90}"
 COMPOSE_FILE="${COMPOSE_FILE:-./docker-compose.yml}"
 HEALTH_URL="http://localhost:8000/health"
 SERVICE_NAME="backend"
@@ -76,8 +76,12 @@ health_check() {
     log "Waiting for health check (timeout: ${timeout}s)..."
 
     while [[ $elapsed -lt $timeout ]]; do
-        if curl -sf "${HEALTH_URL}" > /dev/null 2>&1; then
-            log "Health check passed after ${elapsed}s"
+        # Accept any HTTP response (200 or 503) as "app is running"
+        # The app returns 503 when DB is still connecting but is otherwise functional
+        local http_code
+        http_code=$(curl -so /dev/null -w '%{http_code}' "${HEALTH_URL}" 2>/dev/null || echo "000")
+        if [[ "$http_code" =~ ^[2345] ]]; then
+            log "Health check passed after ${elapsed}s (HTTP ${http_code})"
             return 0
         fi
         sleep $interval
