@@ -27,7 +27,7 @@ set -euo pipefail
 # --- Configuration ---
 AWS_REGION="${AWS_REGION:-us-west-2}"
 HEALTH_CHECK_TIMEOUT="${HEALTH_CHECK_TIMEOUT:-60}"
-COMPOSE_FILE="${COMPOSE_FILE:-/app/docker-compose.yml}"
+COMPOSE_FILE="${COMPOSE_FILE:-./docker-compose.yml}"
 HEALTH_URL="http://localhost:8000/health"
 SERVICE_NAME="backend"
 

@@ -57,7 +57,7 @@ jobs:
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids "${INSTANCE_ID}" \
             --document-name "AWS-RunShellScript" \
-            --parameters "commands=[\"cd /opt/pickup && export ECR_REPOSITORY_URL=${{ steps.ecr-login.outputs.registry }}/${{ env.ECR_REPOSITORY }} && export IMAGE_TAG=${{ steps.build.outputs.image_tag }} && ./scripts/deploy.sh ${{ steps.build.outputs.image_uri }}\"]" \
+            --parameters "commands=[\"cd /opt/pickup && export ECR_REPOSITORY_URL=${{ steps.ecr-login.outputs.registry }}/${{ env.ECR_REPOSITORY }} && export IMAGE_TAG=${{ steps.build.outputs.image_tag }} && export COMPOSE_FILE=/opt/pickup/docker-compose.yml && ./scripts/deploy.sh ${{ steps.build.outputs.image_uri }}\"]" \
             --timeout-seconds 300 \
             --output text \
             --query "Command.CommandId")
