@@ -562,6 +562,7 @@ def api_demo_save():
         "system_prompt":    data.get("system_prompt", ""),
         "system_prompt_es": data.get("system_prompt_es", ""),
         "knowledge_base":   data.get("knowledge_base", ""),
+        "elevenlabs_voice_id": data.get("elevenlabs_voice_id") or None,
     }
 
     # If updating existing demo, preserve its code

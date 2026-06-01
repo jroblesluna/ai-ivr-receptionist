@@ -5,6 +5,7 @@ services:
     container_name: pickup-backend
     ports:
       - "8000:8000"
+      - "8001:8001"
     environment:
       - GUNICORN_WORKERS=${GUNICORN_WORKERS:-1}
       - DATABASE_URL=${DATABASE_URL}
@@ -15,6 +16,11 @@ services:
       - S3_AUDIO_BUCKET=${S3_AUDIO_BUCKET}
       - ENVIRONMENT=${ENVIRONMENT:-dev}
       - SECRET_KEY=${SECRET_KEY}
+      - DEEPGRAM_API_KEY=${DEEPGRAM_API_KEY}
+      - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - DEFAULT_ELEVENLABS_VOICE_ID=${DEFAULT_ELEVENLABS_VOICE_ID}
+      - WS_HOST=${WS_HOST}
     depends_on:
       redis:
         condition: service_healthy

@@ -246,6 +246,7 @@ def _uc_to_dict(uc: UseCase) -> dict:
         "system_prompt":    uc.system_prompt,
         "system_prompt_es": uc.system_prompt_es,
         "knowledge_base":   uc.knowledge_base,
+        "elevenlabs_voice_id": uc.elevenlabs_voice_id,
     }
 
 
@@ -324,6 +325,7 @@ def uc_upsert(uc_id: str, data: dict):
         system_prompt = data["system_prompt"] if "system_prompt" in data else (existing.system_prompt if existing else None)
         system_prompt_es = data["system_prompt_es"] if "system_prompt_es" in data else (existing.system_prompt_es if existing else None)
         knowledge_base = data["knowledge_base"] if "knowledge_base" in data else (existing.knowledge_base if existing else None)
+        elevenlabs_voice_id = data["elevenlabs_voice_id"] if "elevenlabs_voice_id" in data else (existing.elevenlabs_voice_id if existing else None)
 
         if existing:
             existing.name = data.get("name", "")
@@ -340,6 +342,7 @@ def uc_upsert(uc_id: str, data: dict):
             existing.system_prompt = system_prompt
             existing.system_prompt_es = system_prompt_es
             existing.knowledge_base = knowledge_base
+            existing.elevenlabs_voice_id = elevenlabs_voice_id
         else:
             uc = UseCase(
                 id=uc_id,
@@ -357,6 +360,7 @@ def uc_upsert(uc_id: str, data: dict):
                 system_prompt=system_prompt,
                 system_prompt_es=system_prompt_es,
                 knowledge_base=knowledge_base,
+                elevenlabs_voice_id=elevenlabs_voice_id,
             )
             session.add(uc)
 

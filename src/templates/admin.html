@@ -1285,6 +1285,11 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
         <div class="editor-field"><label>Slogan EN</label><input type="text" id="dw2-slogan-en"></div>
         <div class="editor-field"><label>Slogan ES</label><input type="text" id="dw2-slogan-es"></div>
       </div>
+      <div class="editor-field" style="margin-bottom:16px;">
+        <label>ElevenLabs Voice ID <button class="info-btn" onclick="showInfo('ElevenLabs Voice ID','The voice ID from your ElevenLabs account to use for real-time TTS in conversational mode. Leave empty to use the system default voice.')">ℹ</button></label>
+        <input type="text" id="dw2-elevenlabs-voice-id" placeholder="e.g. pNInz6obpgDQGcFmaJgB (leave empty for default)">
+        <div class="field-hint">Optional. The ElevenLabs voice to use for real-time voice conversations. If empty, the system default voice is used.</div>
+      </div>
 
       <!-- IVR Type selector -->
       <div style="background:#f9fafb;border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:18px;">
@@ -2512,6 +2517,7 @@ async function showDemoWizard(demoId) {
       document.getElementById('dw2-prompt-en').value  = uc.system_prompt    || '';
       document.getElementById('dw2-prompt-es').value  = uc.system_prompt_es || '';
       document.getElementById('dw2-forward-to').value = uc.forward_to || '';
+      document.getElementById('dw2-elevenlabs-voice-id').value = uc.elevenlabs_voice_id || '';
       document.getElementById(uc.ivr_type === 'conversational' ? 'dw-type-conv' : 'dw-type-topics').checked = true;
       demoTypeChanged();
       buildDemoTopicsEditor(uc.topics || {});
@@ -2635,6 +2641,7 @@ async function demoGenerate() {
     document.getElementById('dw2-prompt-en').value  = _dwDraft.conversational_prompt_en || '';
     document.getElementById('dw2-prompt-es').value  = _dwDraft.conversational_prompt_es || '';
     document.getElementById('dw2-forward-to').value = '';
+    document.getElementById('dw2-elevenlabs-voice-id').value = '';
     // Show/update file notice
     _dwUpdateFileNotice();
 
@@ -2681,6 +2688,7 @@ async function demoSave() {
     system_prompt:    ivr_type === 'conversational' ? promptEn : '',
     system_prompt_es: ivr_type === 'conversational' ? promptEs : '',
     knowledge_base:   ivr_type === 'conversational' ? _dwKnowledgeBase : '',
+    elevenlabs_voice_id: document.getElementById('dw2-elevenlabs-voice-id').value.trim() || null,
   };
 
   const res = await apiFetch('/admin/api/demo', {

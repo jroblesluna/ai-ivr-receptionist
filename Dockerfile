@@ -15,6 +15,7 @@ COPY alembic.ini .
 COPY assets/ ./assets/
 
 EXPOSE 8000
+EXPOSE 8001
 
 COPY entrypoint.sh .
 RUN chmod +x entrypoint.sh

@@ -33,6 +33,7 @@ class UseCase(Base):
     system_prompt = Column(Text)
     system_prompt_es = Column(Text)
     knowledge_base = Column(Text)
+    elevenlabs_voice_id = Column(Text)
 
     topics = relationship(
         "Topic", back_populates="use_case", cascade="all, delete-orphan"

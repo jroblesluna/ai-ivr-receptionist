@@ -16,3 +16,17 @@ sqlalchemy
 psycopg2-binary
 alembic
 boto3
+
+# Real-time voice conversation dependencies
+fastapi
+uvicorn[standard]
+websockets
+deepgram-sdk
+elevenlabs
+torch
+torchaudio
+httpx
+audioop-lts; python_version >= "3.13"
+
+# Test dependencies
+pytest-asyncio

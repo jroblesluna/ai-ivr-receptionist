@@ -1,15 +1,22 @@
 import json
+import logging
+import os
 import re
 import unicodedata
 from datetime import datetime
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from flask import Blueprint, request
-from twilio.twiml.voice_response import VoiceResponse, Gather
+from twilio.twiml.voice_response import VoiceResponse, Gather, Connect, Stream
+import requests as http_requests
 import config
 import db
 from config import twilio_client
 import runtime_config
 import reports
+
+logger = logging.getLogger(__name__)
+
+WS_HOST = os.environ.get("WS_HOST", "")
 
 
 def _now_local():
@@ -138,6 +145,31 @@ def _get_voice_for_uc(lang: str, uc: dict | None) -> str:
     return get_voice(lang)
 
 
+def _check_media_stream_health() -> bool:
+    """Check if the Media Stream Server is reachable via its health endpoint.
+
+    Returns True if the server responds with HTTP 200, False otherwise.
+    """
+    try:
+        resp = http_requests.get("http://localhost:8001/health", timeout=2)
+        return resp.status_code == 200
+    except Exception:
+        return False
+
+
+def _build_media_stream_twiml(lang: str, demo_id: str, caller_from: str) -> str:
+    """Return TwiML with <Connect><Stream> pointing to the WebSocket server."""
+    resp = VoiceResponse()
+    connect = Connect()
+    stream = Stream(url=f"wss://{WS_HOST}/media-stream")
+    stream.parameter(name="lang", value=lang)
+    stream.parameter(name="demo_id", value=demo_id)
+    stream.parameter(name="caller_from", value=caller_from)
+    connect.append(stream)
+    resp.append(connect)
+    return str(resp)
+
+
 @ai_bp.route("/ai-gather", methods=['GET', 'POST'])
 def ai_gather():
     lang     = request.args.get("lang", "en")
@@ -223,6 +255,23 @@ def ai_gather():
                 session_store.set_conversation(call_sid, conversation)
 
             resp.say(greeting, voice=voice)
+
+        # For conversational demos, use <Connect><Stream> instead of <Gather speech>
+        is_conversational_demo = demo_uc and demo_uc.get("ivr_type") == "conversational"
+        if is_conversational_demo:
+            caller_from = request.values.get("From", "")
+            if _check_media_stream_health():
+                return _build_media_stream_twiml(
+                    lang=lang,
+                    demo_id=demo_id,
+                    caller_from=caller_from,
+                )
+            else:
+                logger.warning(
+                    "Media Stream Server unreachable; falling back to <Gather speech> "
+                    "for call_sid=%s, demo_id=%s",
+                    call_sid, demo_id,
+                )
 
         demo_suffix = f"&demo_id={demo_id}" if demo_id else ""
         gather = Gather(
