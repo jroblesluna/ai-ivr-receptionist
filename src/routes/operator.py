@@ -4,11 +4,12 @@ import io
 from datetime import datetime
 from flask import Blueprint, request
 from twilio.twiml.voice_response import VoiceResponse, Dial
+import redis
 import runtime_config
 import reports
 import config
 from config import twilio_client
-from state import collected_info, outbound_calls, failed_rooms, briefed_rooms, machine_rooms
+from session_store import session_store
 from use_case_loader import get_topics
 from helpers import get_voice
 from use_case_loader import get_company_name, get_active_use_case
@@ -24,55 +25,61 @@ def connect_operator():
     room       = f"room-{uuid.uuid4().hex}"
     base_url   = request.url_root.rstrip("/")
 
-    resp = VoiceResponse()
-
-    # Caller espera en conferencia con música; se graba para resumen posterior
-    dial = Dial(
-        action=f"{base_url}/meeting-ended?lang={lang}",
-        method="POST",
-    )
-    dial.conference(
-        room,
-        wait_url=f"{base_url}/operator-hold-music?room={room}&lang={lang}",
-        wait_method="GET",
-        start_conference_on_enter=False,
-        end_conference_on_exit=True,
-        beep=False,
-        record="record-from-start",
-        recording_status_callback=f"{base_url}/recording-ready?caller_sid={caller_sid}&lang={lang}",
-        recording_status_callback_method="POST",
-    )
-    resp.append(dial)
-    print(f"[TWIML] connect-operator:\n{str(resp)}")
-
-    # Llamar al operador; cuando conteste, escucha el briefing y luego se une a la conferencia
-    uc = get_active_use_case()
-    FORWARD_TO  = uc.get("forward_to") or runtime_config.get("forward_to") or ""
-    TWILIO_FROM = runtime_config.get("twilio_from") or ""
-    print(f"[CONNECT-OPERATOR] caller_sid={caller_sid!r} room={room!r} to={FORWARD_TO!r} from={TWILIO_FROM!r}")
-
-    if not FORWARD_TO:
-        print("[CONNECT-OPERATOR] No forward_to configured — redirecting to no-availability")
-        failed_rooms.add(room)
-        return str(resp)
-
     try:
-        outbound = twilio_client().calls.create(
-            to=FORWARD_TO,
-            from_=TWILIO_FROM,
-            url=f"{base_url}/operator-briefing?caller_sid={caller_sid}&room={room}&lang={lang}",
-            timeout=25,
-            machine_detection="Enable",
-            status_callback=f"{base_url}/operator-status?room={room}&caller_sid={caller_sid}&lang={lang}&attempt=1",
-            status_callback_method="POST",
-            status_callback_event=["completed"],
+        resp = VoiceResponse()
+
+        # Caller espera en conferencia con música; se graba para resumen posterior
+        dial = Dial(
+            action=f"{base_url}/meeting-ended?lang={lang}",
+            method="POST",
         )
-        outbound_calls[room] = outbound.sid
-        print(f"[CONNECT-OPERATOR] Outbound call created: {outbound.sid}")
-    except Exception as e:
-        print(f"[CONNECT-OPERATOR ERROR] Failed to create outbound call: {e}")
-        failed_rooms.add(room)
-    return str(resp)
+        dial.conference(
+            room,
+            wait_url=f"{base_url}/operator-hold-music?room={room}&lang={lang}",
+            wait_method="GET",
+            start_conference_on_enter=False,
+            end_conference_on_exit=True,
+            beep=False,
+            record="record-from-start",
+            recording_status_callback=f"{base_url}/recording-ready?caller_sid={caller_sid}&lang={lang}",
+            recording_status_callback_method="POST",
+        )
+        resp.append(dial)
+        print(f"[TWIML] connect-operator:\n{str(resp)}")
+
+        # Llamar al operador; cuando conteste, escucha el briefing y luego se une a la conferencia
+        uc = get_active_use_case()
+        FORWARD_TO  = uc.get("forward_to") or runtime_config.get("forward_to") or ""
+        TWILIO_FROM = runtime_config.get("twilio_from") or ""
+        print(f"[CONNECT-OPERATOR] caller_sid={caller_sid!r} room={room!r} to={FORWARD_TO!r} from={TWILIO_FROM!r}")
+
+        if not FORWARD_TO:
+            print("[CONNECT-OPERATOR] No forward_to configured — redirecting to no-availability")
+            session_store.mark_failed_room(room)
+            return str(resp)
+
+        try:
+            outbound = twilio_client().calls.create(
+                to=FORWARD_TO,
+                from_=TWILIO_FROM,
+                url=f"{base_url}/operator-briefing?caller_sid={caller_sid}&room={room}&lang={lang}",
+                timeout=25,
+                machine_detection="Enable",
+                status_callback=f"{base_url}/operator-status?room={room}&caller_sid={caller_sid}&lang={lang}&attempt=1",
+                status_callback_method="POST",
+                status_callback_event=["completed"],
+            )
+            session_store.add_outbound_call(room, outbound.sid)
+            print(f"[CONNECT-OPERATOR] Outbound call created: {outbound.sid}")
+        except Exception as e:
+            print(f"[CONNECT-OPERATOR ERROR] Failed to create outbound call: {e}")
+            session_store.mark_failed_room(room)
+        return str(resp)
+    except redis.RedisError:
+        resp = VoiceResponse()
+        resp.say("We are experiencing technical difficulties. Please try again later.", voice=get_voice(lang))
+        resp.hangup()
+        return str(resp)
 
 
 _ASSETS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "assets"))
@@ -85,10 +92,16 @@ def operator_hold_music():
     variant = request.values.get("variant", "")
     base_url = request.url_root.rstrip("/")
 
-    if room and room in failed_rooms:
-        failed_rooms.discard(room)
+    try:
+        if room and session_store.is_failed_room(room):
+            session_store.clear_failed_room(room)
+            resp = VoiceResponse()
+            resp.redirect(f"{base_url}/no-availability?lang={lang}")
+            return str(resp)
+    except redis.RedisError:
         resp = VoiceResponse()
-        resp.redirect(f"{base_url}/no-availability?lang={lang}")
+        resp.say("We are experiencing technical difficulties. Please try again later.", voice=get_voice(lang))
+        resp.hangup()
         return str(resp)
 
     use_case_id = runtime_config.get("use_case_id") or ""
@@ -165,60 +178,66 @@ def operator_briefing():
     lang       = request.values.get("lang", "en")
     voice      = get_voice(lang)
 
-    # Si contestó una máquina/contestadora, colgar inmediatamente sin unirse a la conferencia
-    answered_by = request.values.get("AnsweredBy", "")
-    if answered_by and "machine" in answered_by.lower():
-        count = machine_rooms.get(room, 0) + 1
-        machine_rooms[room] = count
-        print(f"[OPERATOR-BRIEFING] Answering machine detected ({answered_by}), count={count}")
-        if count >= 2:
-            # Voicemail 2 veces seguidas → ir a no-availability directamente
-            machine_rooms.pop(room, None)
-            failed_rooms.add(room)
-            print(f"[OPERATOR-BRIEFING] Machine detected {count}x — forcing no-availability")
+    try:
+        # Si contestó una máquina/contestadora, colgar inmediatamente sin unirse a la conferencia
+        answered_by = request.values.get("AnsweredBy", "")
+        if answered_by and "machine" in answered_by.lower():
+            count = session_store.increment_machine_count(room)
+            print(f"[OPERATOR-BRIEFING] Answering machine detected ({answered_by}), count={count}")
+            if count >= 2:
+                # Voicemail 2 veces seguidas → ir a no-availability directamente
+                session_store.clear_machine_count(room)
+                session_store.mark_failed_room(room)
+                print(f"[OPERATOR-BRIEFING] Machine detected {count}x — forcing no-availability")
+            resp = VoiceResponse()
+            resp.hangup()
+            return str(resp)
+
+        # El operador contestó → marcar room para que operator-status no lo trate como no-answer
+        if room:
+            session_store.mark_briefed_room(room)
+            session_store.clear_machine_count(room)
+
+        info   = session_store.get_collected_info(caller_sid)
+        name   = info.get("name") or "Unknown"
+        phone  = info.get("phone") or "Unknown"
+        notes  = info.get("notes") or ""
+        topic  = info.get("topic", "")
+        topic_label = get_topics().get(topic, {}).get(lang, {}).get("label", topic)
+
+        if lang == "en":
+            briefing = f"Incoming pre-screened call. Topic: {topic_label}. Caller name: {name}. Callback number: {phone}."
+            if notes:
+                briefing += f" Pre-screening notes: {notes}."
+            briefing += " Connecting now."
+        else:
+            briefing = f"Llamada preseleccionada entrante. Tema: {topic_label}. Nombre: {name}. Número de contacto: {phone}."
+            if notes:
+                briefing += f" Notas de preselección: {notes}."
+            briefing += " Conectando ahora."
+
+        # Guardar briefing para el reporte final
+        if caller_sid:
+            info["operator_briefing"] = briefing
+            session_store.set_collected_info(caller_sid, info)
+
         resp = VoiceResponse()
+        resp.say(briefing, voice=voice)
+
+        dial = Dial()
+        dial.conference(
+            room,
+            start_conference_on_enter=True,
+            end_conference_on_exit=True,
+            beep=False,
+        )
+        resp.append(dial)
+        return str(resp)
+    except redis.RedisError:
+        resp = VoiceResponse()
+        resp.say("We are experiencing technical difficulties. Please try again later.", voice=voice)
         resp.hangup()
         return str(resp)
-
-    # El operador contestó → marcar room para que operator-status no lo trate como no-answer
-    if room:
-        briefed_rooms.add(room)
-        machine_rooms.pop(room, None)
-
-    info   = collected_info.get(caller_sid, {})
-    name   = info.get("name") or "Unknown"
-    phone  = info.get("phone") or "Unknown"
-    notes  = info.get("notes") or ""
-    topic  = info.get("topic", "")
-    topic_label = get_topics().get(topic, {}).get(lang, {}).get("label", topic)
-
-    if lang == "en":
-        briefing = f"Incoming pre-screened call. Topic: {topic_label}. Caller name: {name}. Callback number: {phone}."
-        if notes:
-            briefing += f" Pre-screening notes: {notes}."
-        briefing += " Connecting now."
-    else:
-        briefing = f"Llamada preseleccionada entrante. Tema: {topic_label}. Nombre: {name}. Número de contacto: {phone}."
-        if notes:
-            briefing += f" Notas de preselección: {notes}."
-        briefing += " Conectando ahora."
-
-    # Guardar briefing para el reporte final
-    if caller_sid and caller_sid in collected_info:
-        collected_info[caller_sid]["operator_briefing"] = briefing
-
-    resp = VoiceResponse()
-    resp.say(briefing, voice=voice)
-
-    dial = Dial()
-    dial.conference(
-        room,
-        start_conference_on_enter=True,
-        end_conference_on_exit=True,
-        beep=False,
-    )
-    resp.append(dial)
-    return str(resp)
 
 
 @operator_bp.route("/operator-status", methods=['GET', 'POST'])
@@ -233,64 +252,67 @@ def operator_status():
 
     print(f"[OPERATOR-STATUS] CallStatus={call_status!r} room={room!r} attempt={attempt}")
 
-    outbound_calls.pop(room, None)
+    try:
+        session_store.remove_outbound_call(room)
 
-    # "completed" = operador rechazó/canceló antes de unirse a la conferencia
-    # Si briefed_rooms contiene el room, el operador SÍ contestó → no redirigir
-    operator_answered = room in briefed_rooms
-    briefed_rooms.discard(room)
+        # "completed" = operador rechazó/canceló antes de unirse a la conferencia
+        # Si briefed_rooms contiene el room, el operador SÍ contestó → no redirigir
+        operator_answered = session_store.is_briefed_room(room)
+        session_store.clear_briefed_room(room)
 
-    no_answer_statuses = {"no-answer", "busy", "failed", "canceled"}
-    is_no_answer = call_status in no_answer_statuses or (call_status == "completed" and not operator_answered)
+        no_answer_statuses = {"no-answer", "busy", "failed", "canceled"}
+        is_no_answer = call_status in no_answer_statuses or (call_status == "completed" and not operator_answered)
 
-    print(f"[OPERATOR-STATUS] CallStatus={call_status!r} operator_answered={operator_answered} is_no_answer={is_no_answer}")
+        print(f"[OPERATOR-STATUS] CallStatus={call_status!r} operator_answered={operator_answered} is_no_answer={is_no_answer}")
 
-    if is_no_answer:
-        if attempt < 3:
-            # Reintentar: el caller sigue esperando en la conferencia
-            new_attempt = attempt + 1
-            if attempt == 2 and caller_sid:
+        if is_no_answer:
+            if attempt < 3:
+                # Reintentar: el caller sigue esperando en la conferencia
+                new_attempt = attempt + 1
+                if attempt == 2 and caller_sid:
+                    try:
+                        twilio_client().calls(caller_sid).update(
+                            url=f"{base_url}/operator-busy-retry?room={room}&lang={lang}",
+                            method="POST",
+                        )
+                        print(f"[OPERATOR-STATUS] Busy retry redirect sent to caller {caller_sid}")
+                    except Exception as e:
+                        print(f"[OPERATOR-STATUS] Busy retry redirect failed: {e}")
+                FORWARD_TO  = runtime_config.get("forward_to")  or ""
+                TWILIO_FROM = runtime_config.get("twilio_from") or ""
+                print(f"[OPERATOR-STATUS] Retrying attempt {new_attempt}/3 to {FORWARD_TO!r}")
                 try:
-                    twilio_client().calls(caller_sid).update(
-                        url=f"{base_url}/operator-busy-retry?room={room}&lang={lang}",
-                        method="POST",
+                    outbound = twilio_client().calls.create(
+                        to=FORWARD_TO,
+                        from_=TWILIO_FROM,
+                        url=f"{base_url}/operator-briefing?caller_sid={caller_sid}&room={room}&lang={lang}",
+                        timeout=25,
+                        machine_detection="Enable",
+                        status_callback=f"{base_url}/operator-status?room={room}&caller_sid={caller_sid}&lang={lang}&attempt={new_attempt}",
+                        status_callback_method="POST",
+                        status_callback_event=["completed"],
                     )
-                    print(f"[OPERATOR-STATUS] Busy retry redirect sent to caller {caller_sid}")
+                    session_store.add_outbound_call(room, outbound.sid)
+                    print(f"[OPERATOR-STATUS] Retry call created: {outbound.sid}")
                 except Exception as e:
-                    print(f"[OPERATOR-STATUS] Busy retry redirect failed: {e}")
-            FORWARD_TO  = runtime_config.get("forward_to")  or ""
-            TWILIO_FROM = runtime_config.get("twilio_from") or ""
-            print(f"[OPERATOR-STATUS] Retrying attempt {new_attempt}/3 to {FORWARD_TO!r}")
-            try:
-                outbound = twilio_client().calls.create(
-                    to=FORWARD_TO,
-                    from_=TWILIO_FROM,
-                    url=f"{base_url}/operator-briefing?caller_sid={caller_sid}&room={room}&lang={lang}",
-                    timeout=25,
-                    machine_detection="Enable",
-                    status_callback=f"{base_url}/operator-status?room={room}&caller_sid={caller_sid}&lang={lang}&attempt={new_attempt}",
-                    status_callback_method="POST",
-                    status_callback_event=["completed"],
-                )
-                outbound_calls[room] = outbound.sid
-                print(f"[OPERATOR-STATUS] Retry call created: {outbound.sid}")
-            except Exception as e:
-                print(f"[OPERATOR-STATUS] Retry call failed: {e}")
-                failed_rooms.add(room)
-        else:
-            # 5 intentos agotados → redirigir al caller a no-availability
-            print(f"[OPERATOR-STATUS] Max retries reached, redirecting caller to no-availability")
-            if room:
-                failed_rooms.add(room)
-            if caller_sid:
-                try:
-                    twilio_client().calls(caller_sid).update(
-                        url=f"{base_url}/no-availability?lang={lang}",
-                        method="POST",
-                    )
-                    print(f"[OPERATOR-STATUS] Redirected caller to no-availability")
-                except Exception as e:
-                    print(f"[OPERATOR-STATUS] REST redirect failed: {e}")
+                    print(f"[OPERATOR-STATUS] Retry call failed: {e}")
+                    session_store.mark_failed_room(room)
+            else:
+                # 5 intentos agotados → redirigir al caller a no-availability
+                print(f"[OPERATOR-STATUS] Max retries reached, redirecting caller to no-availability")
+                if room:
+                    session_store.mark_failed_room(room)
+                if caller_sid:
+                    try:
+                        twilio_client().calls(caller_sid).update(
+                            url=f"{base_url}/no-availability?lang={lang}",
+                            method="POST",
+                        )
+                        print(f"[OPERATOR-STATUS] Redirected caller to no-availability")
+                    except Exception as e:
+                        print(f"[OPERATOR-STATUS] REST redirect failed: {e}")
+    except redis.RedisError as exc:
+        print(f"[OPERATOR-STATUS] Redis error: {exc}")
 
     return ("", 204)
 
@@ -374,7 +396,10 @@ def recording_ready():
             text = result.text
 
         # Resumir con GPT
-        info    = collected_info.get(caller_sid, {})
+        try:
+            info = session_store.get_collected_info(caller_sid)
+        except redis.RedisError:
+            info = {}
         company = get_company_name()
         summary_prompt = (
             f"The following is a transcript of a business call between a customer and an operator at {company}.\n"
@@ -461,9 +486,7 @@ def recording_ready():
         print(f"[REPORT] Saved: {report_url}")
 
         # Save recording MP3 for public access
-        rec_path = reports.recording_path(report_id)
-        rec_path.parent.mkdir(parents=True, exist_ok=True)
-        rec_path.write_bytes(audio_bytes)
+        reports.save_audio(report_id, audio_bytes, suffix=".recording.mp3")
         recording_public_url = f"{base_url}/report/{report_id}/recording"
 
         # ── Email — metadata + link ────────────────────────────

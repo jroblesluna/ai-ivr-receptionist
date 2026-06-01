@@ -71,7 +71,22 @@ def setup():
                     "password_hash": generate_password_hash(password),
                     "token":         token,
                 })
-                db.config_set_secure("resend_api_key", resend_api_key)
+                # Save Resend API key to Secrets Manager
+                import json as _json
+                aws_region = os.environ.get("AWS_REGION", "")
+                aws_secret_name = os.environ.get("AWS_SECRET_NAME", "")
+                if aws_region and aws_secret_name:
+                    try:
+                        import boto3
+                        client = boto3.client("secretsmanager", region_name=aws_region)
+                        response = client.get_secret_value(SecretId=aws_secret_name)
+                        current = _json.loads(response["SecretString"])
+                        current["RESEND_API_KEY"] = resend_api_key
+                        client.put_secret_value(SecretId=aws_secret_name, SecretString=_json.dumps(current))
+                        from config import SecretsConfig
+                        SecretsConfig._cache["RESEND_API_KEY"] = resend_api_key
+                    except Exception as e:
+                        print(f"[SETUP] Failed to save Resend key to SM: {e}")
                 return render_template("setup_pending.html", email=email)
 
     return render_template("setup.html", error=error)
@@ -90,7 +105,7 @@ def admin():
     base_url = request.url_root.rstrip("/")
     current_use_case = runtime_config.get("use_case_id")
     if not current_use_case or current_use_case not in use_cases:
-        current_use_case = next(iter(use_cases), None)
+        current_use_case = next(iter(use_cases), "")
         if current_use_case:
             runtime_config.set("use_case_id", current_use_case)
     # For non-admins, fetch the user's assigned use cases (None = all access)
@@ -176,24 +191,84 @@ def api_config():
 @admin_bp.route("/admin/api/credentials", methods=["GET"])
 @require_role("admin")
 def api_credentials_get():
-    """Return actual decrypted credential values (admin only)."""
+    """Return credential values from AWS Secrets Manager (admin only)."""
+    from config import SecretsConfig
+    # Map internal key names to Secrets Manager key names
+    key_map = {
+        "twilio_account_sid": "TWILIO_ACCOUNT_SID",
+        "twilio_auth_token": "TWILIO_AUTH_TOKEN",
+        "twilio_api_key_sid": "TWILIO_API_KEY_SID",
+        "twilio_api_key_secret": "TWILIO_API_KEY_SECRET",
+        "twilio_twiml_app_sid": "TWILIO_TWIML_APP_SID",
+        "twilio_verify_sid": "TWILIO_VERIFY_SID",
+        "openai_api_key": "OPENAI_API_KEY",
+        "resend_api_key": "RESEND_API_KEY",
+        "resend_from": "RESEND_FROM",
+        "elevenlabs_api_key": "ELEVENLABS_API_KEY",
+        "google_tts_api_key": "GOOGLE_TTS_API_KEY",
+    }
     result = {}
     for key in _CREDENTIAL_KEYS:
-        result[key] = db.config_get_secure(key) or ""
+        sm_key = key_map.get(key, key.upper())
+        result[key] = SecretsConfig.get(sm_key, "")
     return jsonify(result)
 
 
 @admin_bp.route("/admin/api/credentials", methods=["POST"])
 @require_role("admin")
 def api_credentials_set():
-    """Save credentials encrypted in DB. Only non-empty values are updated."""
+    """Save credentials to AWS Secrets Manager. Only non-empty values are updated."""
+    from config import SecretsConfig
+    import json as _json
+
+    key_map = {
+        "twilio_account_sid": "TWILIO_ACCOUNT_SID",
+        "twilio_auth_token": "TWILIO_AUTH_TOKEN",
+        "twilio_api_key_sid": "TWILIO_API_KEY_SID",
+        "twilio_api_key_secret": "TWILIO_API_KEY_SECRET",
+        "twilio_twiml_app_sid": "TWILIO_TWIML_APP_SID",
+        "twilio_verify_sid": "TWILIO_VERIFY_SID",
+        "openai_api_key": "OPENAI_API_KEY",
+        "resend_api_key": "RESEND_API_KEY",
+        "resend_from": "RESEND_FROM",
+        "elevenlabs_api_key": "ELEVENLABS_API_KEY",
+        "google_tts_api_key": "GOOGLE_TTS_API_KEY",
+    }
+
     data = request.json or {}
     saved = []
+    updates = {}
+
     for key in _CREDENTIAL_KEYS:
         val = data.get(key, "").strip()
         if val:
-            db.config_set_secure(key, val)
+            sm_key = key_map.get(key, key.upper())
+            updates[sm_key] = val
             saved.append(key)
+
+    if updates:
+        # Update Secrets Manager
+        import os
+        aws_region = os.environ.get("AWS_REGION", "")
+        aws_secret_name = os.environ.get("AWS_SECRET_NAME", "")
+        if aws_region and aws_secret_name:
+            try:
+                import boto3
+                client = boto3.client("secretsmanager", region_name=aws_region)
+                # Get current secret, merge updates
+                response = client.get_secret_value(SecretId=aws_secret_name)
+                current = _json.loads(response["SecretString"])
+                current.update(updates)
+                client.put_secret_value(SecretId=aws_secret_name, SecretString=_json.dumps(current))
+                # Refresh in-memory cache
+                SecretsConfig._cache = current
+            except Exception as e:
+                return jsonify({"ok": False, "error": str(e)}), 500
+        else:
+            # Local dev fallback — just update the in-memory cache
+            for k, v in updates.items():
+                SecretsConfig._cache[k] = v
+
     return jsonify({"ok": True, "saved": saved})
 
 
@@ -652,23 +727,32 @@ def api_test_call_token():
 @admin_bp.route("/admin/api/reset", methods=["POST"])
 @require_role("admin")
 def api_reset():
-    import shutil
-    from pathlib import Path
+    """Reset all data — works with both SQLite and PostgreSQL."""
+    from flask import session as flask_session
 
-    data_dir = Path(__file__).parent.parent.parent / "data"
+    # Clear all tables in PostgreSQL (or SQLite)
+    try:
+        with db.Session() as sess:
+            # Delete in dependency order
+            sess.execute(__import__("sqlalchemy").text("DELETE FROM user_use_cases"))
+            sess.execute(__import__("sqlalchemy").text("DELETE FROM caller_profiles"))
+            sess.execute(__import__("sqlalchemy").text("DELETE FROM topics"))
+            sess.execute(__import__("sqlalchemy").text("DELETE FROM reports"))
+            sess.execute(__import__("sqlalchemy").text("DELETE FROM users"))
+            sess.execute(__import__("sqlalchemy").text("DELETE FROM roles"))
+            sess.execute(__import__("sqlalchemy").text("DELETE FROM use_cases"))
+            sess.execute(__import__("sqlalchemy").text("DELETE FROM config"))
+            sess.commit()
+    except Exception as e:
+        print(f"[RESET] Error clearing tables: {e}")
 
-    db_path = data_dir / "app.db"
-    if db_path.exists():
-        db_path.unlink()
-
-    reports_dir = data_dir / "reports"
-    if reports_dir.exists():
-        shutil.rmtree(reports_dir)
-
-    db.init()
-    db.migrate_config_from_json()
-    db.migrate_use_cases_from_json()
+    # Re-seed defaults
     db.seed_roles_and_admin()
+    db.migrate_use_cases_from_json()
+    db.migrate_config_from_json()
+
+    # Clear session so user gets redirected to setup
+    flask_session.clear()
 
     return jsonify({"ok": True})
 

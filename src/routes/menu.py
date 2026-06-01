@@ -1,8 +1,9 @@
 from flask import Blueprint, request
 from twilio.twiml.voice_response import VoiceResponse, Gather
 
+import redis
 import db
-from state import collected_info, intro_played
+from session_store import session_store
 from helpers import get_voice, format_phone_spoken
 from whitelist import is_whitelisted
 from use_case_loader import get_active_use_case, get_digit_to_topic, get_company_name
@@ -28,42 +29,48 @@ def main_menu():
     call_sid    = request.values.get("CallSid", "")
     base_url    = request.url_root.rstrip("/")
 
-    if caller_from and is_whitelisted(caller_from):
-        print(f"[WHITELIST] Direct transfer for {caller_from}")
-        collected_info[call_sid] = {
-            "name": format_phone_spoken(caller_from),
-            "phone": caller_from,
-            "notes": "Direct transfer — whitelisted number",
-            "topic": "direct",
-            "lang": "en",
-            "caller_from": caller_from,
-        }
+    try:
+        if caller_from and is_whitelisted(caller_from):
+            print(f"[WHITELIST] Direct transfer for {caller_from}")
+            session_store.set_collected_info(call_sid, {
+                "name": format_phone_spoken(caller_from),
+                "phone": caller_from,
+                "notes": "Direct transfer — whitelisted number",
+                "topic": "direct",
+                "lang": "en",
+                "caller_from": caller_from,
+            })
+            resp = VoiceResponse()
+            resp.redirect(f"{base_url}/connect-operator?lang=en&caller_sid={call_sid}")
+            return str(resp)
+
+        uc      = get_active_use_case()
+        options = _sorted_options(uc, "en")
+        company = get_company_name()
+        slogan  = uc.get("slogan", {}).get("en", "")
+
         resp = VoiceResponse()
-        resp.redirect(f"{base_url}/connect-operator?lang=en&caller_sid={call_sid}")
+        if not session_store.has_intro_played(call_sid):
+            session_store.mark_intro_played(call_sid)
+            resp.play(request.url_root + "intro.wav")
+
+        gather = Gather(num_digits=1, action="/handle-en", method="POST")
+        greeting = f"Thank you for calling {company}. {slogan} Please listen to the following options." if slogan else f"Thank you for calling {company}. Please listen to the following options."
+        gather.say(greeting, voice=get_voice("en"))
+        for opt in options:
+            if opt["digit"] == "1":
+                gather.say(opt["menu_text"], voice=get_voice("en"))
+                gather.say("Para Español, presione 2.", voice=get_voice("es"))
+            else:
+                gather.say(opt["menu_text"], voice=get_voice("en"))
+        resp.append(gather)
+        resp.redirect("/menu")
         return str(resp)
-
-    uc      = get_active_use_case()
-    options = _sorted_options(uc, "en")
-    company = get_company_name()
-    slogan  = uc.get("slogan", {}).get("en", "")
-
-    resp = VoiceResponse()
-    if call_sid not in intro_played:
-        intro_played.add(call_sid)
-        resp.play(request.url_root + "intro.wav")
-
-    gather = Gather(num_digits=1, action="/handle-en", method="POST")
-    greeting = f"Thank you for calling {company}. {slogan} Please listen to the following options." if slogan else f"Thank you for calling {company}. Please listen to the following options."
-    gather.say(greeting, voice=get_voice("en"))
-    for opt in options:
-        if opt["digit"] == "1":
-            gather.say(opt["menu_text"], voice=get_voice("en"))
-            gather.say("Para Español, presione 2.", voice=get_voice("es"))
-        else:
-            gather.say(opt["menu_text"], voice=get_voice("en"))
-    resp.append(gather)
-    resp.redirect("/menu")
-    return str(resp)
+    except redis.RedisError:
+        resp = VoiceResponse()
+        resp.say("We are experiencing technical difficulties. Please try again later.", voice=get_voice("en"))
+        resp.hangup()
+        return str(resp)
 
 
 @menu_bp.route("/handle-en", methods=['GET', 'POST'])
@@ -94,9 +101,15 @@ def menu_es():
     slogan  = uc.get("slogan", {}).get("es", "")
 
     resp = VoiceResponse()
-    if call_sid not in intro_played:
-        intro_played.add(call_sid)
-        resp.play(request.url_root + "intro.wav")
+    try:
+        if not session_store.has_intro_played(call_sid):
+            session_store.mark_intro_played(call_sid)
+            resp.play(request.url_root + "intro.wav")
+    except redis.RedisError:
+        resp = VoiceResponse()
+        resp.say("Estamos experimentando dificultades técnicas. Por favor intente más tarde.", voice=get_voice("es"))
+        resp.hangup()
+        return str(resp)
 
     gather = Gather(num_digits=1, action="/handle-es", method="POST")
     greeting = f"Gracias por llamar a {company}. {slogan} Por favor escuche las siguientes opciones." if slogan else f"Gracias por llamar a {company}. Por favor escuche las siguientes opciones."

@@ -460,7 +460,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
   <div class="nav-right">
     <span class="active-pill">
       <span class="active-dot"></span>
-      <span id="nav-active-name">{{ use_cases[current_use_case]['name'] }}</span>
+      <span id="nav-active-name">{{ use_cases[current_use_case]['name'] if current_use_case and current_use_case in use_cases else 'No Use Case' }}</span>
     </span>
     <button class="btn-logout" onclick="window.open('/admin/test-call','test_call','width=340,height=640,resizable=no,scrollbars=no')">📞 Test Call</button>
     <span class="btn-logout" style="cursor:default;opacity:.75;">{{ user_name }}</span>
@@ -547,11 +547,11 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
     <div class="status-grid">
       <div class="stat-item">
         <div class="stat-label">Use Case</div>
-        <div class="stat-value" id="stat-uc">{{ use_cases[current_use_case]['name'] }}</div>
+        <div class="stat-value" id="stat-uc">{{ use_cases[current_use_case]['name'] if current_use_case and current_use_case in use_cases else '-' }}</div>
       </div>
       <div class="stat-item">
         <div class="stat-label">Industry</div>
-        <div class="stat-value" id="stat-industry">{{ use_cases[current_use_case]['industry'] }}</div>
+        <div class="stat-value" id="stat-industry">{{ use_cases[current_use_case]['industry'] if current_use_case and current_use_case in use_cases else '-' }}</div>
       </div>
       <div class="stat-item">
         <div class="stat-label">Operator Number</div>
@@ -563,7 +563,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
       </div>
       <div class="stat-item">
         <div class="stat-label">Menu Topics</div>
-        <div class="stat-value">{{ use_cases[current_use_case]['topics']|length }}</div>
+        <div class="stat-value">{{ use_cases[current_use_case]['topics']|length if current_use_case and current_use_case in use_cases else 0 }}</div>
       </div>
       <div class="stat-item">
         <div class="stat-label">Languages</div>

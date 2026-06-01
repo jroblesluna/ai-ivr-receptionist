@@ -24,6 +24,11 @@ data/*
 !data/reports/
 data/reports/*
 
+# Terraform
+Cloud/terraform/.terraform/
+Cloud/terraform/*.tfstate
+Cloud/terraform/*.tfstate.backup
+
 # macOS
 .DS_Store
 .claude/

@@ -1,36 +1,32 @@
 """
 Persistent call report storage.
-Reports are saved as JSON files under data/reports/ and served via /report/<id>.
+Reports are uploaded to S3 (or local filesystem when AWS_REGION is not set).
+Served via /report/<id>.
 """
-import json
 import uuid
-from pathlib import Path
 import db
-
-_DIR = Path(__file__).parent.parent / "data" / "reports"
+from storage import storage
 
 
 def save(data: dict) -> str:
-    _DIR.mkdir(parents=True, exist_ok=True)
+    """Save report JSON to S3 and insert into database."""
     report_id = uuid.uuid4().hex[:16]
     data["id"] = report_id
-    (_DIR / f"{report_id}.json").write_text(
-        json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
+    storage.upload_report(report_id, data)
     db.report_insert(report_id, data)
     return report_id
 
 
 def load(report_id: str) -> dict | None:
-    path = _DIR / f"{report_id}.json"
-    if not path.exists():
-        return None
-    return json.loads(path.read_text(encoding="utf-8"))
+    """Load report JSON from S3."""
+    return storage.get_report(report_id)
 
 
-def audio_path(report_id: str) -> Path:
-    return _DIR / f"{report_id}.mp3"
+def save_audio(report_id: str, audio_bytes: bytes, suffix: str = ".mp3") -> None:
+    """Upload audio bytes to S3."""
+    storage.upload_audio(report_id, audio_bytes, suffix=suffix)
 
 
-def recording_path(report_id: str) -> Path:
-    return _DIR / f"{report_id}.recording.mp3"
+def get_audio_url(report_id: str, suffix: str = ".mp3") -> str:
+    """Get a pre-signed URL for report audio."""
+    return storage.get_audio_url(f"reports/{report_id}{suffix}")

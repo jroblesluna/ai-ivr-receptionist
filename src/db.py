@@ -1,120 +1,198 @@
 """
-SQLite storage for call reports index and runtime configuration.
-DB file: data/app.db (persisted via Railway Volume at /app/data)
+Database access layer — delegates to SQLAlchemy models.
+
+Maintains the same public function API so existing route code continues to work.
+Schema creation is handled by create_all; connection pooling by SQLAlchemy engine.
 """
-import base64
-import hashlib
 import json
+import logging
 import os
 import secrets
-import sqlite3
-import threading
+import time
+from datetime import datetime as _dt
+from functools import wraps
 from pathlib import Path
 
+from sqlalchemy import create_engine, func as sa_func, text
+from sqlalchemy.exc import IntegrityError, OperationalError
+from sqlalchemy.orm import sessionmaker
 from werkzeug.security import generate_password_hash, check_password_hash
 
+try:
+    from src.models import Base
+    from src.models.caller_profile import CallerProfile
+    from src.models.config import Config
+    from src.models.report import Report
+    from src.models.use_case import Topic, UseCase
+    from src.models.user import Role, User, UserUseCase
+except ImportError:
+    from models import Base
+    from models.caller_profile import CallerProfile
+    from models.config import Config
+    from models.report import Report
+    from models.use_case import Topic, UseCase
+    from models.user import Role, User, UserUseCase
 
-# ── Fernet encryption (used for sensitive config values) ──────────────────────
+logger = logging.getLogger(__name__)
 
-def _fernet():
-    from cryptography.fernet import Fernet
-    secret = os.environ.get("SECRET_KEY", "")
-    if not secret:
-        raise RuntimeError("SECRET_KEY env var not set — cannot encrypt/decrypt credentials")
-    key = base64.urlsafe_b64encode(hashlib.sha256(secret.encode()).digest())
-    return Fernet(key)
+# ── Lazy Session factory ──────────────────────────────────────────────────────
 
-
-def config_set_secure(key: str, value: str):
-    """Store a config value encrypted with SECRET_KEY."""
-    encrypted = _fernet().encrypt(value.encode()).decode()
-    config_set(f"_sec_{key}", encrypted)
-
-
-def config_get_secure(key: str, default: str = "") -> str:
-    """Read and decrypt a secure config value. Returns default if not set or on error."""
-    raw = config_get(f"_sec_{key}")
-    if not raw:
-        return default
-    try:
-        return _fernet().decrypt(raw.encode()).decode()
-    except Exception:
-        return default
-
-_DB_PATH = Path(__file__).parent.parent / "data" / "app.db"
-_lock = threading.Lock()
+_SessionFactory = None
 
 
-def _conn():
-    _DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    con = sqlite3.connect(str(_DB_PATH))
-    con.row_factory = sqlite3.Row
-    return con
+def _get_session_factory():
+    """Get or create the SQLAlchemy session factory."""
+    global _SessionFactory
+    if _SessionFactory is not None:
+        return _SessionFactory
+
+    # Try env var first, then SecretsConfig
+    db_url = os.environ.get("DATABASE_URL", "")
+    if not db_url:
+        try:
+            from config import SecretsConfig
+            db_url = SecretsConfig.get("DATABASE_URL", "")
+        except Exception:
+            pass
+    if not db_url:
+        raise RuntimeError("DATABASE_URL not set")
+
+    engine = create_engine(
+        db_url,
+        pool_size=2,
+        max_overflow=8,
+        pool_pre_ping=True,
+        pool_recycle=3600,
+    )
+    _SessionFactory = sessionmaker(bind=engine)
+
+    # Ensure tables exist on first connection
+    Base.metadata.create_all(engine)
+
+    return _SessionFactory
+
+
+def Session():
+    """Create a new database session (lazy initialization)."""
+    return _get_session_factory()()
+logger = logging.getLogger(__name__)
+
+# ── Connection retry decorator ────────────────────────────────────────────────
+
+MAX_RETRIES = 3
+INITIAL_BACKOFF = 1  # seconds
+
+
+def _with_retry(func):
+    """Wrap a database function with exponential backoff retry on OperationalError."""
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        backoff = INITIAL_BACKOFF
+        for attempt in range(1, MAX_RETRIES + 1):
+            try:
+                return func(*args, **kwargs)
+            except OperationalError as e:
+                if attempt < MAX_RETRIES:
+                    logger.warning(
+                        "DB operation %s attempt %d/%d failed: %s. Retrying in %ds...",
+                        func.__name__, attempt, MAX_RETRIES, e, backoff,
+                    )
+                    time.sleep(backoff)
+                    backoff *= 2
+                else:
+                    logger.error(
+                        "DB operation %s failed after %d attempts: %s",
+                        func.__name__, MAX_RETRIES, e,
+                    )
+                    raise
+    return wrapper
 
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
+@_with_retry
 def config_get(key: str, default=None):
-    with _conn() as con:
-        row = con.execute("SELECT value FROM config WHERE key = ?", (key,)).fetchone()
-    return row["value"] if row else default
+    with Session() as session:
+        row = session.query(Config).filter(Config.key == key).first()
+    return row.value if row else default
 
 
+@_with_retry
 def config_set(key: str, value: str):
-    with _lock, _conn() as con:
-        con.execute("INSERT OR REPLACE INTO config (key, value) VALUES (?, ?)", (key, value))
-        con.commit()
+    with Session() as session:
+        existing = session.query(Config).filter(Config.key == key).first()
+        if existing:
+            existing.value = value
+        else:
+            session.add(Config(key=key, value=value))
+        session.commit()
 
 
+@_with_retry
 def config_all() -> dict:
-    with _conn() as con:
-        rows = con.execute("SELECT key, value FROM config").fetchall()
-    return {r["key"]: r["value"] for r in rows}
+    with Session() as session:
+        rows = session.query(Config).all()
+    return {r.key: r.value for r in rows}
 
 
+@_with_retry
 def config_seed(defaults: dict):
     """Insert keys that don't exist yet (used on first boot)."""
-    with _lock, _conn() as con:
+    with Session() as session:
         for key, value in defaults.items():
-            con.execute(
-                "INSERT OR IGNORE INTO config (key, value) VALUES (?, ?)",
-                (key, value if value is not None else "")
-            )
-        con.commit()
+            exists = session.query(Config).filter(Config.key == key).first()
+            if not exists:
+                session.add(Config(key=key, value=value if value is not None else ""))
+        session.commit()
 
 
 # ── Reports ───────────────────────────────────────────────────────────────────
 
+@_with_retry
 def report_insert(report_id: str, data: dict):
-    with _lock, _conn() as con:
-        con.execute(
-            "INSERT OR IGNORE INTO reports "
-            "(id, datetime, caller_number, caller_name, topic, language) "
-            "VALUES (?, ?, ?, ?, ?, ?)",
-            (
-                report_id,
-                data.get("timestamp", ""),
-                data.get("caller_phone", ""),
-                data.get("caller_name", ""),
-                data.get("topic", ""),
-                data.get("language", ""),
-            ),
+    with Session() as session:
+        exists = session.query(Report).filter(Report.id == report_id).first()
+        if exists:
+            return
+        report = Report(
+            id=report_id,
+            datetime=data.get("timestamp", ""),
+            caller_number=data.get("caller_phone", ""),
+            caller_name=data.get("caller_name", ""),
+            topic=data.get("topic", ""),
+            language=data.get("language", ""),
         )
-        con.commit()
+        session.add(report)
+        session.commit()
 
 
+@_with_retry
 def report_list(limit: int = 50, offset: int = 0) -> list[dict]:
-    with _conn() as con:
-        rows = con.execute(
-            "SELECT * FROM reports ORDER BY datetime DESC LIMIT ? OFFSET ?",
-            (limit, offset),
-        ).fetchall()
-    return [dict(r) for r in rows]
+    with Session() as session:
+        rows = (
+            session.query(Report)
+            .order_by(Report.datetime.desc())
+            .limit(limit)
+            .offset(offset)
+            .all()
+        )
+    return [
+        {
+            "id": r.id,
+            "datetime": r.datetime,
+            "caller_number": r.caller_number,
+            "caller_name": r.caller_name,
+            "topic": r.topic,
+            "language": r.language,
+        }
+        for r in rows
+    ]
 
 
+@_with_retry
 def report_count() -> int:
-    with _conn() as con:
-        return con.execute("SELECT COUNT(*) FROM reports").fetchone()[0]
+    with Session() as session:
+        return session.query(sa_func.count(Report.id)).scalar()
 
 
 def migrate_reports_from_json():
@@ -122,8 +200,8 @@ def migrate_reports_from_json():
     reports_dir = Path(__file__).parent.parent / "data" / "reports"
     if not reports_dir.exists():
         return
-    with _conn() as con:
-        existing = {r[0] for r in con.execute("SELECT id FROM reports").fetchall()}
+    with Session() as session:
+        existing = {r.id for r in session.query(Report.id).all()}
     for path in reports_dir.glob("*.json"):
         report_id = path.stem
         if report_id not in existing:
@@ -152,229 +230,288 @@ def migrate_config_from_json():
 
 # ── Use Cases ─────────────────────────────────────────────────────────────────
 
-def _row_to_uc(row) -> dict:
-    keys = row.keys() if hasattr(row, "keys") else []
+def _uc_to_dict(uc: UseCase) -> dict:
     return {
-        "id":            row["id"],
-        "name":          row["name"],
-        "industry":      row["industry"] or "",
-        "url":           row["url"] or "",
-        "forward_to":    row["forward_to"] or "",
-        "voice":         {"en": row["voice_en"] or "", "es": row["voice_es"] or ""},
-        "slogan":        {"en": row["slogan_en"] or "", "es": row["slogan_es"] or ""},
-        "topics":        {},
-        "is_demo":        bool(row["is_demo"]) if "is_demo" in keys else False,
-        "demo_code":      row["demo_code"] if "demo_code" in keys else None,
-        "ivr_type":       (row["ivr_type"] if "ivr_type" in keys else None) or "topics",
-        "system_prompt":    row["system_prompt"]    if "system_prompt"    in keys else None,
-        "system_prompt_es": row["system_prompt_es"] if "system_prompt_es" in keys else None,
-        "knowledge_base":   row["knowledge_base"]   if "knowledge_base"   in keys else None,
+        "id":               uc.id,
+        "name":             uc.name,
+        "industry":         uc.industry or "",
+        "url":              uc.url or "",
+        "forward_to":       uc.forward_to or "",
+        "voice":            {"en": uc.voice_en or "", "es": uc.voice_es or ""},
+        "slogan":           {"en": uc.slogan_en or "", "es": uc.slogan_es or ""},
+        "topics":           {},
+        "is_demo":          bool(uc.is_demo),
+        "demo_code":        uc.demo_code,
+        "ivr_type":         uc.ivr_type or "topics",
+        "system_prompt":    uc.system_prompt,
+        "system_prompt_es": uc.system_prompt_es,
+        "knowledge_base":   uc.knowledge_base,
     }
 
 
-def _row_to_topic(row) -> dict:
+def _topic_to_dict(t: Topic) -> dict:
     return {
-        "digit":        row["digit"] or "",
-        "meeting_type": bool(row["meeting_type"]),
+        "digit":        t.digit or "",
+        "meeting_type": bool(t.meeting_type),
         "en": {
-            "label":        row["label_en"] or "",
-            "menu_text":    row["menu_text_en"] or "",
-            "greeting":     row["greeting_en"] or "",
-            "system_extra": row["system_extra_en"] or "",
-            "questions":    json.loads(row["questions_en"] or "[]"),
+            "label":        t.label_en or "",
+            "menu_text":    t.menu_text_en or "",
+            "greeting":     t.greeting_en or "",
+            "system_extra": t.system_extra_en or "",
+            "questions":    json.loads(t.questions_en or "[]"),
         },
         "es": {
-            "label":        row["label_es"] or "",
-            "menu_text":    row["menu_text_es"] or "",
-            "greeting":     row["greeting_es"] or "",
-            "system_extra": row["system_extra_es"] or "",
-            "questions":    json.loads(row["questions_es"] or "[]"),
+            "label":        t.label_es or "",
+            "menu_text":    t.menu_text_es or "",
+            "greeting":     t.greeting_es or "",
+            "system_extra": t.system_extra_es or "",
+            "questions":    json.loads(t.questions_es or "[]"),
         },
     }
 
 
+@_with_retry
 def uc_list(exclude_demos: bool = False) -> dict:
     """Return all use cases with their topics as {id: uc_dict}."""
-    where = "WHERE (is_demo = 0 OR is_demo IS NULL)" if exclude_demos else ""
-    with _conn() as con:
-        uc_rows = con.execute(f"SELECT * FROM use_cases {where} ORDER BY name").fetchall()
-        topic_rows = con.execute(
-            "SELECT * FROM topics ORDER BY use_case_id, digit"
-        ).fetchall()
+    with Session() as session:
+        query = session.query(UseCase)
+        if exclude_demos:
+            query = query.filter((UseCase.is_demo == 0) | (UseCase.is_demo.is_(None)))
+        uc_rows = query.order_by(UseCase.name).all()
+        # Eagerly load topics
+        topic_rows = session.query(Topic).order_by(Topic.use_case_id, Topic.digit).all()
+
     result = {}
-    for r in uc_rows:
-        uc = _row_to_uc(r)
-        result[uc["id"]] = uc
-    for r in topic_rows:
-        uc_id = r["use_case_id"]
-        if uc_id in result:
-            result[uc_id]["topics"][r["key"]] = _row_to_topic(r)
+    for uc in uc_rows:
+        d = _uc_to_dict(uc)
+        result[uc.id] = d
+    for t in topic_rows:
+        if t.use_case_id in result:
+            result[t.use_case_id]["topics"][t.key] = _topic_to_dict(t)
     return result
 
 
+@_with_retry
 def uc_get(uc_id: str) -> dict | None:
-    with _conn() as con:
-        row = con.execute("SELECT * FROM use_cases WHERE id = ?", (uc_id,)).fetchone()
-        if not row:
+    with Session() as session:
+        uc = session.query(UseCase).filter(UseCase.id == uc_id).first()
+        if not uc:
             return None
-        uc = _row_to_uc(row)
-        topic_rows = con.execute(
-            "SELECT * FROM topics WHERE use_case_id = ? ORDER BY digit",
-            (uc_id,)
-        ).fetchall()
-    for r in topic_rows:
-        uc["topics"][r["key"]] = _row_to_topic(r)
-    return uc
+        d = _uc_to_dict(uc)
+        topic_rows = (
+            session.query(Topic)
+            .filter(Topic.use_case_id == uc_id)
+            .order_by(Topic.digit)
+            .all()
+        )
+    for t in topic_rows:
+        d["topics"][t.key] = _topic_to_dict(t)
+    return d
 
 
+@_with_retry
 def uc_upsert(uc_id: str, data: dict):
     """Save/update a use case and all its topics atomically."""
-    v  = data.get("voice", {})
+    v = data.get("voice", {})
     sl = data.get("slogan", {})
-    with _lock, _conn() as con:
-        # Preserve existing demo meta if not explicitly provided
-        existing = con.execute(
-            "SELECT is_demo, demo_code, ivr_type, system_prompt, system_prompt_es, knowledge_base FROM use_cases WHERE id = ?",
-            (uc_id,)
-        ).fetchone()
-        is_demo           = int(data["is_demo"])           if "is_demo"           in data else (int(existing["is_demo"])           if existing else 0)
-        demo_code         = data["demo_code"]              if "demo_code"         in data else (existing["demo_code"]              if existing else None)
-        ivr_type          = data["ivr_type"]               if "ivr_type"          in data else (existing["ivr_type"]               if existing else "topics")
-        system_prompt     = data["system_prompt"]          if "system_prompt"     in data else (existing["system_prompt"]          if existing else None)
-        system_prompt_es  = data["system_prompt_es"]       if "system_prompt_es"  in data else (existing["system_prompt_es"]       if existing else None)
-        knowledge_base    = data["knowledge_base"]         if "knowledge_base"    in data else (existing["knowledge_base"]         if existing else None)
-        con.execute(
-            "INSERT OR REPLACE INTO use_cases "
-            "(id, name, industry, url, forward_to, voice_en, voice_es, slogan_en, slogan_es, "
-            "is_demo, demo_code, ivr_type, system_prompt, system_prompt_es, knowledge_base) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (uc_id, data.get("name", ""), data.get("industry", ""), data.get("url", ""),
-             data.get("forward_to", ""),
-             v.get("en", ""), v.get("es", ""), sl.get("en", ""), sl.get("es", ""),
-             is_demo, demo_code, ivr_type or "topics", system_prompt, system_prompt_es, knowledge_base),
-        )
+
+    with Session() as session:
+        existing = session.query(UseCase).filter(UseCase.id == uc_id).first()
+
+        is_demo = int(data["is_demo"]) if "is_demo" in data else (int(existing.is_demo) if existing and existing.is_demo else 0)
+        demo_code = data["demo_code"] if "demo_code" in data else (existing.demo_code if existing else None)
+        ivr_type = data["ivr_type"] if "ivr_type" in data else (existing.ivr_type if existing else "topics")
+        system_prompt = data["system_prompt"] if "system_prompt" in data else (existing.system_prompt if existing else None)
+        system_prompt_es = data["system_prompt_es"] if "system_prompt_es" in data else (existing.system_prompt_es if existing else None)
+        knowledge_base = data["knowledge_base"] if "knowledge_base" in data else (existing.knowledge_base if existing else None)
+
+        if existing:
+            existing.name = data.get("name", "")
+            existing.industry = data.get("industry", "")
+            existing.url = data.get("url", "")
+            existing.forward_to = data.get("forward_to", "")
+            existing.voice_en = v.get("en", "")
+            existing.voice_es = v.get("es", "")
+            existing.slogan_en = sl.get("en", "")
+            existing.slogan_es = sl.get("es", "")
+            existing.is_demo = is_demo
+            existing.demo_code = demo_code
+            existing.ivr_type = ivr_type or "topics"
+            existing.system_prompt = system_prompt
+            existing.system_prompt_es = system_prompt_es
+            existing.knowledge_base = knowledge_base
+        else:
+            uc = UseCase(
+                id=uc_id,
+                name=data.get("name", ""),
+                industry=data.get("industry", ""),
+                url=data.get("url", ""),
+                forward_to=data.get("forward_to", ""),
+                voice_en=v.get("en", ""),
+                voice_es=v.get("es", ""),
+                slogan_en=sl.get("en", ""),
+                slogan_es=sl.get("es", ""),
+                is_demo=is_demo,
+                demo_code=demo_code,
+                ivr_type=ivr_type or "topics",
+                system_prompt=system_prompt,
+                system_prompt_es=system_prompt_es,
+                knowledge_base=knowledge_base,
+            )
+            session.add(uc)
+
         # Replace all topics for this use case
-        con.execute("DELETE FROM topics WHERE use_case_id = ?", (uc_id,))
+        session.query(Topic).filter(Topic.use_case_id == uc_id).delete()
         for key, t in data.get("topics", {}).items():
             en = t.get("en", {})
             es = t.get("es", {})
-            con.execute(
-                "INSERT INTO topics (use_case_id, key, digit, meeting_type, "
-                "label_en, label_es, menu_text_en, menu_text_es, "
-                "greeting_en, greeting_es, system_extra_en, system_extra_es, "
-                "questions_en, questions_es) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                (
-                    uc_id, key, t.get("digit", ""), 1 if t.get("meeting_type") else 0,
-                    en.get("label", ""), es.get("label", ""),
-                    en.get("menu_text", ""), es.get("menu_text", ""),
-                    en.get("greeting", ""), es.get("greeting", ""),
-                    en.get("system_extra", ""), es.get("system_extra", ""),
-                    json.dumps(en.get("questions", []), ensure_ascii=False),
-                    json.dumps(es.get("questions", []), ensure_ascii=False),
-                ),
+            topic = Topic(
+                use_case_id=uc_id,
+                key=key,
+                digit=t.get("digit", ""),
+                meeting_type=1 if t.get("meeting_type") else 0,
+                label_en=en.get("label", ""),
+                label_es=es.get("label", ""),
+                menu_text_en=en.get("menu_text", ""),
+                menu_text_es=es.get("menu_text", ""),
+                greeting_en=en.get("greeting", ""),
+                greeting_es=es.get("greeting", ""),
+                system_extra_en=en.get("system_extra", ""),
+                system_extra_es=es.get("system_extra", ""),
+                questions_en=json.dumps(en.get("questions", []), ensure_ascii=False),
+                questions_es=json.dumps(es.get("questions", []), ensure_ascii=False),
             )
-        con.commit()
+            session.add(topic)
+        session.commit()
 
 
+@_with_retry
 def uc_delete(uc_id: str):
-    with _lock, _conn() as con:
-        con.execute("DELETE FROM topics WHERE use_case_id = ?", (uc_id,))
-        con.execute("DELETE FROM caller_profiles WHERE use_case_id = ?", (uc_id,))
-        con.execute("DELETE FROM use_cases WHERE id = ?", (uc_id,))
-        con.commit()
+    with Session() as session:
+        session.query(Topic).filter(Topic.use_case_id == uc_id).delete()
+        session.query(CallerProfile).filter(CallerProfile.use_case_id == uc_id).delete()
+        session.query(UseCase).filter(UseCase.id == uc_id).delete()
+        session.commit()
 
 
+@_with_retry
 def uc_get_by_demo_code(code: str) -> dict | None:
     """Look up a demo use case by its 6-digit activation code."""
-    with _conn() as con:
-        row = con.execute(
-            "SELECT * FROM use_cases WHERE demo_code = ? AND is_demo = 1", (code,)
-        ).fetchone()
-        if not row:
+    with Session() as session:
+        uc = (
+            session.query(UseCase)
+            .filter(UseCase.demo_code == code, UseCase.is_demo == 1)
+            .first()
+        )
+        if not uc:
             return None
-        uc = _row_to_uc(row)
-        topic_rows = con.execute(
-            "SELECT * FROM topics WHERE use_case_id = ? ORDER BY digit", (uc["id"],)
-        ).fetchall()
-    for r in topic_rows:
-        uc["topics"][r["key"]] = _row_to_topic(r)
-    return uc
+        d = _uc_to_dict(uc)
+        topic_rows = (
+            session.query(Topic)
+            .filter(Topic.use_case_id == uc.id)
+            .order_by(Topic.digit)
+            .all()
+        )
+    for t in topic_rows:
+        d["topics"][t.key] = _topic_to_dict(t)
+    return d
 
 
+@_with_retry
 def uc_list_demos() -> list[dict]:
     """Return all demo use cases with profile counts."""
-    with _conn() as con:
-        uc_rows = con.execute(
-            "SELECT uc.*, COUNT(cp.phone) AS profile_count "
-            "FROM use_cases uc LEFT JOIN caller_profiles cp ON cp.use_case_id = uc.id "
-            "WHERE uc.is_demo = 1 GROUP BY uc.id ORDER BY uc.name"
-        ).fetchall()
+    with Session() as session:
+        uc_rows = (
+            session.query(
+                UseCase,
+                sa_func.count(CallerProfile.phone).label("profile_count"),
+            )
+            .outerjoin(CallerProfile, CallerProfile.use_case_id == UseCase.id)
+            .filter(UseCase.is_demo == 1)
+            .group_by(UseCase.id)
+            .order_by(UseCase.name)
+            .all()
+        )
     result = []
-    for r in uc_rows:
-        d = _row_to_uc(r)
-        d["profile_count"] = r["profile_count"]
+    for uc, profile_count in uc_rows:
+        d = _uc_to_dict(uc)
+        d["profile_count"] = profile_count
         result.append(d)
     return result
 
 
 # ── Caller Profiles (demo memory) ─────────────────────────────────────────────
 
+@_with_retry
 def caller_profile_get(phone: str, use_case_id: str) -> dict:
-    with _conn() as con:
-        row = con.execute(
-            "SELECT profile_json FROM caller_profiles WHERE phone = ? AND use_case_id = ?",
-            (phone, use_case_id)
-        ).fetchone()
+    with Session() as session:
+        row = (
+            session.query(CallerProfile)
+            .filter(CallerProfile.phone == phone, CallerProfile.use_case_id == use_case_id)
+            .first()
+        )
     if not row:
         return {}
     try:
-        return json.loads(row["profile_json"] or "{}")
+        return json.loads(row.profile_json or "{}")
     except Exception:
         return {}
 
 
+@_with_retry
 def caller_profile_set(phone: str, use_case_id: str, data: dict, updated_at: str = None):
-    from datetime import datetime as _dt
     ts = updated_at or _dt.now().strftime("%Y-%m-%d %H:%M:%S")
-    with _lock, _conn() as con:
-        con.execute(
-            "INSERT OR REPLACE INTO caller_profiles (phone, use_case_id, profile_json, updated_at) "
-            "VALUES (?, ?, ?, ?)",
-            (phone, use_case_id, json.dumps(data, ensure_ascii=False), ts)
+    with Session() as session:
+        existing = (
+            session.query(CallerProfile)
+            .filter(CallerProfile.phone == phone, CallerProfile.use_case_id == use_case_id)
+            .first()
         )
-        con.commit()
+        if existing:
+            existing.profile_json = json.dumps(data, ensure_ascii=False)
+            existing.updated_at = ts
+        else:
+            session.add(CallerProfile(
+                phone=phone,
+                use_case_id=use_case_id,
+                profile_json=json.dumps(data, ensure_ascii=False),
+                updated_at=ts,
+            ))
+        session.commit()
 
 
+@_with_retry
 def caller_profile_list(use_case_id: str) -> list[dict]:
-    with _conn() as con:
-        rows = con.execute(
-            "SELECT phone, profile_json, updated_at FROM caller_profiles "
-            "WHERE use_case_id = ? ORDER BY updated_at DESC",
-            (use_case_id,)
-        ).fetchall()
+    with Session() as session:
+        rows = (
+            session.query(CallerProfile)
+            .filter(CallerProfile.use_case_id == use_case_id)
+            .order_by(CallerProfile.updated_at.desc())
+            .all()
+        )
     result = []
     for r in rows:
         try:
-            profile = json.loads(r["profile_json"] or "{}")
+            profile = json.loads(r.profile_json or "{}")
         except Exception:
             profile = {}
-        result.append({"phone": r["phone"], "profile": profile, "updated_at": r["updated_at"]})
+        result.append({"phone": r.phone, "profile": profile, "updated_at": r.updated_at})
     return result
 
 
+@_with_retry
 def caller_profile_delete(phone: str, use_case_id: str):
-    with _lock, _conn() as con:
-        con.execute(
-            "DELETE FROM caller_profiles WHERE phone = ? AND use_case_id = ?",
-            (phone, use_case_id)
-        )
-        con.commit()
+    with Session() as session:
+        session.query(CallerProfile).filter(
+            CallerProfile.phone == phone, CallerProfile.use_case_id == use_case_id
+        ).delete()
+        session.commit()
 
 
 def migrate_use_cases_from_json():
     """Seed use_cases/topics tables from use_cases.json if the table is empty."""
-    with _conn() as con:
-        count = con.execute("SELECT COUNT(*) FROM use_cases").fetchone()[0]
+    with Session() as session:
+        count = session.query(sa_func.count(UseCase.id)).scalar()
     if count > 0:
         return
     json_path = Path(__file__).parent / "use_cases.json"
@@ -390,187 +527,225 @@ def migrate_use_cases_from_json():
 
 # ── Users / Roles ─────────────────────────────────────────────────────────────
 
-def _row_to_user(row) -> dict:
+def _user_to_dict(user: User, role_name: str = "") -> dict:
     return {
-        "id":             row["id"],
-        "first_name":     row["first_name"],
-        "last_name":      row["last_name"],
-        "email":          row["email"],
-        "phone":          row["phone"] or "",
-        "role_id":        row["role_id"],
-        "role":           row["role_name"] if "role_name" in row.keys() else "",
-        "email_verified": bool(row["email_verified"]),
-        "phone_verified": bool(row["phone_verified"]),
-        "is_active":      bool(row["is_active"]),
-        "created_at":     row["created_at"] or "",
+        "id":             user.id,
+        "first_name":     user.first_name,
+        "last_name":      user.last_name,
+        "email":          user.email,
+        "phone":          user.phone or "",
+        "role_id":        user.role_id,
+        "role":           role_name,
+        "email_verified": bool(user.email_verified),
+        "phone_verified": bool(user.phone_verified),
+        "is_active":      bool(user.is_active),
+        "created_at":     user.created_at or "",
     }
 
 
+@_with_retry
 def roles_list() -> list[dict]:
-    with _conn() as con:
-        rows = con.execute("SELECT * FROM roles ORDER BY id").fetchall()
-    return [{"id": r["id"], "name": r["name"]} for r in rows]
+    with Session() as session:
+        rows = session.query(Role).order_by(Role.id).all()
+    return [{"id": r.id, "name": r.name} for r in rows]
 
 
+@_with_retry
 def user_get(user_id: int) -> dict | None:
-    with _conn() as con:
-        row = con.execute(
-            "SELECT u.*, r.name AS role_name FROM users u "
-            "JOIN roles r ON r.id = u.role_id WHERE u.id = ?",
-            (user_id,)
-        ).fetchone()
-    return _row_to_user(row) if row else None
-
-
-def user_get_by_email(email: str) -> dict | None:
-    with _conn() as con:
-        row = con.execute(
-            "SELECT u.*, r.name AS role_name FROM users u "
-            "JOIN roles r ON r.id = u.role_id WHERE u.email = ?",
-            (email.lower().strip(),)
-        ).fetchone()
-    return _row_to_user(row) if row else None
-
-
-def user_get_password_hash(user_id: int) -> str:
-    with _conn() as con:
-        row = con.execute("SELECT password_hash FROM users WHERE id = ?", (user_id,)).fetchone()
-    return row["password_hash"] if row else ""
-
-
-def user_check_password(email: str, password: str) -> dict | None:
-    """Return user dict if credentials are valid, else None."""
-    with _conn() as con:
-        row = con.execute(
-            "SELECT u.*, r.name AS role_name FROM users u "
-            "JOIN roles r ON r.id = u.role_id WHERE u.email = ?",
-            (email.lower().strip(),)
-        ).fetchone()
+    with Session() as session:
+        row = (
+            session.query(User, Role.name.label("role_name"))
+            .join(Role, Role.id == User.role_id)
+            .filter(User.id == user_id)
+            .first()
+        )
     if not row:
         return None
-    if not check_password_hash(row["password_hash"], password):
+    user, role_name = row
+    return _user_to_dict(user, role_name)
+
+
+@_with_retry
+def user_get_by_email(email: str) -> dict | None:
+    with Session() as session:
+        row = (
+            session.query(User, Role.name.label("role_name"))
+            .join(Role, Role.id == User.role_id)
+            .filter(User.email == email.lower().strip())
+            .first()
+        )
+    if not row:
         return None
-    return _row_to_user(row)
+    user, role_name = row
+    return _user_to_dict(user, role_name)
 
 
+@_with_retry
+def user_get_password_hash(user_id: int) -> str:
+    with Session() as session:
+        user = session.query(User).filter(User.id == user_id).first()
+    return user.password_hash if user else ""
+
+
+@_with_retry
+def user_check_password(email: str, password: str) -> dict | None:
+    """Return user dict if credentials are valid, else None."""
+    with Session() as session:
+        row = (
+            session.query(User, Role.name.label("role_name"))
+            .join(Role, Role.id == User.role_id)
+            .filter(User.email == email.lower().strip())
+            .first()
+        )
+    if not row:
+        return None
+    user, role_name = row
+    if not check_password_hash(user.password_hash, password):
+        return None
+    return _user_to_dict(user, role_name)
+
+
+@_with_retry
 def user_list() -> list[dict]:
-    with _conn() as con:
-        rows = con.execute(
-            "SELECT u.*, r.name AS role_name FROM users u "
-            "JOIN roles r ON r.id = u.role_id ORDER BY u.created_at DESC"
-        ).fetchall()
-    return [_row_to_user(r) for r in rows]
+    with Session() as session:
+        rows = (
+            session.query(User, Role.name.label("role_name"))
+            .join(Role, Role.id == User.role_id)
+            .order_by(User.created_at.desc())
+            .all()
+        )
+    return [_user_to_dict(user, role_name) for user, role_name in rows]
 
 
+@_with_retry
 def user_create(first_name: str, last_name: str, email: str, phone: str,
                 password: str, role_id: int) -> int:
     """Create a new user and return their id. Raises ValueError on duplicate email."""
     token = secrets.token_urlsafe(32)
     pw_hash = generate_password_hash(password)
-    with _lock, _conn() as con:
+    with Session() as session:
         try:
-            cur = con.execute(
-                "INSERT INTO users (first_name, last_name, email, phone, password_hash, role_id, email_token) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (first_name, last_name, email.lower().strip(), phone, pw_hash, role_id, token),
+            user = User(
+                first_name=first_name,
+                last_name=last_name,
+                email=email.lower().strip(),
+                phone=phone,
+                password_hash=pw_hash,
+                role_id=role_id,
+                email_token=token,
             )
-            con.commit()
-            return cur.lastrowid
-        except sqlite3.IntegrityError:
+            session.add(user)
+            session.flush()  # Get the ID
+            user_id = user.id
+            session.commit()
+            return user_id
+        except IntegrityError:
+            session.rollback()
             raise ValueError("Email already exists")
 
 
+@_with_retry
 def user_update(user_id: int, data: dict):
     """Update editable user fields. Omit keys that should not be changed."""
-    fields, values = [], []
-    for col in ("first_name", "last_name", "phone", "role_id"):
-        if col in data:
-            fields.append(f"{col} = ?")
-            values.append(data[col])
-    if "password" in data and data["password"]:
-        fields.append("password_hash = ?")
-        values.append(generate_password_hash(data["password"]))
-    if not fields:
-        return
-    values.append(user_id)
-    with _lock, _conn() as con:
-        con.execute(f"UPDATE users SET {', '.join(fields)} WHERE id = ?", values)
-        con.commit()
+    with Session() as session:
+        user = session.query(User).filter(User.id == user_id).first()
+        if not user:
+            return
+        for col in ("first_name", "last_name", "phone", "role_id"):
+            if col in data:
+                setattr(user, col, data[col])
+        if "password" in data and data["password"]:
+            user.password_hash = generate_password_hash(data["password"])
+        session.commit()
 
 
+@_with_retry
 def user_delete(user_id: int):
-    with _lock, _conn() as con:
-        con.execute("DELETE FROM users WHERE id = ?", (user_id,))
-        con.commit()
+    with Session() as session:
+        session.query(User).filter(User.id == user_id).delete()
+        session.commit()
 
 
+@_with_retry
 def user_set_email_verified(user_id: int):
-    with _lock, _conn() as con:
-        con.execute(
-            "UPDATE users SET email_verified = 1, email_token = NULL WHERE id = ?",
-            (user_id,)
-        )
-        con.commit()
+    with Session() as session:
+        user = session.query(User).filter(User.id == user_id).first()
+        if user:
+            user.email_verified = 1
+            user.email_token = None
+            session.commit()
     _user_activate_if_ready(user_id)
 
 
+@_with_retry
 def user_set_phone_verified(user_id: int):
-    with _lock, _conn() as con:
-        con.execute("UPDATE users SET phone_verified = 1 WHERE id = ?", (user_id,))
-        con.commit()
+    with Session() as session:
+        user = session.query(User).filter(User.id == user_id).first()
+        if user:
+            user.phone_verified = 1
+            session.commit()
     _user_activate_if_ready(user_id)
 
 
+@_with_retry
 def _user_activate_if_ready(user_id: int):
-    with _lock, _conn() as con:
-        row = con.execute(
-            "SELECT email_verified, phone_verified FROM users WHERE id = ?", (user_id,)
-        ).fetchone()
-        if row and row["email_verified"] and row["phone_verified"]:
-            con.execute("UPDATE users SET is_active = 1 WHERE id = ?", (user_id,))
-            con.commit()
+    with Session() as session:
+        user = session.query(User).filter(User.id == user_id).first()
+        if user and user.email_verified and user.phone_verified:
+            user.is_active = 1
+            session.commit()
 
 
+@_with_retry
 def user_get_by_email_token(token: str) -> dict | None:
-    with _conn() as con:
-        row = con.execute(
-            "SELECT u.*, r.name AS role_name FROM users u "
-            "JOIN roles r ON r.id = u.role_id WHERE u.email_token = ?",
-            (token,)
-        ).fetchone()
-    return _row_to_user(row) if row else None
+    with Session() as session:
+        row = (
+            session.query(User, Role.name.label("role_name"))
+            .join(Role, Role.id == User.role_id)
+            .filter(User.email_token == token)
+            .first()
+        )
+    if not row:
+        return None
+    user, role_name = row
+    return _user_to_dict(user, role_name)
 
 
+@_with_retry
 def user_assign_use_cases(user_id: int, uc_ids: list):
-    with _lock, _conn() as con:
-        con.execute("DELETE FROM user_use_cases WHERE user_id = ?", (user_id,))
+    with Session() as session:
+        session.query(UserUseCase).filter(UserUseCase.user_id == user_id).delete()
         for uc_id in uc_ids:
-            con.execute(
-                "INSERT OR IGNORE INTO user_use_cases (user_id, use_case_id) VALUES (?, ?)",
-                (user_id, uc_id)
-            )
-        con.commit()
+            session.add(UserUseCase(user_id=user_id, use_case_id=uc_id))
+        session.commit()
 
 
+@_with_retry
 def user_get_use_cases(user_id: int) -> list:
-    with _conn() as con:
-        rows = con.execute(
-            "SELECT use_case_id FROM user_use_cases WHERE user_id = ?", (user_id,)
-        ).fetchall()
-    return [r["use_case_id"] for r in rows]
+    with Session() as session:
+        rows = (
+            session.query(UserUseCase.use_case_id)
+            .filter(UserUseCase.user_id == user_id)
+            .all()
+        )
+    return [r.use_case_id for r in rows]
 
 
+@_with_retry
 def seed_roles_and_admin():
     """Seed the roles table (admin, manager, standard). Admin user is created via /admin/setup."""
-    with _lock, _conn() as con:
+    with Session() as session:
         for name in ("admin", "manager", "standard"):
-            con.execute("INSERT OR IGNORE INTO roles (name) VALUES (?)", (name,))
-        con.commit()
+            exists = session.query(Role).filter(Role.name == name).first()
+            if not exists:
+                session.add(Role(name=name))
+        session.commit()
 
 
+@_with_retry
 def has_users() -> bool:
-    with _conn() as con:
-        return con.execute("SELECT COUNT(*) FROM users").fetchone()[0] > 0
+    with Session() as session:
+        return session.query(sa_func.count(User.id)).scalar() > 0
 
 
 # ── Pending first-admin setup (not yet in users table) ────────────────────────
@@ -597,122 +772,25 @@ def pending_setup_get_by_token(token: str) -> dict | None:
     return None
 
 
+@_with_retry
 def pending_setup_clear():
-    with _lock, _conn() as con:
-        con.execute("DELETE FROM config WHERE key = '_pending_setup'")
-        con.commit()
+    with Session() as session:
+        session.query(Config).filter(Config.key == "_pending_setup").delete()
+        session.commit()
 
 
-# ── Bootstrap ─────────────────────────────────────────────────────────────────
+# ── Backward-compatibility shims (deprecated — secrets now in AWS Secrets Manager) ──
+
+def config_set_secure(key: str, value: str):
+    """Deprecated — use Secrets Manager instead. Kept as no-op for compatibility."""
+    pass
+
+
+def config_get_secure(key: str, default: str = "") -> str:
+    """Deprecated — use SecretsConfig.get() instead. Returns empty string."""
+    return default
+
 
 def init():
-    with _conn() as con:
-        con.execute("""
-            CREATE TABLE IF NOT EXISTS reports (
-                id            TEXT PRIMARY KEY,
-                datetime      TEXT,
-                caller_number TEXT,
-                caller_name   TEXT,
-                topic         TEXT,
-                language      TEXT
-            )
-        """)
-        con.execute("""
-            CREATE TABLE IF NOT EXISTS config (
-                key   TEXT PRIMARY KEY,
-                value TEXT
-            )
-        """)
-        con.execute("""
-            CREATE TABLE IF NOT EXISTS use_cases (
-                id          TEXT PRIMARY KEY,
-                name        TEXT NOT NULL,
-                industry    TEXT,
-                url         TEXT,
-                forward_to  TEXT,
-                voice_en    TEXT,
-                voice_es    TEXT,
-                slogan_en   TEXT,
-                slogan_es   TEXT
-            )
-        """)
-        con.execute("""
-            CREATE TABLE IF NOT EXISTS topics (
-                id              INTEGER PRIMARY KEY AUTOINCREMENT,
-                use_case_id     TEXT NOT NULL REFERENCES use_cases(id) ON DELETE CASCADE,
-                key             TEXT NOT NULL,
-                digit           TEXT,
-                meeting_type    INTEGER DEFAULT 0,
-                label_en        TEXT,
-                label_es        TEXT,
-                menu_text_en    TEXT,
-                menu_text_es    TEXT,
-                greeting_en     TEXT,
-                greeting_es     TEXT,
-                system_extra_en TEXT,
-                system_extra_es TEXT,
-                questions_en    TEXT DEFAULT '[]',
-                questions_es    TEXT DEFAULT '[]',
-                UNIQUE(use_case_id, key)
-            )
-        """)
-        con.execute("""
-            CREATE TABLE IF NOT EXISTS roles (
-                id   INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT UNIQUE NOT NULL
-            )
-        """)
-        con.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                id             INTEGER PRIMARY KEY AUTOINCREMENT,
-                first_name     TEXT NOT NULL,
-                last_name      TEXT NOT NULL,
-                email          TEXT UNIQUE NOT NULL,
-                phone          TEXT,
-                password_hash  TEXT NOT NULL,
-                role_id        INTEGER NOT NULL REFERENCES roles(id),
-                email_verified INTEGER DEFAULT 0,
-                phone_verified INTEGER DEFAULT 0,
-                is_active      INTEGER DEFAULT 0,
-                email_token    TEXT,
-                created_at     TEXT DEFAULT (datetime('now'))
-            )
-        """)
-        con.execute("""
-            CREATE TABLE IF NOT EXISTS user_use_cases (
-                user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                use_case_id TEXT    NOT NULL REFERENCES use_cases(id) ON DELETE CASCADE,
-                PRIMARY KEY (user_id, use_case_id)
-            )
-        """)
-        con.execute("""
-            CREATE TABLE IF NOT EXISTS caller_profiles (
-                phone       TEXT NOT NULL,
-                use_case_id TEXT NOT NULL,
-                profile_json TEXT DEFAULT '{}',
-                updated_at   TEXT,
-                PRIMARY KEY (phone, use_case_id)
-            )
-        """)
-        # Migrations for columns added after initial schema
-        for col_def in [
-            "ALTER TABLE use_cases ADD COLUMN forward_to TEXT",
-            "ALTER TABLE use_cases ADD COLUMN is_demo INTEGER DEFAULT 0",
-            "ALTER TABLE use_cases ADD COLUMN demo_code TEXT",
-            "ALTER TABLE use_cases ADD COLUMN ivr_type TEXT DEFAULT 'topics'",
-            "ALTER TABLE use_cases ADD COLUMN system_prompt TEXT",
-            "ALTER TABLE use_cases ADD COLUMN system_prompt_es TEXT",
-            "ALTER TABLE use_cases ADD COLUMN knowledge_base TEXT",
-        ]:
-            try:
-                con.execute(col_def)
-            except Exception:
-                pass
-        con.commit()
-
-
-init()
-migrate_config_from_json()
-migrate_reports_from_json()
-migrate_use_cases_from_json()
-seed_roles_and_admin()
+    """No-op — schema creation is now handled by Alembic migrations."""
+    pass

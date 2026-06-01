@@ -1,13 +1,18 @@
 import os
-from flask import Blueprint, render_template, abort, send_file, request
+from flask import Blueprint, render_template, abort, request, redirect
 import reports
 import runtime_config
+from storage import storage, StorageDownloadError
 
 report_bp = Blueprint("report", __name__)
 
+
 @report_bp.route("/report/<report_id>")
 def view_report(report_id):
-    data = reports.load(report_id)
+    try:
+        data = reports.load(report_id)
+    except StorageDownloadError:
+        abort(503)
     if not data:
         abort(404)
 
@@ -27,35 +32,41 @@ def view_report(report_id):
         elevenlabs_api_key=os.environ.get("ELEVENLABS_API_KEY", ""),
         elevenlabs_voice_id=runtime_config.get("elevenlabs_voice_id"),
         tts_text=tts_text,
-        has_recording=reports.recording_path(report_id).exists(),
+        has_recording=True,
     )
 
 
 @report_bp.route("/report/<report_id>/recording", methods=["GET"])
 def report_recording(report_id):
-    if not reports.load(report_id):
+    try:
+        data = reports.load(report_id)
+    except StorageDownloadError:
+        abort(503)
+    if not data:
         abort(404)
-    rec = reports.recording_path(report_id)
-    if not rec.exists():
-        abort(404)
-    return send_file(str(rec), mimetype="audio/mpeg")
+    url = reports.get_audio_url(report_id, suffix=".recording.mp3")
+    return redirect(url)
 
 
 @report_bp.route("/report/<report_id>/audio", methods=["GET"])
 def report_audio_get(report_id):
-    if not reports.load(report_id):
+    try:
+        data = reports.load(report_id)
+    except StorageDownloadError:
+        abort(503)
+    if not data:
         abort(404)
-    mp3 = reports.audio_path(report_id)
-    if not mp3.exists():
-        abort(404)
-    return send_file(str(mp3), mimetype="audio/mpeg")
+    url = reports.get_audio_url(report_id, suffix=".mp3")
+    return redirect(url)
 
 
 @report_bp.route("/report/<report_id>/audio", methods=["POST"])
 def report_audio_post(report_id):
-    if not reports.load(report_id):
+    try:
+        data = reports.load(report_id)
+    except StorageDownloadError:
+        abort(503)
+    if not data:
         abort(404)
-    mp3 = reports.audio_path(report_id)
-    mp3.parent.mkdir(parents=True, exist_ok=True)
-    mp3.write_bytes(request.get_data())
+    reports.save_audio(report_id, request.get_data(), suffix=".mp3")
     return "", 204

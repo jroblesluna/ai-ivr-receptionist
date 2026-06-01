@@ -1,0 +1,82 @@
+services:
+  backend:
+    image: ${BACKEND_IMAGE:-}
+    build: .
+    container_name: pickup-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - GUNICORN_WORKERS=${GUNICORN_WORKERS:-1}
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=redis://redis:6379/0
+      - AWS_REGION=${AWS_REGION}
+      - AWS_SECRET_NAME=${AWS_SECRET_NAME}
+      - S3_REPORTS_BUCKET=${S3_REPORTS_BUCKET}
+      - S3_AUDIO_BUCKET=${S3_AUDIO_BUCKET}
+      - ENVIRONMENT=${ENVIRONMENT:-dev}
+      - SECRET_KEY=${SECRET_KEY}
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -so /dev/null -w '%{http_code}' http://localhost:8000/health | grep -qE '^[2345]'"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  redis:
+    image: redis:7-alpine
+    container_name: pickup-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    volumes:
+      - redis-data:/data
+
+  nginx:
+    image: nginx:alpine
+    container_name: pickup-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - certbot-etc:/etc/letsencrypt:ro
+      - certbot-var:/var/lib/letsencrypt
+      - certbot-webroot:/var/www/certbot:ro
+    depends_on:
+      - backend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  certbot:
+    image: certbot/certbot
+    container_name: pickup-certbot
+    volumes:
+      - certbot-etc:/etc/letsencrypt
+      - certbot-var:/var/lib/letsencrypt
+      - certbot-webroot:/var/www/certbot
+    depends_on:
+      - nginx
+    restart: unless-stopped
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $${!}; done'"
+
+volumes:
+  redis-data:
+  certbot-etc:
+  certbot-var:
+  certbot-webroot:

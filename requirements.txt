@@ -5,10 +5,14 @@ openai
 python-dotenv
 requests
 pydub
-audioop-lts
 cryptography
 python-docx
 openpyxl
 xlrd
 pypdf
 tzdata
+redis
+sqlalchemy
+psycopg2-binary
+alembic
+boto3

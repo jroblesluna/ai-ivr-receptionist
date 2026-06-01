@@ -1,7 +1,6 @@
 """
 User management routes (admin CRUD) and email/phone verification.
 """
-import sqlite3
 from pathlib import Path
 
 from flask import Blueprint, request, jsonify, render_template_string, redirect, url_for, session
@@ -10,6 +9,11 @@ import db
 import config
 from auth import require_login, require_role, current_user
 from email_helper import send_verification_email
+
+try:
+    from src.models.user import User as _UserModel
+except ImportError:
+    from models.user import User as _UserModel
 
 users_bp = Blueprint("users", __name__)
 
@@ -22,28 +26,33 @@ def verify_email(token):
     pending = db.pending_setup_get_by_token(token)
     if pending:
         # Create the admin user now that email is confirmed
+        db.seed_roles_and_admin()
         roles = {r["name"]: r["id"] for r in db.roles_list()}
         admin_role_id = roles.get("admin")
         if admin_role_id:
-            from werkzeug.security import generate_password_hash
             try:
-                import sqlite3 as _sq
-                import secrets as _sec
-                db_path = __import__("pathlib").Path(__file__).parent.parent.parent / "data" / "app.db"
-                con = _sq.connect(str(db_path))
-                con.row_factory = _sq.Row
-                cur = con.execute(
-                    "INSERT INTO users (first_name, last_name, email, phone, password_hash, role_id, "
-                    "email_verified, phone_verified, is_active) VALUES (?,?,?,?,?,?,1,0,0)",
-                    (pending["first_name"], pending["last_name"], pending["email"],
-                     pending["phone"], pending["password_hash"], admin_role_id),
-                )
-                con.commit()
-                user_id = cur.lastrowid
-                con.close()
+                # Insert directly with pre-hashed password
+                with db.Session() as sess:
+                    user = _UserModel(
+                        first_name=pending["first_name"],
+                        last_name=pending["last_name"],
+                        email=pending["email"].lower(),
+                        phone=pending.get("phone", ""),
+                        password_hash=pending["password_hash"],
+                        role_id=admin_role_id,
+                        email_verified=1,
+                        phone_verified=0,
+                        is_active=1,
+                    )
+                    sess.add(user)
+                    sess.flush()
+                    user_id = user.id
+                    sess.commit()
             except Exception as e:
                 print(f"[SETUP] Error creating admin user: {e}")
                 return redirect(url_for("admin.setup"))
+        else:
+            return redirect(url_for("admin.setup"))
         db.pending_setup_clear()
         session["user_id"] = user_id
         return redirect(url_for("admin.admin"))
