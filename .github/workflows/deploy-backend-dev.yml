@@ -11,7 +11,7 @@ on:
 
 env:
   AWS_REGION: us-west-2
-  ECR_REPOSITORY: ${{ secrets.DEV_ECR_REPOSITORY }}
+  ECR_REPOSITORY: pickup-dev
   ENVIRONMENT: dev
 
 jobs:
@@ -53,8 +53,9 @@ jobs:
       - name: Deploy via SSM send-command
         id: ssm-deploy
         run: |
+          INSTANCE_ID="i-0cbbe2bb4ce9cd374"
           COMMAND_ID=$(aws ssm send-command \
-            --instance-ids "${{ secrets.DEV_EC2_INSTANCE_ID }}" \
+            --instance-ids "${INSTANCE_ID}" \
             --document-name "AWS-RunShellScript" \
             --parameters "commands=[\"cd /opt/pickup && ./deploy.sh ${{ steps.build.outputs.image_uri }}\"]" \
             --timeout-seconds 300 \
@@ -69,7 +70,7 @@ jobs:
           while [ $SECONDS_WAITED -lt 300 ]; do
             STATUS=$(aws ssm get-command-invocation \
               --command-id "${COMMAND_ID}" \
-              --instance-id "${{ secrets.DEV_EC2_INSTANCE_ID }}" \
+              --instance-id "${INSTANCE_ID}" \
               --query "Status" \
               --output text 2>/dev/null || echo "Pending")
             
@@ -81,7 +82,7 @@ jobs:
               # Fetch command output for debugging
               aws ssm get-command-invocation \
                 --command-id "${COMMAND_ID}" \
-                --instance-id "${{ secrets.DEV_EC2_INSTANCE_ID }}" \
+                --instance-id "${INSTANCE_ID}" \
                 --query "StandardErrorContent" \
                 --output text || true
               exit 1
