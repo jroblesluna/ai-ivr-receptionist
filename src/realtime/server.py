@@ -775,14 +775,34 @@ async def _trigger_opening_greeting(
             system_prompt = re.sub(
                 r'Respond ONLY in valid JSON:.*?(?=\n\n|\Z)',
                 'Respond in natural, conversational speech. Keep responses concise (1-3 sentences). '
-                'Do NOT use JSON format. Speak as if talking to the caller directly.',
+                'Do NOT use JSON format. Speak as if talking to the caller directly.\n\n'
+                'LANGUAGE RULES:\n'
+                '- Detect the language the caller is speaking and respond in that same language.\n'
+                '- If the caller switches language, switch with them and maintain the new language.\n'
+                '- If a single word or short phrase is in another language but the conversation is '
+                'established in one language, stay in the established language.\n'
+                '- If unsure, briefly ask which language they prefer.\n\n'
+                'CALLER INFO TRACKING:\n'
+                '- If the caller mentions their name, remember it and use it naturally.\n'
+                '- If they correct their name or give a different one, update immediately.\n'
+                '- Track any phone number, notes, or relevant info they share.',
                 system_prompt,
                 flags=re.DOTALL,
             )
             system_prompt = re.sub(
                 r'Responde SOLO en JSON válido:.*?(?=\n\n|\Z)',
                 'Responde en habla natural y conversacional. Mantén las respuestas concisas (1-3 oraciones). '
-                'NO uses formato JSON. Habla como si estuvieras hablando directamente con el llamante.',
+                'NO uses formato JSON. Habla como si estuvieras hablando directamente con el llamante.\n\n'
+                'REGLAS DE IDIOMA:\n'
+                '- Detecta el idioma en que habla el llamante y responde en ese mismo idioma.\n'
+                '- Si el llamante cambia de idioma, cambia con él y mantén el nuevo idioma.\n'
+                '- Si una sola palabra o frase corta está en otro idioma pero la conversación ya está '
+                'establecida en un idioma, mantente en el idioma establecido.\n'
+                '- Si no estás seguro, pregunta brevemente qué idioma prefiere.\n\n'
+                'SEGUIMIENTO DE INFO DEL LLAMANTE:\n'
+                '- Si el llamante menciona su nombre, recuérdalo y úsalo naturalmente.\n'
+                '- Si corrige su nombre o da uno diferente, actualízalo inmediatamente.\n'
+                '- Registra cualquier teléfono, notas o info relevante que compartan.',
                 system_prompt,
                 flags=re.DOTALL,
             )
