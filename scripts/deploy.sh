@@ -96,6 +96,10 @@ health_check() {
 PREVIOUS_IMAGE="$(get_current_image)"
 log "Previous image: ${PREVIOUS_IMAGE:-none}"
 
+# --- Step 1b: Clean up old Docker images to free disk space ---
+log "Cleaning up unused Docker images..."
+docker image prune -af --filter "until=1h" > /dev/null 2>&1 || true
+
 # --- Step 2: Authenticate with ECR ---
 log "Authenticating with ECR..."
 aws ecr get-login-password --region "${AWS_REGION}" \
