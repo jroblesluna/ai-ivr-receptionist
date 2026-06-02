@@ -177,9 +177,21 @@ def ai_gather():
     demo_id  = request.args.get("demo_id", "")
     call_sid = request.form.get("CallSid", request.args.get("CallSid", ""))
 
+    logger.info(
+        "[AI-GATHER] START call_sid=%s lang=%s topic=%s demo_id=%s",
+        call_sid, lang, topic, demo_id,
+    )
+
     demo_uc = _get_demo_uc(demo_id)
     voice   = _get_voice_for_uc(lang, demo_uc)
     gl      = get_gather_language(lang)
+
+    logger.info(
+        "[AI-GATHER] demo_uc=%s ivr_type=%s voice=%s",
+        demo_uc.get("name") if demo_uc else None,
+        demo_uc.get("ivr_type") if demo_uc else None,
+        voice,
+    )
 
     resp = VoiceResponse()
 
@@ -258,14 +270,25 @@ def ai_gather():
 
         # For conversational demos, use <Connect><Stream> instead of <Gather speech>
         is_conversational_demo = demo_uc and demo_uc.get("ivr_type") == "conversational"
+        logger.info(
+            "[AI-GATHER] is_conversational_demo=%s call_sid=%s",
+            is_conversational_demo, call_sid,
+        )
         if is_conversational_demo:
             caller_from = request.values.get("From", "")
-            if _check_media_stream_health():
-                return _build_media_stream_twiml(
+            health_ok = _check_media_stream_health()
+            logger.info(
+                "[AI-GATHER] Media Stream health_ok=%s WS_HOST=%s caller_from=%s",
+                health_ok, WS_HOST, caller_from,
+            )
+            if health_ok:
+                twiml = _build_media_stream_twiml(
                     lang=lang,
                     demo_id=demo_id,
                     caller_from=caller_from,
                 )
+                logger.info("[AI-GATHER] Returning <Connect><Stream> TwiML: %s", twiml[:200])
+                return twiml
             else:
                 logger.warning(
                     "Media Stream Server unreachable; falling back to <Gather speech> "
@@ -287,8 +310,19 @@ def ai_gather():
         silence = "I'm sorry, I didn't catch that. Please try again." if lang == "en" else "Lo siento, no le escuché. Por favor intente de nuevo."
         resp.say(silence, voice=voice)
         resp.redirect(f"/ai-gather?lang={lang}&topic={topic}{demo_suffix}")
+        logger.info("[AI-GATHER] Returning <Gather speech> TwiML call_sid=%s", call_sid)
         return str(resp)
-    except redis.RedisError:
+    except redis.RedisError as e:
+        logger.error("[AI-GATHER] Redis error call_sid=%s error=%s", call_sid, e)
+        resp = VoiceResponse()
+        resp.say("We are experiencing technical difficulties. Please try again later.", voice=voice)
+        resp.hangup()
+        return str(resp)
+    except Exception as e:
+        logger.error(
+            "[AI-GATHER] UNHANDLED EXCEPTION call_sid=%s demo_id=%s error=%s",
+            call_sid, demo_id, e, exc_info=True,
+        )
         resp = VoiceResponse()
         resp.say("We are experiencing technical difficulties. Please try again later.", voice=voice)
         resp.hangup()
