@@ -79,12 +79,13 @@ class DeepgramSTTClient:
         """Create the Deepgram live WebSocket connection."""
         try:
             params = (
-                f"?model=nova-2"
+                f"?model=nova-3"
                 f"&encoding={self._encoding}"
                 f"&sample_rate={self._sample_rate}"
                 f"&channels={self._channels}"
                 f"&interim_results=true"
                 f"&endpointing={self._endpointing_ms}"
+                f"&smart_format=true"
             )
             url = f"{_DEEPGRAM_WS_URL}{params}"
 
@@ -126,22 +127,30 @@ class DeepgramSTTClient:
             async for message in self._ws:
                 try:
                     data = json.loads(message)
-                    # Extract transcript from Deepgram response
-                    channel = data.get("channel", {})
-                    alternatives = channel.get("alternatives", [])
-                    if alternatives:
-                        transcript = alternatives[0].get("transcript", "")
-                        is_final = data.get("is_final", False)
+                    msg_type = data.get("type", "")
 
-                        if transcript:
-                            for callback in self._transcript_callbacks:
-                                try:
-                                    await callback(transcript, is_final)
-                                except Exception as cb_exc:
-                                    logger.error(
-                                        "Transcript callback error",
-                                        extra={"error": str(cb_exc)},
-                                    )
+                    if msg_type == "Results":
+                        # Extract transcript from Deepgram response
+                        channel = data.get("channel", {})
+                        alternatives = channel.get("alternatives", [])
+                        if alternatives:
+                            transcript = alternatives[0].get("transcript", "")
+                            is_final = data.get("is_final", False)
+                            speech_final = data.get("speech_final", False)
+
+                            if transcript:
+                                # Use speech_final for better endpointing
+                                # is_final means the interim result is finalized
+                                # speech_final means the speaker has stopped
+                                final = is_final or speech_final
+                                for callback in self._transcript_callbacks:
+                                    try:
+                                        await callback(transcript, final)
+                                    except Exception as cb_exc:
+                                        logger.error(
+                                            "Transcript callback error",
+                                            extra={"error": str(cb_exc)},
+                                        )
                 except json.JSONDecodeError:
                     pass
                 except Exception as exc:
