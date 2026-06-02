@@ -270,11 +270,14 @@ def ai_gather():
 
         # For conversational demos, use <Connect><Stream> instead of <Gather speech>
         is_conversational_demo = demo_uc and demo_uc.get("ivr_type") == "conversational"
+        # Only attempt realtime pipeline if DEEPGRAM_API_KEY is configured
+        deepgram_key = config.SecretsConfig.get("DEEPGRAM_API_KEY", "") or os.environ.get("DEEPGRAM_API_KEY", "")
+        realtime_enabled = is_conversational_demo and bool(deepgram_key)
         logger.info(
-            "[AI-GATHER] is_conversational_demo=%s call_sid=%s",
-            is_conversational_demo, call_sid,
+            "[AI-GATHER] is_conversational_demo=%s realtime_enabled=%s call_sid=%s",
+            is_conversational_demo, realtime_enabled, call_sid,
         )
-        if is_conversational_demo:
+        if realtime_enabled:
             caller_from = request.values.get("From", "")
             health_ok = _check_media_stream_health()
             logger.info(
