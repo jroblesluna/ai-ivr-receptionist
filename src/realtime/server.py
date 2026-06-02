@@ -196,6 +196,18 @@ async def websocket_endpoint(ws: WebSocket) -> None:
             end_call_signaled = session.state.collected_info.get("_end_call", False)
             unexpected_disconnect = not end_call_signaled
 
+            # Generate summary from conversation if not already set
+            if not session.state.collected_info.get("notes"):
+                # Build a brief summary from the last few assistant messages
+                assistant_msgs = [
+                    m["content"] for m in session.state.conversation_history
+                    if m.get("role") == "assistant"
+                ]
+                if assistant_msgs:
+                    session.state.collected_info["notes"] = " | ".join(
+                        msg[:100] for msg in assistant_msgs[-3:]
+                    )
+
             # Process end of call (report + notifications)
             try:
                 process_end_of_call(
@@ -498,10 +510,12 @@ async def _generate_and_speak(
                 session.pipeline_state = PipelineState.SPEAKING
 
     async def on_complete(parsed_response: dict) -> None:
-        """Handle LLM response completion — update conversation history and check end_call."""
-        nonlocal cancel_event
+        """Handle LLM response completion — update conversation history and detect end-of-call."""
+        nonlocal cancel_event, accumulated_text
 
-        message_text = parsed_response.get("message", "")
+        # For the realtime pipeline, the LLM responds in plain text (not JSON)
+        # Use accumulated_text as the message content
+        message_text = accumulated_text.strip() or parsed_response.get("message", "")
 
         # Add assistant message to conversation history
         if message_text:
@@ -510,27 +524,30 @@ async def _generate_and_speak(
                 "content": message_text,
             })
 
-        # Update collected info from LLM response
-        name = parsed_response.get("name")
-        phone = parsed_response.get("phone")
-        notes = parsed_response.get("notes")
-        if name:
-            session.state.collected_info["name"] = name
-        if phone:
-            session.state.collected_info["phone"] = phone
-        if notes:
-            session.state.collected_info["notes"] = notes
-
-        # Store goodbye message if end_call
-        end_call = parsed_response.get("end_call", False)
-        if end_call and message_text:
-            session.state.collected_info["goodbye"] = message_text
-
         # Persist conversation history
         save_conversation_history(
             session.call_sid,
             session.state.conversation_history,
         )
+
+        # Detect end-of-call from the assistant's response content
+        # (since we no longer use JSON format, detect farewell phrases)
+        farewell_indicators = [
+            "goodbye", "good bye", "bye bye", "have a nice day", "have a great day",
+            "take care", "thank you for calling", "thanks for calling",
+            "adiós", "adios", "hasta luego", "que tenga buen día", "gracias por llamar",
+            "fue un placer", "cuídese", "que le vaya bien",
+        ]
+        lower_text = message_text.lower()
+        is_farewell = any(phrase in lower_text for phrase in farewell_indicators)
+
+        if is_farewell:
+            logger.info(
+                "Farewell detected in response, signaling session end",
+                extra={"call_sid": session.call_sid, "stream_sid": session.stream_sid},
+            )
+            session.state.collected_info["goodbye"] = message_text
+            session.state.collected_info["_end_call"] = True
 
         # Transition back to LISTENING after speaking completes
         if session.pipeline_state == PipelineState.SPEAKING:
@@ -543,15 +560,6 @@ async def _generate_and_speak(
         # Reset VAD state for next turn
         if session.vad_processor is not None:
             session.vad_processor.reset()
-
-        # Handle end_call: allow final TTS audio to finish, then signal close
-        if end_call:
-            logger.info(
-                "LLM returned end_call=true, signaling session end",
-                extra={"call_sid": session.call_sid, "stream_sid": session.stream_sid},
-            )
-            # Mark session for end-of-call processing
-            session.state.collected_info["_end_call"] = True
 
     try:
         await llm_client.generate_response(
