@@ -16,7 +16,7 @@ import reports
 
 logger = logging.getLogger(__name__)
 
-WS_HOST = os.environ.get("WS_HOST", "")
+WS_HOST = os.environ.get("WS_HOST", "") or config.SecretsConfig.get("WS_HOST", "")
 
 
 def _now_local():

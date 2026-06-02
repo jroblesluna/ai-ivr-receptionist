@@ -20,7 +20,7 @@ services:
       - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - DEFAULT_ELEVENLABS_VOICE_ID=${DEFAULT_ELEVENLABS_VOICE_ID:-}
-      - WS_HOST=${WS_HOST:-}
+      - WS_HOST=${WS_HOST:-pickup.dev.iol.pe}
     depends_on:
       redis:
         condition: service_healthy
