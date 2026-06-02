@@ -783,11 +783,21 @@ async def _trigger_opening_greeting(
     # Add the trigger message to conversation history
     session.state.conversation_history.append({
         "role": "user",
-        "content": "(start conversation)",
+        "content": "(start conversation) - Respond with ONLY a brief, natural greeting. Do not recite information from the knowledge base. Just welcome the caller warmly in 1-2 sentences.",
     })
 
     # Transition to PROCESSING
     session.pipeline_state = PipelineState.PROCESSING
 
-    # Run the LLM → TTS → Twilio pipeline for the greeting
-    await _generate_and_speak(session, ws)
+    # Run the LLM → TTS → Twilio pipeline for the greeting as a tracked task
+    # so that barge-in can cancel it via session.current_generation_task
+    task = asyncio.create_task(_generate_and_speak(session, ws))
+    session.current_generation_task = task
+    session.add_pipeline_task(task)
+    try:
+        await task
+    except asyncio.CancelledError:
+        logger.info(
+            "Opening greeting cancelled (barge-in)",
+            extra={"stream_sid": session.stream_sid},
+        )
