@@ -129,6 +129,12 @@ class LLMStreamClient:
             model: The model to use for completions. Defaults to gpt-4o.
         """
         self._api_key = api_key or os.environ.get("OPENAI_API_KEY", "")
+        if not self._api_key:
+            try:
+                from src.config import SecretsConfig
+                self._api_key = SecretsConfig.get("OPENAI_API_KEY", "")
+            except Exception:
+                pass
         self._model = model
         self._client = AsyncOpenAI(api_key=self._api_key)
 

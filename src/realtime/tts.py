@@ -63,8 +63,20 @@ class ElevenLabsTTSClient:
             model_id: The TTS model to use. Defaults to eleven_flash_v2_5.
         """
         self._api_key = api_key or os.environ.get("ELEVENLABS_API_KEY", "")
+        if not self._api_key:
+            try:
+                from src.config import SecretsConfig
+                self._api_key = SecretsConfig.get("ELEVENLABS_API_KEY", "")
+            except Exception:
+                pass
         self._model_id = model_id
         self._default_voice_id = os.environ.get("DEFAULT_ELEVENLABS_VOICE_ID", "")
+        if not self._default_voice_id:
+            try:
+                from src.config import SecretsConfig
+                self._default_voice_id = SecretsConfig.get("DEFAULT_ELEVENLABS_VOICE_ID", "")
+            except Exception:
+                pass
         self._http_client = httpx.AsyncClient(timeout=httpx.Timeout(30.0, connect=10.0))
 
     def _resolve_voice_id(self, voice_id: str | None) -> str:

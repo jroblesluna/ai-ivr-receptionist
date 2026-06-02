@@ -51,6 +51,12 @@ class DeepgramSTTClient:
 
     def __init__(self) -> None:
         api_key = os.environ.get("DEEPGRAM_API_KEY", "")
+        if not api_key:
+            try:
+                from src.config import SecretsConfig
+                api_key = SecretsConfig.get("DEEPGRAM_API_KEY", "")
+            except Exception:
+                pass
         self._client = AsyncDeepgramClient(api_key=api_key)
         self._connection: object | None = None
         self._connected = False
