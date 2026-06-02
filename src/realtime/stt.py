@@ -80,12 +80,14 @@ class DeepgramSTTClient:
         try:
             params = (
                 f"?model=nova-3"
+                f"&language=multi"
                 f"&encoding={self._encoding}"
                 f"&sample_rate={self._sample_rate}"
                 f"&channels={self._channels}"
                 f"&interim_results=true"
                 f"&endpointing={self._endpointing_ms}"
                 f"&smart_format=true"
+                f"&punctuate=true"
             )
             url = f"{_DEEPGRAM_WS_URL}{params}"
 

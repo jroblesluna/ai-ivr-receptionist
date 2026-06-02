@@ -22,8 +22,8 @@ logger = logging.getLogger(__name__)
 # Output format matching Twilio Media Streams requirements (mulaw 8000Hz)
 OUTPUT_FORMAT = "ulaw_8000"
 
-# Default model for TTS synthesis (low-latency optimized)
-DEFAULT_MODEL_ID = "eleven_flash_v2_5"
+# Default model for TTS synthesis (multilingual, more stable prosody)
+DEFAULT_MODEL_ID = "eleven_multilingual_v2"
 
 # ElevenLabs API base URL
 _API_BASE_URL = "https://api.elevenlabs.io/v1"
@@ -135,6 +135,12 @@ class ElevenLabsTTSClient:
         payload = {
             "text": text,
             "model_id": self._model_id,
+            "voice_settings": {
+                "stability": 0.6,
+                "similarity_boost": 0.75,
+                "style": 0.0,
+                "use_speaker_boost": True,
+            },
         }
 
         params = {
