@@ -171,7 +171,6 @@ class LLMStreamClient:
             stream = await self._client.chat.completions.create(
                 model=self._model,
                 messages=messages,
-                response_format={"type": "json_object"},
                 stream=True,
             )
 
@@ -252,7 +251,6 @@ class LLMStreamClient:
             stream = await self._client.chat.completions.create(
                 model=self._model,
                 messages=messages,
-                response_format={"type": "json_object"},
                 stream=True,
             )
 

@@ -746,6 +746,40 @@ async def _trigger_opening_greeting(
         },
     )
 
+    # Load system prompt for this demo use case
+    try:
+        import sys as _sys
+        if "/app/src" not in _sys.path:
+            _sys.path.insert(0, "/app/src")
+        import db
+        from prompts import get_conversational_prompt
+
+        demo_uc = db.uc_get(session.demo_id) if session.demo_id else None
+        caller_profile = db.caller_profile_get(session.caller_from, session.demo_id) if session.demo_id and session.caller_from else {}
+
+        if demo_uc:
+            system_prompt = get_conversational_prompt(
+                session.language, demo_uc,
+                caller_from=session.caller_from,
+                caller_profile=caller_profile,
+            )
+        else:
+            system_prompt = "You are a helpful AI assistant. Respond naturally and conversationally."
+
+        session.state.conversation_history.append({
+            "role": "system",
+            "content": system_prompt,
+        })
+    except Exception as exc:
+        logger.warning(
+            "Could not load system prompt, using default",
+            extra={"error": str(exc), "stream_sid": session.stream_sid},
+        )
+        session.state.conversation_history.append({
+            "role": "system",
+            "content": "You are a helpful AI assistant. Respond naturally and conversationally. Keep responses brief and friendly.",
+        })
+
     # Add the trigger message to conversation history
     session.state.conversation_history.append({
         "role": "user",
