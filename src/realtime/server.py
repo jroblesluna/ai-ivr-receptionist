@@ -757,14 +757,37 @@ async def _trigger_opening_greeting(
         demo_uc = db.uc_get(session.demo_id) if session.demo_id else None
         caller_profile = db.caller_profile_get(session.caller_from, session.demo_id) if session.demo_id and session.caller_from else {}
 
+        # Load voice_id from demo UC if configured
+        if demo_uc and demo_uc.get("elevenlabs_voice_id"):
+            session.voice_id = demo_uc["elevenlabs_voice_id"]
+            session.state.voice_id = demo_uc["elevenlabs_voice_id"]
+
         if demo_uc:
             system_prompt = get_conversational_prompt(
                 session.language, demo_uc,
                 caller_from=session.caller_from,
                 caller_profile=caller_profile,
             )
+            # Strip JSON format instructions - realtime pipeline uses plain text
+            # The prompt tells the model to "Respond ONLY in valid JSON" but we
+            # need natural speech for TTS, not JSON
+            import re
+            system_prompt = re.sub(
+                r'Respond ONLY in valid JSON:.*?(?=\n\n|\Z)',
+                'Respond in natural, conversational speech. Keep responses concise (1-3 sentences). '
+                'Do NOT use JSON format. Speak as if talking to the caller directly.',
+                system_prompt,
+                flags=re.DOTALL,
+            )
+            system_prompt = re.sub(
+                r'Responde SOLO en JSON válido:.*?(?=\n\n|\Z)',
+                'Responde en habla natural y conversacional. Mantén las respuestas concisas (1-3 oraciones). '
+                'NO uses formato JSON. Habla como si estuvieras hablando directamente con el llamante.',
+                system_prompt,
+                flags=re.DOTALL,
+            )
         else:
-            system_prompt = "You are a helpful AI assistant. Respond naturally and conversationally."
+            system_prompt = "You are a helpful AI assistant. Respond naturally and conversationally. Keep responses brief and friendly."
 
         session.state.conversation_history.append({
             "role": "system",
