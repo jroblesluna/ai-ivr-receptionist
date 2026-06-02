@@ -21,20 +21,22 @@ resource "aws_secretsmanager_secret_version" "this" {
   secret_id = aws_secretsmanager_secret.this.id
   secret_string = jsonencode(merge(
     {
-      TWILIO_ACCOUNT_SID    = ""
-      TWILIO_AUTH_TOKEN     = ""
-      TWILIO_API_KEY_SID    = ""
-      TWILIO_API_KEY_SECRET = ""
-      TWILIO_TWIML_APP_SID  = ""
-      TWILIO_VERIFY_SID     = ""
-      OPENAI_API_KEY        = ""
-      RESEND_API_KEY        = ""
-      RESEND_FROM           = ""
-      ELEVENLABS_API_KEY    = ""
-      GOOGLE_TTS_API_KEY    = ""
-      ADMIN_PASSWORD        = ""
-      SECRET_KEY            = ""
-      DATABASE_URL          = ""
+      TWILIO_ACCOUNT_SID         = ""
+      TWILIO_AUTH_TOKEN          = ""
+      TWILIO_API_KEY_SID         = ""
+      TWILIO_API_KEY_SECRET      = ""
+      TWILIO_TWIML_APP_SID       = ""
+      TWILIO_VERIFY_SID          = ""
+      OPENAI_API_KEY             = ""
+      RESEND_API_KEY             = ""
+      RESEND_FROM                = ""
+      ELEVENLABS_API_KEY         = ""
+      DEEPGRAM_API_KEY           = ""
+      DEFAULT_ELEVENLABS_VOICE_ID = ""
+      GOOGLE_TTS_API_KEY         = ""
+      ADMIN_PASSWORD             = ""
+      SECRET_KEY                 = ""
+      DATABASE_URL               = ""
     },
     var.secret_values,
     {
